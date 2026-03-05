@@ -5,12 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Visual Scanner</title>
   <style>
-    /* ===== СБРОС И БАЗОВЫЕ СТИЛИ ===== */
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent; /* убираем синюю вспышку при тапе на iOS */
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
@@ -21,7 +20,7 @@
       flex-direction: column;
       align-items: center;
       min-height: 100vh;
-      min-height: -webkit-fill-available; /* фикс высоты на iOS Safari */
+      min-height: -webkit-fill-available;
       padding: 12px;
       overflow-x: hidden;
     }
@@ -42,12 +41,10 @@
       margin-bottom: 12px;
     }
 
-    /* ===== ОБЁРТКА КАМЕРЫ — занимает всю доступную ширину ===== */
     .scanner-wrapper {
       position: relative;
       width: 100%;
       max-width: 640px;
-      /* Соотношение сторон 4:3 для камеры */
       aspect-ratio: 4/3;
       border: 1px solid #1a2a2a;
       border-radius: 12px;
@@ -55,22 +52,16 @@
       box-shadow: 0 0 40px #00ffcc22;
     }
 
-    #video {
-      display: none;
-    }
+    #video { display: none; }
 
-    /* Canvas растягивается на всю обёртку */
     #canvas {
       display: block;
       width: 100%;
       height: 100%;
     }
 
-    #offscreen {
-      display: none;
-    }
+    #offscreen { display: none; }
 
-    /* ===== ЛИНИЯ СКАНЕРА ===== */
     .scan-line {
       position: absolute;
       top: 0;
@@ -96,11 +87,10 @@
     .scan-label.top { top: 8px; }
     .scan-label.bot { bottom: 8px; }
 
-    /* ===== ОВЕРЛЕЙ "TAP TO START" — поверх камеры ===== */
     #startOverlay {
       position: absolute;
-      inset: 0; /* растягиваем на весь родитель */
-      background: rgba(0, 0, 0, 0.85);
+      inset: 0;
+      background: rgba(0,0,0,0.85);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -111,9 +101,7 @@
       gap: 12px;
     }
 
-    #startOverlay .big-icon {
-      font-size: 3rem;
-    }
+    #startOverlay .big-icon { font-size: 3rem; }
 
     #startOverlay .tap-text {
       font-size: 1rem;
@@ -128,7 +116,6 @@
       letter-spacing: 1px;
     }
 
-    /* Пульсирующий круг вокруг иконки */
     #startOverlay .pulse {
       position: absolute;
       width: 80px;
@@ -143,7 +130,19 @@
       100% { transform: scale(2);   opacity: 0; }
     }
 
-    /* ===== ВИЗУАЛИЗАТОР ===== */
+    /* Статус AudioContext — показываем на экране для отладки */
+    #audioStatus {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 0.55rem;
+      background: #00000088;
+      padding: 4px 8px;
+      border-radius: 6px;
+      z-index: 15;
+      letter-spacing: 1px;
+    }
+
     #vizCanvas {
       width: 100%;
       max-width: 640px;
@@ -154,17 +153,15 @@
       border-top: 1px solid #0f2020;
     }
 
-    /* ===== ПАНЕЛЬ УПРАВЛЕНИЯ — сетка для мобильного ===== */
     .controls {
       margin-top: 12px;
       width: 100%;
       max-width: 640px;
       display: grid;
-      grid-template-columns: 1fr 1fr; /* две колонки */
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
 
-    /* Большие кнопки — удобно тапать пальцем */
     .big-btn {
       padding: 14px;
       border: 1px solid #00ffcc55;
@@ -176,7 +173,7 @@
       cursor: pointer;
       transition: all 0.2s;
       text-transform: uppercase;
-      min-height: 52px; /* минимальная высота для пальца */
+      min-height: 52px;
     }
     .big-btn:active {
       background: #00ffcc22;
@@ -187,7 +184,6 @@
       color: #000;
     }
 
-    /* ===== СЛАЙДЕРЫ — на всю ширину ===== */
     .sliders-grid {
       margin-top: 10px;
       width: 100%;
@@ -230,7 +226,7 @@
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 20px; /* крупнее для пальца */
+      width: 20px;
       height: 20px;
       border-radius: 50%;
       background: #00ffcc;
@@ -238,7 +234,6 @@
       box-shadow: 0 0 8px #00ffcc;
     }
 
-    /* ===== РЕЖИМЫ ЗВУКА ===== */
     .modes-row {
       margin-top: 10px;
       width: 100%;
@@ -267,7 +262,6 @@
       background: #00ffcc11;
     }
 
-    /* ===== СТАТУС ===== */
     #status {
       margin-top: 10px;
       font-size: 0.65rem;
@@ -278,7 +272,6 @@
       min-height: 18px;
     }
 
-    /* ===== ИНФО-СТРОКА ===== */
     .info-row {
       margin-top: 8px;
       margin-bottom: 16px;
@@ -289,7 +282,6 @@
       letter-spacing: 1px;
     }
     .info-row span { color: #00ffcc99; }
-
   </style>
 </head>
 <body>
@@ -297,7 +289,6 @@
   <h1>⬛ Visual Scanner</h1>
   <p class="subtitle">camera → grayscale → sound</p>
 
-  <!-- ===== КАМЕРА ===== -->
   <div class="scanner-wrapper">
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas" width="640" height="480"></canvas>
@@ -306,7 +297,9 @@
     <div class="scan-label top">SCAN</div>
     <div class="scan-label bot">SCAN</div>
 
-    <!-- Оверлей — нажми чтобы начать (нужен для разблокировки звука) -->
+    <!-- Статус звука — виден поверх камеры -->
+    <div id="audioStatus" style="color:#556">⏳ audio init</div>
+
     <div id="startOverlay">
       <div class="pulse"></div>
       <div class="big-icon">📷</div>
@@ -315,16 +308,13 @@
     </div>
   </div>
 
-  <!-- Визуализатор частот -->
   <canvas id="vizCanvas" width="640" height="70"></canvas>
 
-  <!-- ===== КНОПКИ ===== -->
   <div class="controls">
     <button class="big-btn" id="muteBtn">🔊 Звук вкл</button>
-    <button class="big-btn" id="camBtn">🔄 Фронт. камера</button>
+    <button class="big-btn" id="camBtn">🔄 Тыльная кам.</button>
   </div>
 
-  <!-- ===== РЕЖИМЫ ЗВУКА ===== -->
   <div class="modes-row">
     <button class="mode-btn active" data-mode="sine">SINE</button>
     <button class="mode-btn" data-mode="triangle">TRI</button>
@@ -332,36 +322,29 @@
     <button class="mode-btn" data-mode="square">SQR</button>
   </div>
 
-  <!-- ===== СЛАЙДЕРЫ ===== -->
   <div class="sliders-grid">
-
     <div class="slider-group">
       <label>Громкость</label>
       <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.7">
       <div class="value" id="volVal">70%</div>
     </div>
-
     <div class="slider-group">
       <label>Голоса</label>
       <input type="range" id="voicesSlider" min="1" max="16" step="1" value="8">
       <div class="value" id="voiceVal">8</div>
     </div>
-
     <div class="slider-group">
       <label>Мин. Гц</label>
       <input type="range" id="minFreqSlider" min="50" max="500" step="10" value="100">
       <div class="value" id="minVal">100 Hz</div>
     </div>
-
     <div class="slider-group">
       <label>Макс. Гц</label>
       <input type="range" id="maxFreqSlider" min="500" max="4000" step="50" value="2000">
       <div class="value" id="maxVal">2000 Hz</div>
     </div>
-
   </div>
 
-  <!-- Инфо -->
   <div class="info-row">
     Яркость: <span id="infoAvg">—</span> &nbsp;|&nbsp;
     Режим: <span id="infoMode">sine</span>
@@ -369,21 +352,21 @@
 
   <div id="status">Нажми на экран камеры для старта</div>
 
-<!-- ===== JAVASCRIPT ===== -->
 <script>
 // ————————————————————————————————————————————
-//  ЭЛЕМЕНТЫ СТРАНИЦЫ
+//  ЭЛЕМЕНТЫ
 // ————————————————————————————————————————————
-const video         = document.getElementById('video');
-const canvas        = document.getElementById('canvas');
-const offscreen     = document.getElementById('offscreen');
-const vizCanvas     = document.getElementById('vizCanvas');
-const startOverlay  = document.getElementById('startOverlay');
-const muteBtn       = document.getElementById('muteBtn');
-const camBtn        = document.getElementById('camBtn');
-const statusEl      = document.getElementById('status');
-const infoAvg       = document.getElementById('infoAvg');
-const infoMode      = document.getElementById('infoMode');
+const video        = document.getElementById('video');
+const canvas       = document.getElementById('canvas');
+const offscreen    = document.getElementById('offscreen');
+const vizCanvas    = document.getElementById('vizCanvas');
+const startOverlay = document.getElementById('startOverlay');
+const muteBtn      = document.getElementById('muteBtn');
+const camBtn       = document.getElementById('camBtn');
+const statusEl     = document.getElementById('status');
+const audioStatus  = document.getElementById('audioStatus');
+const infoAvg      = document.getElementById('infoAvg');
+const infoMode     = document.getElementById('infoMode');
 
 const volumeSlider  = document.getElementById('volumeSlider');
 const voicesSlider  = document.getElementById('voicesSlider');
@@ -406,35 +389,92 @@ let isMuted     = false;
 let isRunning   = false;
 let waveType    = 'sine';
 let animId      = null;
-let useFrontCam = true; // По умолчанию фронтальная — удобнее на телефоне
+let useFrontCam = false; // тыльная по умолчанию — лучше для сканирования
 
 // ————————————————————————————————————————————
-//  ИНИЦИАЛИЗАЦИЯ АУДИО
-//  ВАЖНО: вызывается только после тапа пользователя!
-//  Браузер блокирует звук без действия пользователя
+//  iOS ФИКС: "разбудить" аудио коротким пустым звуком
+//  iOS блокирует аудио пока не воспроизведёт хоть что-то
+//  в момент пользовательского действия
 // ————————————————————————————————————————————
-function initAudio() {
-  if (audioCtx) return; // уже создан — не создаём снова
-
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 256;
-
-  masterGain = audioCtx.createGain();
-  masterGain.gain.value = parseFloat(volumeSlider.value);
-
-  analyser.connect(masterGain);
-  masterGain.connect(audioCtx.destination);
-
-  createOscillators();
+function unlockAudioiOS(ctx) {
+  // Создаём пустой буфер (0.001 секунды тишины)
+  const buffer = ctx.createBuffer(1, 1, 22050);
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(ctx.destination);
+  source.start(0);      // Воспроизводим прямо сейчас
+  source.stop(0.001);   // И сразу останавливаем
+  // Этот трюк "разблокирует" аудио на iOS
 }
 
 // ————————————————————————————————————————————
-//  СОЗДАНИЕ ОСЦИЛЛЯТОРОВ (генераторов тона)
+//  ИНИЦИАЛИЗАЦИЯ АУДИО — вызывать ТОЛЬКО внутри тапа!
+// ————————————————————————————————————————————
+async function initAudio() {
+  if (audioCtx) {
+    // Уже создан — просто возобновляем если спал
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume();
+    }
+    updateAudioStatus();
+    return;
+  }
+
+  // Создаём AudioContext (это синтезатор звука браузера)
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // === ГЛАВНЫЙ ФИКС ДЛЯ iOS ===
+  // Сразу разблокируем через пустой звук
+  unlockAudioiOS(audioCtx);
+
+  // Возобновляем если сразу ушёл в suspended
+  if (audioCtx.state === 'suspended') {
+    await audioCtx.resume();
+  }
+
+  // Анализатор для визуализатора
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 256;
+
+  // Главная громкость
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = parseFloat(volumeSlider.value);
+
+  // Цепочка: осцилляторы → анализатор → громкость → колонки
+  analyser.connect(masterGain);
+  masterGain.connect(audioCtx.destination);
+
+  // Создаём осцилляторы
+  createOscillators();
+  updateAudioStatus();
+}
+
+// ————————————————————————————————————————————
+//  ПОКАЗЫВАЕМ СТАТУС АУДИО НА ЭКРАНЕ
+//  Помогает понять что происходит на iPhone
+// ————————————————————————————————————————————
+function updateAudioStatus() {
+  if (!audioCtx) {
+    audioStatus.style.color = '#556';
+    audioStatus.textContent = '⏳ audio init';
+    return;
+  }
+  if (audioCtx.state === 'running') {
+    audioStatus.style.color = '#00ffcc';
+    audioStatus.textContent = '🔊 audio: OK';
+  } else {
+    audioStatus.style.color = '#ff6644';
+    audioStatus.textContent = '⚠ audio: ' + audioCtx.state;
+  }
+}
+
+// ————————————————————————————————————————————
+//  СОЗДАНИЕ ОСЦИЛЛЯТОРОВ
 // ————————————————————————————————————————————
 function createOscillators() {
   const count = parseInt(voicesSlider.value);
 
+  // Останавливаем старые
   oscillators.forEach(osc => { try { osc.stop(); } catch(e) {} });
   oscillators = [];
   gainNodes   = [];
@@ -443,13 +483,15 @@ function createOscillators() {
     const osc  = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
 
-    osc.type            = waveType;
-    osc.frequency.value = 200;
-    gain.gain.value     = 0;
+    osc.type = waveType;
+    osc.frequency.value = 200 + i * 50; // Разные начальные частоты
+
+    // Начинаем с нуля
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
 
     osc.connect(gain);
     gain.connect(analyser);
-    osc.start();
+    osc.start(); // Запускаем сразу — пока тихо
 
     oscillators.push(osc);
     gainNodes.push(gain);
@@ -460,140 +502,144 @@ function createOscillators() {
 //  ЗАПУСК КАМЕРЫ
 // ————————————————————————————————————————————
 async function startCamera() {
-  // Останавливаем предыдущий поток если был
+  // Останавливаем предыдущий поток
   if (video.srcObject) {
     video.srcObject.getTracks().forEach(t => t.stop());
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
+    const constraints = {
       video: {
-        facingMode: useFrontCam ? 'user' : 'environment', // user = фронт, environment = тыл
+        facingMode: useFrontCam ? 'user' : 'environment',
         width:  { ideal: 1280 },
         height: { ideal: 960  }
       },
       audio: false
-    });
+    };
 
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
+
+    // Ждём пока видео загрузится
+    await new Promise(resolve => {
+      video.onloadedmetadata = resolve;
+    });
     await video.play();
 
-    statusEl.textContent = 'Наведи на штрихкод, узор или вид — центральная линия создаёт звук';
+    statusEl.textContent = 'Наведи на узор — линия читает яркость и создаёт звук';
     isRunning = true;
     scanLoop();
 
   } catch (err) {
-    statusEl.textContent = '⚠ Нет доступа к камере: ' + err.message;
+    statusEl.textContent = '⚠ Камера: ' + err.message;
+    console.error(err);
   }
 }
 
 // ————————————————————————————————————————————
-//  ГЛАВНЫЙ ЦИКЛ СКАНИРОВАНИЯ
+//  ГЛАВНЫЙ ЦИКЛ
 // ————————————————————————————————————————————
 function scanLoop() {
   if (!isRunning) return;
 
-  // Рисуем кадр с камеры на невидимый canvas
-  offCtx.drawImage(video, 0, 0, 640, 480);
-
-  // Читаем пиксели
-  const frame = offCtx.getImageData(0, 0, 640, 480);
-  drawGrayscaleAndScan(frame.data);
-  drawVisualizer();
+  // Проверяем что видео реально играет
+  if (video.readyState >= 2) {
+    offCtx.drawImage(video, 0, 0, 640, 480);
+    const frame = offCtx.getImageData(0, 0, 640, 480);
+    drawGrayscaleAndScan(frame.data);
+    drawVisualizer();
+  }
 
   animId = requestAnimationFrame(scanLoop);
 }
 
 // ————————————————————————————————————————————
-//  ПЕРЕВОД В ЧБ + СЧИТЫВАНИЕ ПОЛОСЫ
+//  ЧБ + СКАНИРОВАНИЕ
 // ————————————————————————————————————————————
 function drawGrayscaleAndScan(data) {
-  const W = 640;
-  const H = 480;
-
-  const output = ctx.createImageData(W, H);
-  const out    = output.data;
-
-  const scanX     = Math.floor(W / 2);
-  const scanWidth = 5;
+  const W = 640, H = 480;
+  const output     = ctx.createImageData(W, H);
+  const out        = output.data;
+  const scanX      = Math.floor(W / 2);
+  const scanWidth  = 5;
   const scanColumn = new Float32Array(H);
 
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const idx  = (y * W + x) * 4;
-      const r    = data[idx];
-      const g    = data[idx + 1];
-      const b    = data[idx + 2];
-      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      const gray = 0.299 * data[idx] + 0.587 * data[idx+1] + 0.114 * data[idx+2];
 
       if (x >= scanX - scanWidth && x <= scanX + scanWidth) {
         scanColumn[y] = gray;
       }
 
-      out[idx]     = gray;
-      out[idx + 1] = gray;
-      out[idx + 2] = gray;
-      out[idx + 3] = 255;
+      out[idx] = out[idx+1] = out[idx+2] = gray;
+      out[idx+3] = 255;
     }
   }
 
   ctx.putImageData(output, 0, 0);
 
-  // Виньетка для красоты
-  const gradient = ctx.createRadialGradient(320, 240, 150, 320, 240, 370);
-  gradient.addColorStop(0, 'transparent');
-  gradient.addColorStop(1, 'rgba(0,0,0,0.5)');
-  ctx.fillStyle = gradient;
+  // Виньетка
+  const grad = ctx.createRadialGradient(320,240,150, 320,240,370);
+  grad.addColorStop(0, 'transparent');
+  grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
   applySound(scanColumn);
 }
 
 // ————————————————————————————————————————————
-//  ПРИМЕНЕНИЕ ЗВУКА
+//  ЗВУК
 // ————————————————————————————————————————————
 function applySound(scanColumn) {
-  if (!audioCtx || isMuted) {
-    gainNodes.forEach(g => g.gain.setTargetAtTime(0, audioCtx?.currentTime || 0, 0.1));
+  if (!audioCtx || isMuted) return;
+
+  // Каждый раз проверяем и возобновляем если нужно
+  if (audioCtx.state !== 'running') {
+    audioCtx.resume().then(updateAudioStatus);
     return;
   }
 
-  // Если AudioContext был приостановлен — возобновляем
-  // Это нужно на iOS где контекст может засыпать
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-
-  const H        = scanColumn.length;
-  const count    = oscillators.length;
-  const minFreq  = parseInt(minFreqSlider.value);
-  const maxFreq  = parseInt(maxFreqSlider.value);
-  const volScale = 1 / count;
-  const zoneH    = H / count;
+  const H       = scanColumn.length;
+  const count   = oscillators.length;
+  const minFreq = parseInt(minFreqSlider.value);
+  const maxFreq = parseInt(maxFreqSlider.value);
+  const zoneH   = H / count;
+  const volMax  = parseFloat(volumeSlider.value) / count * 1.5;
 
   let avgBrightness = 0;
+  const now = audioCtx.currentTime;
 
   for (let i = 0; i < count; i++) {
     const zoneStart = Math.floor(i * zoneH);
     const zoneEnd   = Math.floor((i + 1) * zoneH);
 
     let sum = 0;
-    for (let y = zoneStart; y < zoneEnd; y++) {
-      sum += scanColumn[y];
-    }
-    const avgZone  = sum / (zoneEnd - zoneStart);
-    avgBrightness += avgZone;
+    for (let y = zoneStart; y < zoneEnd; y++) sum += scanColumn[y];
+    const avg = sum / (zoneEnd - zoneStart);
+    avgBrightness += avg;
 
-    const brightness = avgZone / 255;
+    const brightness = avg / 255; // 0..1
+
+    // Частота: тёмный → низко, светлый → высоко (логарифм = музыкальнее)
     const freq = minFreq * Math.pow(maxFreq / minFreq, brightness);
 
-    oscillators[i].frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.05);
+    // Громкость этого голоса
+    const vol = brightness * (1 - brightness * 0.4) * volMax * 2;
 
-    const vol = brightness * (1 - brightness * 0.3) * volScale * 2;
-    gainNodes[i].gain.setTargetAtTime(
-      Math.min(vol, volScale),
-      audioCtx.currentTime,
-      0.3
+    // Используем setValueAtTime + linearRampToValueAtTime
+    // вместо setTargetAtTime — лучше работает на iOS Safari
+    oscillators[i].frequency.cancelScheduledValues(now);
+    oscillators[i].frequency.setValueAtTime(oscillators[i].frequency.value, now);
+    oscillators[i].frequency.linearRampToValueAtTime(freq, now + 0.05);
+
+    gainNodes[i].gain.cancelScheduledValues(now);
+    gainNodes[i].gain.setValueAtTime(gainNodes[i].gain.value, now);
+    gainNodes[i].gain.linearRampToValueAtTime(
+      Math.min(vol, volMax),
+      now + 0.08 // плавное нарастание — 80мс
     );
   }
 
@@ -608,70 +654,71 @@ function drawVisualizer() {
 
   const W = vizCanvas.width;
   const H = vizCanvas.height;
-
-  const bufferLength = analyser.frequencyBinCount;
-  const dataArray    = new Uint8Array(bufferLength);
-  analyser.getByteFrequencyData(dataArray);
+  const bufLen  = analyser.frequencyBinCount;
+  const dataArr = new Uint8Array(bufLen);
+  analyser.getByteFrequencyData(dataArr);
 
   vizCtx.fillStyle = '#05080f';
   vizCtx.fillRect(0, 0, W, H);
 
-  const barWidth = W / bufferLength * 2.5;
+  const bw = W / bufLen * 2.5;
   let x = 0;
 
-  for (let i = 0; i < bufferLength; i++) {
-    const value = dataArray[i];
-    const barH  = (value / 255) * H * 0.9;
-    const hue   = 160 + (value / 255) * 40;
-    vizCtx.fillStyle = `hsl(${hue}, 80%, ${20 + (value / 255) * 50}%)`;
-    vizCtx.fillRect(x, (H - barH) / 2, barWidth - 1, barH);
-    x += barWidth + 1;
+  for (let i = 0; i < bufLen; i++) {
+    const v    = dataArr[i];
+    const barH = (v / 255) * H * 0.9;
+    vizCtx.fillStyle = `hsl(${160 + (v/255)*40}, 80%, ${20 + (v/255)*50}%)`;
+    vizCtx.fillRect(x, (H - barH) / 2, bw - 1, barH);
+    x += bw + 1;
     if (x > W) break;
   }
 }
 
 // ————————————————————————————————————————————
-//  ТАП НА ОВЕРЛЕЙ — запускаем всё
-//  Это КЛЮЧЕВОЙ момент для звука на мобильных:
-//  AudioContext должен создаться внутри обработчика тапа
+//  ТАП НА ОВЕРЛЕЙ — главный старт
 // ————————————————————————————————————————————
-startOverlay.addEventListener('click', async () => {
-  // Сначала инициализируем аудио (внутри тапа — браузер разрешит)
-  initAudio();
+startOverlay.addEventListener('touchend', handleStart, { passive: false });
+startOverlay.addEventListener('click', handleStart);
 
-  // Явно возобновляем AudioContext
-  if (audioCtx.state === 'suspended') {
-    await audioCtx.resume();
-  }
+async function handleStart(e) {
+  e.preventDefault(); // Блокируем двойной вызов click после touchend
+
+  // Инициализируем аудио ВНУТРИ обработчика — iOS требует именно этого
+  await initAudio();
 
   // Прячем оверлей
   startOverlay.style.display = 'none';
 
   // Запускаем камеру
   await startCamera();
-});
+}
 
 // ————————————————————————————————————————————
-//  КНОПКА ЗВУК ВКЛ/ВЫКЛ
+//  КНОПКА MUTE
 // ————————————————————————————————————————————
-muteBtn.addEventListener('click', () => {
-  if (!audioCtx) return;
+muteBtn.addEventListener('click', async () => {
+  // Если аудио ещё не создано — создаём
+  if (!audioCtx) await initAudio();
+
   isMuted = !isMuted;
   muteBtn.textContent = isMuted ? '🔇 Звук выкл' : '🔊 Звук вкл';
   muteBtn.classList.toggle('active', isMuted);
-  masterGain.gain.setTargetAtTime(
+
+  const now = audioCtx.currentTime;
+  masterGain.gain.cancelScheduledValues(now);
+  masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+  masterGain.gain.linearRampToValueAtTime(
     isMuted ? 0 : parseFloat(volumeSlider.value),
-    audioCtx.currentTime,
-    0.1
+    now + 0.1
   );
 });
 
 // ————————————————————————————————————————————
-//  КНОПКА ПЕРЕКЛЮЧЕНИЯ КАМЕРЫ (фронт / тыл)
+//  ПЕРЕКЛЮЧЕНИЕ КАМЕРЫ
 // ————————————————————————————————————————————
 camBtn.addEventListener('click', async () => {
   useFrontCam = !useFrontCam;
-  camBtn.textContent = useFrontCam ? '🔄 Фронт. камера' : '🔄 Тыльная камера';
+  camBtn.textContent = useFrontCam ? '🔄 Фронт. камера' : '🔄 Тыльная кам.';
   if (isRunning) {
     cancelAnimationFrame(animId);
     isRunning = false;
@@ -685,7 +732,9 @@ camBtn.addEventListener('click', async () => {
 volumeSlider.addEventListener('input', () => {
   document.getElementById('volVal').textContent = Math.round(volumeSlider.value * 100) + '%';
   if (masterGain && !isMuted) {
-    masterGain.gain.setTargetAtTime(parseFloat(volumeSlider.value), audioCtx.currentTime, 0.05);
+    const now = audioCtx.currentTime;
+    masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+    masterGain.gain.linearRampToValueAtTime(parseFloat(volumeSlider.value), now + 0.05);
   }
 });
 
@@ -717,14 +766,23 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 });
 
 // ————————————————————————————————————————————
-//  ФИКС ДЛЯ iOS: возобновляем звук если страница
-//  была свёрнута и снова открыта
+//  ФИКС: возобновляем звук когда возвращаемся на вкладку
+//  На iOS звук "засыпает" если свернуть Safari
 // ————————————————————————————————————————————
-document.addEventListener('visibilitychange', () => {
+document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible' && audioCtx) {
-    audioCtx.resume();
+    await audioCtx.resume();
+    updateAudioStatus();
   }
 });
+
+// Дополнительный фикс — тап в любом месте экрана возобновляет аудио
+document.addEventListener('touchstart', async () => {
+  if (audioCtx && audioCtx.state === 'suspended') {
+    await audioCtx.resume();
+    updateAudioStatus();
+  }
+}, { passive: true });
 </script>
 </body>
 </html>
