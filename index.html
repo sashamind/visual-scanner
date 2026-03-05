@@ -7,11 +7,7 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-    * {
-      margin: 0; padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
     body {
       background: #000;
@@ -25,7 +21,6 @@
       overflow-x: hidden;
     }
 
-    /* ===== ХЕДЕР ===== */
     .header {
       width: 100%;
       max-width: 640px;
@@ -35,20 +30,9 @@
       align-items: flex-end;
       border-bottom: 1px solid #222;
     }
+    .header-title { font-size: 0.75rem; letter-spacing: 4px; color: #fff; }
+    .header-sub   { font-size: 0.5rem;  color: #444; letter-spacing: 2px; }
 
-    .header-title {
-      font-size: 0.75rem;
-      letter-spacing: 4px;
-      color: #fff;
-    }
-
-    .header-sub {
-      font-size: 0.5rem;
-      color: #444;
-      letter-spacing: 2px;
-    }
-
-    /* ===== КАМЕРА ===== */
     .scanner-wrapper {
       position: relative;
       width: 100%;
@@ -58,20 +42,13 @@
       overflow: hidden;
     }
 
-    #video     { display: none; }
-    #offscreen { display: none; }
+    #video, #offscreen { display: none; }
 
-    #canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
+    #canvas { display: block; width: 100%; height: 100%; }
 
-    /* Линия сканера — тонкая, белая */
     .scan-line {
       position: absolute;
-      top: 0; bottom: 0;
-      left: 50%;
+      top: 0; bottom: 0; left: 50%;
       transform: translateX(-50%);
       width: 1px;
       background: #fff;
@@ -79,288 +56,145 @@
       pointer-events: none;
       z-index: 10;
     }
-
-    /* Засечки на линии */
     .tick {
-      position: absolute;
-      left: 50%;
+      position: absolute; left: 50%;
       transform: translateX(-50%);
-      width: 7px;
-      height: 1px;
-      background: #fff;
-      z-index: 11;
+      width: 7px; height: 1px; background: #fff; z-index: 11;
     }
-    .tick.t { top: 0; }
-    .tick.b { bottom: 0; }
+    .tick.t { top: 0; } .tick.b { bottom: 0; }
 
-    /* Статус аудио */
     #audioStatus {
-      position: absolute;
-      bottom: 8px;
-      left: 10px;
-      font-size: 0.45rem;
-      color: #444;
-      letter-spacing: 2px;
-      z-index: 15;
+      position: absolute; bottom: 8px; left: 10px;
+      font-size: 0.45rem; color: #444; letter-spacing: 2px; z-index: 15;
     }
 
-    /* Живые данные поверх камеры */
     .live-data {
-      position: absolute;
-      bottom: 8px;
-      right: 10px;
-      font-size: 0.45rem;
-      color: #555;
-      letter-spacing: 2px;
-      z-index: 15;
-      text-align: right;
-      line-height: 1.8;
+      position: absolute; bottom: 8px; right: 10px;
+      font-size: 0.45rem; color: #555; letter-spacing: 2px;
+      z-index: 15; text-align: right; line-height: 1.8;
     }
 
-    /* ===== ОВЕРЛЕЙ СТАРТА ===== */
     #startOverlay {
-      position: absolute;
-      inset: 0;
-      background: #000;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 20;
-      cursor: pointer;
-      gap: 16px;
+      position: absolute; inset: 0; background: #000;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 20; cursor: pointer; gap: 16px;
     }
-
-    /* Тонкие линии сетки */
     .overlay-grid {
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
       background-image:
         linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
       background-size: 40px 40px;
     }
-
-    .overlay-label {
-      font-size: 0.55rem;
-      letter-spacing: 5px;
-      color: #444;
-      z-index: 1;
-    }
-
+    .overlay-label { font-size: 0.55rem; letter-spacing: 5px; color: #444; z-index: 1; }
     .overlay-tap {
-      font-size: 0.65rem;
-      letter-spacing: 4px;
-      color: #fff;
-      border: 1px solid #fff;
-      padding: 10px 28px;
-      z-index: 1;
+      font-size: 0.65rem; letter-spacing: 4px; color: #fff;
+      border: 1px solid #fff; padding: 10px 28px; z-index: 1;
       animation: blink 1.4s step-end infinite;
     }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0; }
-    }
-
-    /* ===== ВИЗУАЛИЗАТОР ===== */
     #vizCanvas {
-      width: 100%;
-      max-width: 640px;
-      height: 48px;
-      display: block;
-      background: #000;
+      width: 100%; max-width: 640px; height: 48px;
+      display: block; background: #000;
       border-top: 1px solid #1a1a1a;
     }
 
-    /* ===== ДАННЫЕ ===== */
     .data-row {
-      width: 100%;
-      max-width: 640px;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      border-top: 1px solid #1a1a1a;
-      border-bottom: 1px solid #1a1a1a;
+      width: 100%; max-width: 640px;
+      display: grid; grid-template-columns: repeat(4,1fr);
+      border-top: 1px solid #1a1a1a; border-bottom: 1px solid #1a1a1a;
     }
-
-    .data-cell {
-      padding: 8px 10px;
-      border-right: 1px solid #1a1a1a;
-    }
+    .data-cell { padding: 8px 10px; border-right: 1px solid #1a1a1a; }
     .data-cell:last-child { border-right: none; }
+    .dc-label { font-size:0.38rem; color:#444; letter-spacing:2px; margin-bottom:3px; text-transform:uppercase; }
+    .dc-val   { font-size:0.7rem; color:#fff; }
 
-    .dc-label {
-      font-size: 0.38rem;
-      color: #444;
-      letter-spacing: 2px;
-      margin-bottom: 3px;
-      text-transform: uppercase;
-    }
-
-    .dc-val {
-      font-size: 0.7rem;
-      color: #fff;
-    }
-
-    /* ===== СЕКЦИЯ ===== */
-    .section {
-      width: 100%;
-      max-width: 640px;
-    }
-
+    .section { width: 100%; max-width: 640px; }
     .section-head {
-      font-size: 0.4rem;
-      color: #333;
-      letter-spacing: 3px;
-      padding: 10px 10px 0;
-      text-transform: uppercase;
+      font-size: 0.4rem; color: #333; letter-spacing: 3px;
+      padding: 10px 10px 0; text-transform: uppercase;
       border-top: 1px solid #111;
     }
 
-    /* ===== РЕЖИМЫ ЗВУКА — 2 кнопки ===== */
-    .sound-modes {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      border-bottom: 1px solid #1a1a1a;
-    }
-
+    .sound-modes { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; }
     .smode-btn {
-      padding: 12px 10px;
-      border: none;
-      border-right: 1px solid #1a1a1a;
-      background: #000;
-      color: #444;
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.6rem;
-      letter-spacing: 2px;
-      cursor: pointer;
-      text-align: left;
-      line-height: 1.8;
-      transition: background 0.1s;
+      padding: 12px 10px; border:none; border-right:1px solid #1a1a1a;
+      background:#000; color:#444;
+      font-family:'Share Tech Mono',monospace;
+      font-size:0.6rem; letter-spacing:2px; cursor:pointer;
+      text-align:left; line-height:1.8; transition:background 0.1s;
     }
-    .smode-btn:last-child { border-right: none; }
-    .smode-btn .smode-name { display: block; }
-    .smode-btn .smode-desc { font-size: 0.38rem; color: #333; letter-spacing: 1px; display: block; }
-    .smode-btn.active { background: #fff; color: #000; }
-    .smode-btn.active .smode-desc { color: #666; }
-    .smode-btn:active { background: #111; color: #fff; }
+    .smode-btn:last-child { border-right:none; }
+    .smode-btn .smode-name { display:block; }
+    .smode-btn .smode-desc { font-size:0.38rem; color:#333; letter-spacing:1px; display:block; }
+    .smode-btn.active { background:#fff; color:#000; }
+    .smode-btn.active .smode-desc { color:#666; }
+    .smode-btn:active { background:#111; color:#fff; }
 
-    /* ===== ТИПЫ ВОЛНЫ — 4 кнопки ===== */
-    .wave-modes {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      border-bottom: 1px solid #1a1a1a;
-    }
-
+    .wave-modes { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid #1a1a1a; }
     .wave-btn {
-      padding: 10px 0;
-      border: none;
-      border-right: 1px solid #1a1a1a;
-      background: #000;
-      color: #444;
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.6rem;
-      letter-spacing: 2px;
-      cursor: pointer;
-      transition: background 0.1s;
+      padding:10px 0; border:none; border-right:1px solid #1a1a1a;
+      background:#000; color:#444;
+      font-family:'Share Tech Mono',monospace;
+      font-size:0.6rem; letter-spacing:2px; cursor:pointer; transition:background 0.1s;
     }
-    .wave-btn:last-child { border-right: none; }
-    .wave-btn.active { background: #fff; color: #000; }
-    .wave-btn:active { background: #111; color: #fff; }
+    .wave-btn:last-child { border-right:none; }
+    .wave-btn.active { background:#fff; color:#000; }
+    .wave-btn:active  { background:#111; color:#fff; }
 
-    /* ===== СЛАЙДЕРЫ ===== */
-    .sliders {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      border-bottom: 1px solid #1a1a1a;
-    }
-
-    .slider-cell {
-      padding: 10px 12px;
-      border-right: 1px solid #1a1a1a;
-    }
-    .slider-cell:nth-child(even) { border-right: none; }
-    .slider-cell:nth-child(3),
-    .slider-cell:nth-child(4)    { border-top: 1px solid #1a1a1a; }
-
+    .sliders { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; }
+    .slider-cell { padding:10px 12px; border-right:1px solid #1a1a1a; }
+    .slider-cell:nth-child(even) { border-right:none; }
+    .slider-cell:nth-child(3), .slider-cell:nth-child(4) { border-top:1px solid #1a1a1a; }
     .sl-label {
-      font-size: 0.4rem;
-      color: #444;
-      letter-spacing: 2px;
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      text-transform: uppercase;
+      font-size:0.4rem; color:#444; letter-spacing:2px;
+      display:flex; justify-content:space-between;
+      margin-bottom:8px; text-transform:uppercase;
     }
-
-    .sl-label span { color: #fff; }
+    .sl-label span { color:#fff; }
 
     input[type="range"] {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 1px;
-      background: #333;
-      outline: none;
+      -webkit-appearance:none; width:100%; height:1px;
+      background:#333; outline:none;
     }
     input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 0;
-      background: #fff;
-      cursor: pointer;
+      -webkit-appearance:none; width:16px; height:16px;
+      border-radius:0; background:#fff; cursor:pointer;
     }
 
-    /* ===== НИЖНИЕ КНОПКИ ===== */
-    .bottom-btns {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      border-bottom: 1px solid #1a1a1a;
-      margin-bottom: 24px;
-    }
-
+    .bottom-btns { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; margin-bottom:24px; }
     .ctrl-btn {
-      padding: 12px;
-      border: none;
-      border-right: 1px solid #1a1a1a;
-      background: #000;
-      color: #444;
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.6rem;
-      letter-spacing: 2px;
-      cursor: pointer;
-      transition: background 0.1s;
+      padding:12px; border:none; border-right:1px solid #1a1a1a;
+      background:#000; color:#444;
+      font-family:'Share Tech Mono',monospace;
+      font-size:0.6rem; letter-spacing:2px; cursor:pointer; transition:background 0.1s;
     }
-    .ctrl-btn:last-child { border-right: none; }
-    .ctrl-btn.active     { color: #fff; }
-    .ctrl-btn:active     { background: #111; }
+    .ctrl-btn:last-child { border-right:none; }
+    .ctrl-btn.active  { color:#fff; }
+    .ctrl-btn:active  { background:#111; }
   </style>
 </head>
 <body>
 
-  <!-- ХЕДЕР -->
   <div class="header">
     <div class="header-title">DATA.SCAN</div>
     <div class="header-sub">visual → audio</div>
   </div>
 
-  <!-- КАМЕРА -->
   <div class="scanner-wrapper">
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas" width="640" height="480"></canvas>
     <canvas id="offscreen" width="640" height="480"></canvas>
-
     <div class="scan-line"></div>
     <div class="tick t"></div>
     <div class="tick b"></div>
-
     <div id="audioStatus">audio: —</div>
     <div class="live-data">
       <div id="liveLum">lum —</div>
       <div id="liveFreq">freq —</div>
     </div>
-
-    <!-- ОВЕРЛЕЙ -->
     <div id="startOverlay">
       <div class="overlay-grid"></div>
       <div class="overlay-label">DATA.SCAN / visual→audio</div>
@@ -368,36 +202,21 @@
     </div>
   </div>
 
-  <!-- ВИЗУАЛИЗАТОР -->
   <canvas id="vizCanvas" width="640" height="48"></canvas>
 
-  <!-- ДАННЫЕ -->
   <div class="data-row">
-    <div class="data-cell">
-      <div class="dc-label">lum</div>
-      <div class="dc-val" id="infoLum">—</div>
-    </div>
-    <div class="data-cell">
-      <div class="dc-label">voices</div>
-      <div class="dc-val" id="infoVoices">—</div>
-    </div>
-    <div class="data-cell">
-      <div class="dc-label">mode</div>
-      <div class="dc-val" id="infoMode">raw</div>
-    </div>
-    <div class="data-cell">
-      <div class="dc-label">state</div>
-      <div class="dc-val" id="infoState">—</div>
-    </div>
+    <div class="data-cell"><div class="dc-label">lum</div><div class="dc-val" id="infoLum">—</div></div>
+    <div class="data-cell"><div class="dc-label">voices</div><div class="dc-val" id="infoVoices">—</div></div>
+    <div class="data-cell"><div class="dc-label">mode</div><div class="dc-val" id="infoMode">raw</div></div>
+    <div class="data-cell"><div class="dc-label">state</div><div class="dc-val" id="infoState">—</div></div>
   </div>
 
-  <!-- РЕЖИМ ЗВУКА -->
   <div class="section">
     <div class="section-head">// sound.mode</div>
     <div class="sound-modes">
       <button class="smode-btn active" data-smode="raw">
         <span class="smode-name">RAW</span>
-        <span class="smode-desc">прямое считывание</span>
+        <span class="smode-desc">атональный дрон</span>
       </button>
       <button class="smode-btn" data-smode="musical">
         <span class="smode-name">MUSICAL</span>
@@ -406,7 +225,6 @@
     </div>
   </div>
 
-  <!-- ТИП ВОЛНЫ -->
   <div class="section">
     <div class="section-head">// wave.type</div>
     <div class="wave-modes">
@@ -417,7 +235,6 @@
     </div>
   </div>
 
-  <!-- ПАРАМЕТРЫ -->
   <div class="section">
     <div class="section-head">// parameters</div>
     <div class="sliders">
@@ -440,7 +257,6 @@
     </div>
   </div>
 
-  <!-- УПРАВЛЕНИЕ -->
   <div class="section">
     <div class="section-head">// controls</div>
     <div class="bottom-btns">
@@ -461,7 +277,6 @@ const startOverlay = document.getElementById('startOverlay');
 const muteBtn      = document.getElementById('muteBtn');
 const camBtn       = document.getElementById('camBtn');
 const audioStatus  = document.getElementById('audioStatus');
-
 const volumeSlider  = document.getElementById('volumeSlider');
 const voicesSlider  = document.getElementById('voicesSlider');
 const minFreqSlider = document.getElementById('minFreqSlider');
@@ -477,6 +292,9 @@ const vizCtx = vizCanvas.getContext('2d');
 let audioCtx     = null;
 let masterGain   = null;
 let analyser     = null;
+let dryGain      = null;  // сухой сигнал (без реверба)
+let wetGain      = null;  // мокрый сигнал (с ревербом)
+let reverbNode   = null;  // узел реверба
 let oscillators  = [];
 let gainNodes    = [];
 let isMuted      = false;
@@ -487,37 +305,33 @@ let animId       = null;
 let useFrontCam  = false;
 let audioReady   = false;
 let startHandled = false;
+let frameCount   = 0;
 
-// ════════════════════════════════════════════
-//  БАС
-// ════════════════════════════════════════════
+// Бас
 let bassOsc    = null;
 let bassGain   = null;
-let bassFilter = null;
+
+// Детектор ритма
+let prevBrightness = 0;
+let kickCooldown   = 0;
+let snareCooldown  = 0;
+let hihatCooldown  = 0;
 
 // ════════════════════════════════════════════
-//  РИТМ — детектор вспышек
-//  Вместо метронома — триггер по яркости
-//  Когда яркость резко меняется → удар
-// ════════════════════════════════════════════
-let prevBrightness   = 0;  // яркость предыдущего кадра
-let kickCooldown     = 0;  // кулдаун чтобы не было двойных ударов
-let hihatCooldown    = 0;
-let snareCooldown    = 0;
-let frameCount       = 0;  // счётчик кадров для хэта
-
-// Пороги срабатывания (разница яркостей)
-const KICK_THRESHOLD  = 18; // большой скачок → кик
-const SNARE_THRESHOLD = 10; // средний скачок → снейр
-
-// ════════════════════════════════════════════
-//  ПЕНТАТОНИКА — квантизация нот
+//  ПЕНТАТОНИКА — широкий диапазон 4 октавы
+//  Это даёт реально слышимый разброс нот
 // ════════════════════════════════════════════
 const PENTATONIC = [
-  65.41, 77.78, 87.31, 98.00, 116.54,  // C2 Eb2 F2 G2 Bb2
-  130.81, 155.56, 174.61, 196.00, 233.08, // C3 Eb3 F3 G3 Bb3
-  261.63, 311.13, 349.23, 392.00, 466.16, // C4 Eb4 F4 G4 Bb4
-  523.25  // C5
+  // Октава 1 — очень низко (бас)
+  65.41, 77.78, 87.31, 98.00, 116.54,
+  // Октава 2 — низко
+  130.81, 155.56, 174.61, 196.00, 233.08,
+  // Октава 3 — средне (основной диапазон голоса)
+  261.63, 311.13, 349.23, 392.00, 466.16,
+  // Октава 4 — высоко
+  523.25, 622.25, 698.46, 783.99, 932.33,
+  // Октава 5 — очень высоко
+  1046.50, 1244.51, 1396.91
 ];
 
 // ════════════════════════════════════════════
@@ -526,8 +340,8 @@ const PENTATONIC = [
 function updateAudioStatus() {
   if (!audioCtx) { audioStatus.textContent = 'audio: —'; return; }
   const s = audioCtx.state;
-  audioStatus.textContent  = `audio: ${s}`;
-  audioStatus.style.color  = s === 'running' ? 'rgba(255,255,255,0.4)' : '#f44';
+  audioStatus.textContent = `audio: ${s}`;
+  audioStatus.style.color = s === 'running' ? 'rgba(255,255,255,0.35)' : '#f44';
   document.getElementById('infoState').textContent = s;
 }
 
@@ -546,13 +360,47 @@ function switchToMediaChannel() {
 }
 
 function unlockWebAudio(actx) {
-  const o = actx.createOscillator();
-  const g = actx.createGain();
+  const o = actx.createOscillator(), g = actx.createGain();
   o.frequency.value = 440;
   g.gain.setValueAtTime(0.001, actx.currentTime);
   g.gain.linearRampToValueAtTime(0, actx.currentTime + 0.1);
   o.connect(g); g.connect(actx.destination);
   o.start(actx.currentTime); o.stop(actx.currentTime + 0.15);
+}
+
+// ════════════════════════════════════════════
+//  СОЗДАНИЕ РЕВЕРБА
+//  Свёрточный реверб — имитирует отражения в пространстве
+//  Делает musical режим "объёмным" в отличие от сухого raw
+// ════════════════════════════════════════════
+function createReverb() {
+  reverbNode = audioCtx.createConvolver();
+
+  // Генерируем импульсный отклик (IR) — затухающий шум
+  // 3 секунды реверберации
+  const len = audioCtx.sampleRate * 3;
+  const buf = audioCtx.createBuffer(2, len, audioCtx.sampleRate);
+
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      // Случайный шум × экспоненциальное затухание = звук зала
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+    }
+  }
+  reverbNode.buffer = buf;
+
+  // Два пути: сухой (прямой) и мокрый (через реверб)
+  dryGain = audioCtx.createGain();
+  wetGain = audioCtx.createGain();
+  dryGain.gain.value = 1.0;  // raw: сухой
+  wetGain.gain.value = 0.0;  // raw: без реверба
+
+  analyser.connect(dryGain);
+  analyser.connect(reverbNode);
+  reverbNode.connect(wetGain);
+  dryGain.connect(masterGain);
+  wetGain.connect(masterGain);
 }
 
 // ════════════════════════════════════════════
@@ -562,22 +410,20 @@ async function initAudio() {
   if (audioCtx && audioCtx.state === 'running' && audioReady) return;
 
   await switchToMediaChannel();
-
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   try { await audioCtx.resume(); } catch(e) {}
   unlockWebAudio(audioCtx);
   await new Promise(r => setTimeout(r, 200));
   if (audioCtx.state === 'suspended') await audioCtx.resume();
 
   if (!masterGain) {
-    analyser = audioCtx.createAnalyser();
+    analyser    = audioCtx.createAnalyser();
     analyser.fftSize = 512;
-    masterGain = audioCtx.createGain();
+    masterGain  = audioCtx.createGain();
     masterGain.gain.value = parseFloat(volumeSlider.value);
-    analyser.connect(masterGain);
+
+    // Создаём реверб и подключаем цепочку
+    createReverb();
     masterGain.connect(audioCtx.destination);
   }
 
@@ -592,8 +438,6 @@ async function initAudio() {
 function createOscillators() {
   oscillators.forEach(o => { try { o.stop(); } catch(e) {} });
   oscillators = []; gainNodes = [];
-
-  // Останавливаем бас
   stopBass();
 
   const count = parseInt(voicesSlider.value);
@@ -603,7 +447,7 @@ function createOscillators() {
     const osc  = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = waveType;
-    osc.frequency.value = 220 + i * 30;
+    osc.frequency.value = 200 + i * 30;
     gain.gain.setValueAtTime(0, now);
     osc.connect(gain);
     gain.connect(analyser);
@@ -614,121 +458,91 @@ function createOscillators() {
 
   if (soundMode === 'musical') createBass();
   document.getElementById('infoVoices').textContent = count;
-  updateAudioStatus();
 }
 
 // ════════════════════════════════════════════
-//  БАС-СИНТЕЗАТОР
+//  БАС
 // ════════════════════════════════════════════
 function createBass() {
   if (!audioCtx) return;
   stopBass();
-
-  const now = audioCtx.currentTime;
-
+  const now  = audioCtx.currentTime;
   bassOsc    = audioCtx.createOscillator();
   bassGain   = audioCtx.createGain();
-  bassFilter = audioCtx.createBiquadFilter();
-
-  bassOsc.type            = 'sine';
+  const filt = audioCtx.createBiquadFilter();
+  filt.type  = 'lowpass'; filt.frequency.value = 280; filt.Q.value = 2;
+  bassOsc.type = 'sine';
   bassOsc.frequency.value = 55;
-
-  // Фильтр срезает всё выше 300 Гц — получаем чистый бас
-  bassFilter.type            = 'lowpass';
-  bassFilter.frequency.value = 300;
-  bassFilter.Q.value         = 1.5;
-
   bassGain.gain.setValueAtTime(0, now);
-
-  bassOsc.connect(bassFilter);
-  bassFilter.connect(bassGain);
-  bassGain.connect(masterGain);
-
+  bassOsc.connect(filt); filt.connect(bassGain);
+  bassGain.connect(masterGain); // бас идёт напрямую — без реверба (плотнее)
   bassOsc.start(now);
 }
 
 function stopBass() {
   if (bassOsc) { try { bassOsc.stop(); } catch(e) {} bassOsc = null; }
-  bassGain = null; bassFilter = null;
+  bassGain = null;
 }
 
 // ════════════════════════════════════════════
-//  УДАРНЫЕ — синтез из чистого Web Audio
+//  УДАРНЫЕ
 // ════════════════════════════════════════════
-
 function playKick(vol) {
-  const now  = audioCtx.currentTime;
-  const osc  = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = 'sine';
-  // Частота падает 120→28 Гц за 0.35с — классический кик
-  osc.frequency.setValueAtTime(120, now);
-  osc.frequency.exponentialRampToValueAtTime(28, now + 0.35);
-  gain.gain.setValueAtTime(vol * 1.2, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-  osc.connect(gain); gain.connect(masterGain);
-  osc.start(now); osc.stop(now + 0.45);
+  const now = audioCtx.currentTime;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(110, now);
+  o.frequency.exponentialRampToValueAtTime(28, now + 0.4);
+  g.gain.setValueAtTime(vol * 1.3, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+  o.connect(g); g.connect(masterGain);
+  o.start(now); o.stop(now + 0.5);
 }
 
 function playHihat(vol, open = false) {
-  const now  = audioCtx.currentTime;
-  const dur  = open ? 0.15 : 0.05;
-  const size = Math.floor(audioCtx.sampleRate * dur);
-  const buf  = audioCtx.createBuffer(1, size, audioCtx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < size; i++) data[i] = Math.random() * 2 - 1;
-
-  const src    = audioCtx.createBufferSource();
-  src.buffer   = buf;
-  const filter = audioCtx.createBiquadFilter();
-  filter.type  = 'highpass';
-  filter.frequency.value = 7000;
-  const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(vol, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-
-  src.connect(filter); filter.connect(gain); gain.connect(masterGain);
+  const now = audioCtx.currentTime;
+  const dur = open ? 0.18 : 0.05;
+  const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
+  const d   = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src = audioCtx.createBufferSource(); src.buffer = buf;
+  const f   = audioCtx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 8000;
+  const g   = audioCtx.createGain();
+  g.gain.setValueAtTime(vol, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+  src.connect(f); f.connect(g); g.connect(masterGain);
   src.start(now);
 }
 
 function playSnare(vol) {
   const now = audioCtx.currentTime;
-
-  // Шум
-  const size = Math.floor(audioCtx.sampleRate * 0.12);
-  const buf  = audioCtx.createBuffer(1, size, audioCtx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < size; i++) data[i] = Math.random() * 2 - 1;
-  const src    = audioCtx.createBufferSource();
-  src.buffer   = buf;
-  const nGain  = audioCtx.createGain();
-  nGain.gain.setValueAtTime(vol * 0.6, now);
-  nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-
-  // Тон
-  const osc  = audioCtx.createOscillator();
-  osc.type   = 'triangle';
-  osc.frequency.setValueAtTime(200, now);
-  osc.frequency.linearRampToValueAtTime(80, now + 0.1);
-  const oGain = audioCtx.createGain();
-  oGain.gain.setValueAtTime(vol * 0.5, now);
-  oGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-
-  src.connect(nGain);   nGain.connect(masterGain);
-  osc.connect(oGain);   oGain.connect(masterGain);
-  src.start(now);
-  osc.start(now); osc.stop(now + 0.15);
+  const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.12), audioCtx.sampleRate);
+  const d   = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src = audioCtx.createBufferSource(); src.buffer = buf;
+  const ng  = audioCtx.createGain();
+  ng.gain.setValueAtTime(vol * 0.7, now);
+  ng.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+  const o = audioCtx.createOscillator(); o.type = 'triangle';
+  o.frequency.setValueAtTime(190, now);
+  o.frequency.linearRampToValueAtTime(70, now + 0.1);
+  const og = audioCtx.createGain();
+  og.gain.setValueAtTime(vol * 0.5, now);
+  og.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+  src.connect(ng); ng.connect(masterGain);
+  o.connect(og);   og.connect(masterGain);
+  src.start(now); o.start(now); o.stop(now + 0.15);
 }
 
 // ════════════════════════════════════════════
-//  ЗАПУСК КАМЕРЫ
+//  КАМЕРА
 // ════════════════════════════════════════════
 async function startCamera() {
   if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: useFrontCam ? 'user' : 'environment',
-               width: { ideal: 1280 }, height: { ideal: 960 } },
+               width: {ideal:1280}, height: {ideal:960} },
       audio: false
     });
     video.srcObject = stream;
@@ -736,9 +550,7 @@ async function startCamera() {
     await video.play();
     isRunning = true;
     scanLoop();
-  } catch(e) {
-    audioStatus.textContent = 'cam: ' + e.message;
-  }
+  } catch(e) { audioStatus.textContent = 'cam: ' + e.message; }
 }
 
 // ════════════════════════════════════════════
@@ -757,15 +569,14 @@ function scanLoop() {
 }
 
 // ════════════════════════════════════════════
-//  ОБРАБОТКА КАДРА — ЧБ + СКАНИРОВАНИЕ
+//  ОБРАБОТКА КАДРА
 // ════════════════════════════════════════════
 function processFrame(data) {
   const W = 640, H = 480;
-  const out        = ctx.createImageData(W, H);
-  const outD       = out.data;
-  const scanX      = W / 2;
-  const scanW      = 5;
-  const scanCol    = new Float32Array(H);
+  const out  = ctx.createImageData(W, H);
+  const outD = out.data;
+  const scanX = W / 2, scanW = 5;
+  const scanCol = new Float32Array(H);
 
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
@@ -779,21 +590,19 @@ function processFrame(data) {
 
   ctx.putImageData(out, 0, 0);
 
-  // Горизонтальные линии — стиль Ikeda
+  // Сетка линий Ikeda
   ctx.strokeStyle = 'rgba(255,255,255,0.03)';
   ctx.lineWidth = 1;
   for (let y = 0; y < H; y += 40) {
     ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
   }
 
-  // Средняя яркость
   let sum = 0;
   for (let i = 0; i < H; i++) sum += scanCol[i];
   const avgBright = sum / H;
 
-  // Обновляем UI
-  document.getElementById('infoLum').textContent  = Math.round(avgBright);
-  document.getElementById('liveLum').textContent  = `lum ${Math.round(avgBright)}`;
+  document.getElementById('infoLum').textContent = Math.round(avgBright);
+  document.getElementById('liveLum').textContent = `lum ${Math.round(avgBright)}`;
 
   if (soundMode === 'raw') {
     applySoundRaw(scanCol, avgBright);
@@ -804,10 +613,16 @@ function processFrame(data) {
 
 // ════════════════════════════════════════════
 //  RAW РЕЖИМ
+//  Плавное непрерывное скольжение по любым частотам
+//  Реверб выключен — сухой сигнал
 // ════════════════════════════════════════════
 function applySoundRaw(scanCol, avgBright) {
   if (!audioCtx || !audioReady || isMuted) return;
   if (audioCtx.state !== 'running') { audioCtx.resume(); return; }
+
+  // RAW — сухой звук без реверба
+  if (dryGain) dryGain.gain.setTargetAtTime(1.0, audioCtx.currentTime, 0.3);
+  if (wetGain) wetGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.3);
 
   const H       = scanCol.length;
   const count   = oscillators.length;
@@ -818,21 +633,22 @@ function applySoundRaw(scanCol, avgBright) {
   const volMax  = parseFloat(volumeSlider.value) / Math.sqrt(count);
 
   for (let i = 0; i < count; i++) {
-    const s = Math.floor(i * zoneH);
-    const e = Math.floor((i + 1) * zoneH);
-    let sm  = 0;
+    const s = Math.floor(i * zoneH), e = Math.floor((i+1)*zoneH);
+    let sm = 0;
     for (let y = s; y < e; y++) sm += scanCol[y];
     const b    = (sm / (e - s)) / 255;
+
+    // RAW: непрерывная шкала частот — любое значение
     const freq = minFreq * Math.pow(maxFreq / minFreq, b);
     const vol  = Math.sin(b * Math.PI) * volMax;
 
     oscillators[i].frequency.cancelScheduledValues(now);
     oscillators[i].frequency.setValueAtTime(oscillators[i].frequency.value, now);
-    oscillators[i].frequency.linearRampToValueAtTime(freq, now + 0.05);
+    oscillators[i].frequency.linearRampToValueAtTime(freq, now + 0.04);
 
     gainNodes[i].gain.cancelScheduledValues(now);
     gainNodes[i].gain.setValueAtTime(gainNodes[i].gain.value, now);
-    gainNodes[i].gain.linearRampToValueAtTime(Math.max(0, Math.min(vol, volMax)), now + 0.05);
+    gainNodes[i].gain.linearRampToValueAtTime(Math.max(0, Math.min(vol, volMax)), now + 0.04);
   }
 
   const topFreq = parseInt(minFreqSlider.value) *
@@ -843,122 +659,111 @@ function applySoundRaw(scanCol, avgBright) {
 
 // ════════════════════════════════════════════
 //  MUSICAL РЕЖИМ
-//  Всё — голоса, бас, ритм — зависит от сканирования
+//  Ступенчатые ноты пентатоники + большой диапазон
+//  + реверб + бас + ритм от сканирования
 // ════════════════════════════════════════════
 function applySoundMusical(scanCol, avgBright) {
   if (!audioCtx || !audioReady || isMuted) return;
   if (audioCtx.state !== 'running') { audioCtx.resume(); return; }
+
+  // MUSICAL — включаем реверб для пространственности
+  if (dryGain) dryGain.gain.setTargetAtTime(0.5, audioCtx.currentTime, 0.5);
+  if (wetGain) wetGain.gain.setTargetAtTime(0.5, audioCtx.currentTime, 0.5);
 
   const H         = scanCol.length;
   const count     = oscillators.length;
   const zoneH     = H / count;
   const now       = audioCtx.currentTime;
   const vol       = parseFloat(volumeSlider.value);
-  const intensity = avgBright / 255; // общая "энергия" кадра 0..1
+  const intensity = avgBright / 255;
+  const volPerVoice = vol / Math.sqrt(count) * 0.55;
 
-  // ─── ГОЛОСА — квантизованы по пентатонике ───
-  // Делим экран на зоны, каждая зона = один голос
-  // Яркость зоны → нота пентатоники
-  const volPerVoice = vol / Math.sqrt(count) * 0.5;
-
+  // ─── ГОЛОСА ───
   for (let i = 0; i < count; i++) {
-    const s = Math.floor(i * zoneH);
-    const e = Math.floor((i + 1) * zoneH);
-    let sm  = 0;
+    const s = Math.floor(i * zoneH), e = Math.floor((i+1)*zoneH);
+    let sm = 0;
     for (let y = s; y < e; y++) sm += scanCol[y];
-    const b = (sm / (e - s)) / 255; // яркость зоны 0..1
+    const b = (sm / (e - s)) / 255;
 
-    // Индекс ноты: яркость → позиция в пентатонике
+    // MUSICAL: индекс ноты — ступенчатый прыжок между нотами пентатоники
+    // Весь диапазон яркости (0-255) распределяется по 22 нотам
+    // Это даёт СЛЫШИМЫЕ прыжки между нотами вместо плавного скольжения
     const noteIdx  = Math.min(Math.floor(b * PENTATONIC.length), PENTATONIC.length - 1);
     const baseFreq = PENTATONIC[noteIdx];
 
-    // Верхняя половина голосов — октава выше (более воздушно)
-    const freq = i < count / 2 ? baseFreq * 2 : baseFreq * 4;
+    // Верхние голоса — октаву выше (добавляет воздух)
+    const freq = i < count * 0.4 ? baseFreq * 4 :
+                 i < count * 0.7 ? baseFreq * 2 : baseFreq;
 
-    // Громкость: синусоидальная огибающая — максимум при b=0.5
+    // Плавность смены ноты — чуть медленнее чем в raw
+    // чтобы ноты были слышны отдельно
     const voiceVol = Math.sin(b * Math.PI) * volPerVoice;
 
     oscillators[i].frequency.cancelScheduledValues(now);
     oscillators[i].frequency.setValueAtTime(oscillators[i].frequency.value, now);
-    oscillators[i].frequency.linearRampToValueAtTime(freq, now + 0.08);
+    // Медленнее (0.12 vs 0.04 в raw) — ноты успевают "зазвучать"
+    oscillators[i].frequency.linearRampToValueAtTime(freq, now + 0.12);
 
     gainNodes[i].gain.cancelScheduledValues(now);
     gainNodes[i].gain.setValueAtTime(gainNodes[i].gain.value, now);
     gainNodes[i].gain.linearRampToValueAtTime(
-      Math.max(0, Math.min(voiceVol, volPerVoice)), now + 0.08
+      Math.max(0, Math.min(voiceVol, volPerVoice)), now + 0.12
     );
   }
 
-  // ─── БАС — нижняя треть экрана управляет нотой ───
-  // Яркость низа → нота баса из нижних нот пентатоники
+  // ─── БАС — нижняя треть экрана ───
   if (bassOsc && bassGain) {
-    let bassSum = 0;
-    const bassStart = Math.floor(H * 0.67);
-    for (let y = bassStart; y < H; y++) bassSum += scanCol[y];
-    const bassAvg  = bassSum / (H - bassStart);
-    const bassNorm = bassAvg / 255;
-
-    // Только нижние 5 нот пентатоники для баса
-    const bassNoteIdx = Math.min(Math.floor(bassNorm * 5), 4);
-    const bassFreq    = PENTATONIC[bassNoteIdx]; // 65-116 Гц
+    let bs = 0;
+    const bStart = Math.floor(H * 0.67);
+    for (let y = bStart; y < H; y++) bs += scanCol[y];
+    const bNorm    = (bs / (H - bStart)) / 255;
+    // Только первые 5 нот = самые низкие (65-116 Гц)
+    const bNoteIdx = Math.min(Math.floor(bNorm * 5), 4);
+    const bFreq    = PENTATONIC[bNoteIdx];
 
     bassOsc.frequency.cancelScheduledValues(now);
     bassOsc.frequency.setValueAtTime(bassOsc.frequency.value, now);
-    bassOsc.frequency.linearRampToValueAtTime(bassFreq, now + 0.12);
+    bassOsc.frequency.linearRampToValueAtTime(bFreq, now + 0.15);
 
-    // Громкость баса = яркость нижней части
-    // Тёмный низ = тихий бас, светлый = громкий
-    const bassVol = Math.sin(bassNorm * Math.PI) * vol * 0.6;
+    const bVol = Math.sin(bNorm * Math.PI) * vol * 0.65;
     bassGain.gain.cancelScheduledValues(now);
     bassGain.gain.setValueAtTime(bassGain.gain.value, now);
-    bassGain.gain.linearRampToValueAtTime(Math.max(0, bassVol), now + 0.1);
+    bassGain.gain.linearRampToValueAtTime(Math.max(0, bVol), now + 0.12);
 
-    document.getElementById('liveFreq').textContent = `bass ${Math.round(bassFreq)} hz`;
+    document.getElementById('liveFreq').textContent = `bass ${Math.round(bFreq)} hz`;
   }
 
-  // ─── РИТМ — триггерится от изменений яркости ───
-  // Это ключевое: ударные бьют когда яркость МЕНЯЕТСЯ
-  // а не по таймеру — поэтому они привязаны к картинке
-
-  const delta = avgBright - prevBrightness; // изменение яркости
+  // ─── РИТМ от изменений яркости ───
+  const delta    = avgBright - prevBrightness;
   const absDelta = Math.abs(delta);
 
-  // Кулдауны убывают каждый кадр
   if (kickCooldown  > 0) kickCooldown--;
-  if (hihatCooldown > 0) hihatCooldown--;
   if (snareCooldown > 0) snareCooldown--;
+  if (hihatCooldown > 0) hihatCooldown--;
 
-  // КИК — большой резкий скачок яркости вверх
-  if (delta > KICK_THRESHOLD && kickCooldown === 0 && intensity > 0.05) {
-    // Громкость кика пропорциональна силе скачка
-    const kickVol = Math.min(delta / 60, 1.0) * vol;
-    playKick(kickVol);
-    kickCooldown = 18; // ~0.3 сек при 60fps — защита от двойного удара
+  // Кик — резкий рост яркости
+  if (delta > 15 && kickCooldown === 0 && intensity > 0.05) {
+    playKick(Math.min(delta / 50, 1.0) * vol);
+    kickCooldown = 20;
   }
 
-  // СНЕЙР — резкий скачок вниз (затемнение)
-  if (delta < -SNARE_THRESHOLD && snareCooldown === 0 && intensity > 0.03) {
-    const snareVol = Math.min(absDelta / 40, 1.0) * vol * 0.7;
-    playSnare(snareVol);
-    snareCooldown = 24;
+  // Снейр — резкое падение яркости
+  if (delta < -12 && snareCooldown === 0 && intensity > 0.03) {
+    playSnare(Math.min(absDelta / 40, 1.0) * vol * 0.75);
+    snareCooldown = 25;
   }
 
-  // ХЭТЧИК — небольшие колебания каждые N кадров
-  // Частота хэта зависит от яркости верхней части экрана
+  // Хэт — от яркости верхней трети + каждые N кадров
   const topAvg = (() => {
     let s = 0;
     for (let y = 0; y < Math.floor(H * 0.33); y++) s += scanCol[y];
     return s / Math.floor(H * 0.33);
   })();
 
-  // Чем светлее верх — тем чаще хэтчик (каждые 4-16 кадров)
-  const hihatEvery = Math.max(4, Math.floor(16 - (topAvg / 255) * 12));
-
-  if (frameCount % hihatEvery === 0 && hihatCooldown === 0 && topAvg > 15) {
-    const hiVol  = (topAvg / 255) * vol * 0.3;
-    const isOpen = topAvg > 180; // очень светлый верх = открытый хэт
-    playHihat(hiVol, isOpen);
-    hihatCooldown = 3;
+  const hiEvery = Math.max(5, Math.floor(18 - (topAvg / 255) * 13));
+  if (frameCount % hiEvery === 0 && hihatCooldown === 0 && topAvg > 20) {
+    playHihat((topAvg / 255) * vol * 0.3, topAvg > 190);
+    hihatCooldown = 4;
   }
 
   prevBrightness = avgBright;
@@ -970,16 +775,12 @@ function applySoundMusical(scanCol, avgBright) {
 // ════════════════════════════════════════════
 function drawVisualizer() {
   if (!analyser) return;
-
-  const W   = vizCanvas.width;
-  const H   = vizCanvas.height;
+  const W = vizCanvas.width, H = vizCanvas.height;
   const buf = analyser.frequencyBinCount;
   const dat = new Uint8Array(buf);
   analyser.getByteFrequencyData(dat);
-
   vizCtx.fillStyle = '#000';
   vizCtx.fillRect(0, 0, W, H);
-
   for (let i = 0; i < buf; i++) {
     const v = dat[i] / 255;
     if (v < 0.015) continue;
@@ -988,10 +789,8 @@ function drawVisualizer() {
     vizCtx.fillStyle = `rgba(255,255,255,${0.25 + v * 0.75})`;
     vizCtx.fillRect(x, H - h, 1, h);
   }
-
-  // Центральная линия
-  vizCtx.fillStyle = 'rgba(255,255,255,0.08)';
-  vizCtx.fillRect(0, H / 2, W, 1);
+  vizCtx.fillStyle = 'rgba(255,255,255,0.07)';
+  vizCtx.fillRect(0, H/2, W, 1);
 }
 
 // ════════════════════════════════════════════
@@ -1001,14 +800,11 @@ async function handleStart(e) {
   e.preventDefault(); e.stopPropagation();
   if (startHandled) return;
   startHandled = true;
-
   await initAudio();
   startOverlay.style.display = 'none';
 
-  // Тест-тон
   if (audioCtx && masterGain) {
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
     const t = audioCtx.currentTime;
     o.frequency.value = 660;
     g.gain.setValueAtTime(0, t);
@@ -1025,7 +821,7 @@ startOverlay.addEventListener('touchend', handleStart, { passive: false });
 startOverlay.addEventListener('click',    handleStart);
 
 // ════════════════════════════════════════════
-//  ПЕРЕКЛЮЧЕНИЕ РЕЖИМА ЗВУКА
+//  ПЕРЕКЛЮЧЕНИЕ РЕЖИМА
 // ════════════════════════════════════════════
 document.querySelectorAll('.smode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1034,16 +830,16 @@ document.querySelectorAll('.smode-btn').forEach(btn => {
     btn.classList.add('active');
 
     if (soundMode === 'musical') {
-      // Переключаемся на синус — мягче для музыкального режима
       waveType = 'sine';
       document.querySelectorAll('.wave-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.mode === 'sine');
       });
       if (audioCtx && audioReady) createOscillators();
     } else {
-      // Убираем бас при переключении в raw
+      // RAW — убираем бас, сбрасываем детектор
       stopBass();
-      prevBrightness = 0; // сбрасываем детектор
+      prevBrightness = 0;
+      kickCooldown = snareCooldown = hihatCooldown = 0;
     }
   });
 });
@@ -1072,11 +868,13 @@ muteBtn.addEventListener('click', async () => {
   const now = audioCtx.currentTime;
   masterGain.gain.cancelScheduledValues(now);
   masterGain.gain.setValueAtTime(masterGain.gain.value, now);
-  masterGain.gain.linearRampToValueAtTime(isMuted ? 0 : parseFloat(volumeSlider.value), now + 0.1);
+  masterGain.gain.linearRampToValueAtTime(
+    isMuted ? 0 : parseFloat(volumeSlider.value), now + 0.1
+  );
 });
 
 // ════════════════════════════════════════════
-//  КАМЕРА
+//  КАМЕРА ПЕРЕКЛЮЧЕНИЕ
 // ════════════════════════════════════════════
 camBtn.addEventListener('click', async () => {
   useFrontCam = !useFrontCam;
@@ -1115,7 +913,7 @@ maxFreqSlider.addEventListener('input', () => {
 });
 
 // ════════════════════════════════════════════
-//  ФОНОВЫЕ ФИКСЫ iOS
+//  iOS ФОНОВЫЕ ФИКСЫ
 // ════════════════════════════════════════════
 document.addEventListener('touchstart', async () => {
   if (audioCtx && audioCtx.state === 'suspended') {
