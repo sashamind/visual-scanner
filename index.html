@@ -147,7 +147,6 @@
     .wave-btn:last-child { border-right:none; }
     .wave-btn.active { background:var(--orange-faint); color:var(--orange); }
 
-    /* ═══ УДАРНЫЕ ═══ */
     .drums-grid {
       display: grid; grid-template-columns: 1fr 1fr;
       border-bottom: 1px solid #1a1a1a;
@@ -167,14 +166,12 @@
     .drum-btn.active  { background: var(--orange-faint); }
     .drum-btn.active .d-name { color: var(--orange); }
     .drum-btn.active .d-desc { color: #663300; }
-    /* Точка-индикатор */
     .drum-btn::after {
       content: ''; position: absolute; top: 9px; right: 9px;
       width: 4px; height: 4px; border-radius: 50%;
       background: #1a1a1a; transition: background 0.1s;
     }
     .drum-btn.active::after { background: var(--orange); }
-    /* Вспышка при ударе */
     .drum-btn.hit { background: rgba(255,106,0,0.22) !important; }
     .drum-btn.hit::after { background: #fff !important; }
 
@@ -270,25 +267,24 @@
     </div>
   </div>
 
-  <!-- ═══ УДАРНЫЕ ═══ -->
   <div class="section">
     <div class="section-head">// перкуссия (муз. режим)</div>
     <div class="drums-grid">
       <button class="drum-btn" data-drum="kick">
         <span class="d-name">КИК</span>
-        <span class="d-desc">скачок яркости → удар</span>
+        <span class="d-desc">скачок яркости → гул</span>
       </button>
       <button class="drum-btn" data-drum="snare">
         <span class="d-name">СНЕЙР</span>
-        <span class="d-desc">контраст верх/низ</span>
+        <span class="d-desc">контраст → металл</span>
       </button>
       <button class="drum-btn" data-drum="hihat">
         <span class="d-name">ХЭТ</span>
-        <span class="d-desc">мерцание → тарелка</span>
+        <span class="d-desc">мерцание → шелест</span>
       </button>
       <button class="drum-btn" data-drum="perc">
         <span class="d-name">ПЕРК</span>
-        <span class="d-desc">средина → эмбиент-том</span>
+        <span class="d-desc">средина → резонанс</span>
       </button>
     </div>
   </div>
@@ -372,13 +368,10 @@ let sensitivity  = 0.5;
 let bassAmount   = 0.6;
 
 // ════════════════════════════════════════════
-//  СОСТОЯНИЕ УДАРНЫХ
-//  true = включён, false = выключен
+//  УДАРНЫЕ — состояние
 // ════════════════════════════════════════════
 const drums = { kick: false, snare: false, hihat: false, perc: false };
 
-// Кулдауны каждого инструмента (в кадрах)
-// Защита от частых срабатываний
 let kickCooldown  = 0;
 let snareCooldown = 0;
 let hihatCooldown = 0;
@@ -400,12 +393,9 @@ let brightHistory  = new Float32Array(30).fill(128);
 let historyIdx     = 0;
 let noteHoldTimer  = null;
 let prevBright     = 0;
-
-// Для снейра — история контраста (сглаживание)
 let prevContrast   = 0;
-// Для хэта — история мерцания верхней зоны
 let prevTopBright  = 0;
-let hihatFlicker   = 0; // накопленное мерцание
+let hihatFlicker   = 0;
 
 // ════════════════════════════════════════════
 //  ПЕНТАТОНИКА
@@ -522,15 +512,15 @@ function createRawOscillators() {
 }
 
 // ════════════════════════════════════════════
-//  НОТА (смычковый звук)
+//  НОТА — смычковый звук
 // ════════════════════════════════════════════
 function playStringNote(freq, noteName, velocity = 0.5) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const vol = parseFloat(volumeSlider.value) * velocity * 0.45;
 
-  const osc1 = audioCtx.createOscillator();
-  const filt = audioCtx.createBiquadFilter();
+  const osc1  = audioCtx.createOscillator();
+  const filt  = audioCtx.createBiquadFilter();
   const gain1 = audioCtx.createGain();
   osc1.type = waveType;
   osc1.frequency.setValueAtTime(freq, now);
@@ -599,48 +589,61 @@ function playBassNote(freq, velocity = 0.5) {
 }
 
 // ════════════════════════════════════════════
-//  КИК — глубокий эмбиент-удар
-//  Мягкий, с долгим хвостом — не клубный
-//  Три слоя: субтон + основной тон + щелчок
+//  КИК — эмбиент-гул
+//
+//  Волна давления, не удар:
+//  долгий низкочастотный тон 55→18 Гц за 1.2 сек
+//  + LFO-модуляция = гул "дышит"
+//  + шумовой хвост = резонанс помещения
 // ════════════════════════════════════════════
 function playKick(vol) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * bassAmount;
 
-  // Субтон 45→20 Гц — глубина и вес
+  // Основной гул — медленный питч-даун
+  const body = audioCtx.createOscillator();
+  const bg   = audioCtx.createGain();
+  body.type = 'sine';
+  body.frequency.setValueAtTime(55, now);
+  body.frequency.exponentialRampToValueAtTime(18, now + 1.2);
+  bg.gain.setValueAtTime(v * 0.9, now);
+  bg.gain.exponentialRampToValueAtTime(v * 0.4, now + 0.3);
+  bg.gain.exponentialRampToValueAtTime(0.001,   now + 1.4);
+  body.connect(bg); bg.connect(masterGain);
+  body.start(now); body.stop(now + 1.5);
+
+  // Субгармоника — октава ниже
   const sub = audioCtx.createOscillator();
   const sg  = audioCtx.createGain();
   sub.type = 'sine';
-  sub.frequency.setValueAtTime(45, now);
-  sub.frequency.exponentialRampToValueAtTime(20, now + 0.45);
-  sg.gain.setValueAtTime(v * 0.55, now);
-  sg.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+  sub.frequency.setValueAtTime(28, now);
+  sub.frequency.exponentialRampToValueAtTime(10, now + 1.0);
+  sg.gain.setValueAtTime(v * 0.45, now);
+  sg.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
   sub.connect(sg); sg.connect(masterGain);
-  sub.start(now); sub.stop(now + 0.6);
+  sub.start(now); sub.stop(now + 1.2);
 
-  // Основной тон 80→30 Гц
-  const mid = audioCtx.createOscillator();
-  const mg  = audioCtx.createGain();
-  mid.type = 'sine';
-  mid.frequency.setValueAtTime(80, now);
-  mid.frequency.exponentialRampToValueAtTime(30, now + 0.5);
-  mg.gain.setValueAtTime(v * 0.85, now);
-  mg.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-  mid.connect(mg); mg.connect(masterGain);
-  mid.start(now); mid.stop(now + 0.65);
+  // LFO — гул "дышит"
+  const lfo  = audioCtx.createOscillator();
+  const lfoG = audioCtx.createGain();
+  lfo.type = 'sine';
+  lfo.frequency.value = 2.5 + Math.random() * 1.5;
+  lfoG.gain.value = 4;
+  lfo.connect(lfoG); lfoG.connect(body.frequency);
+  lfo.start(now); lfo.stop(now + 1.5);
 
-  // Щелчок атаки — короткий шум через lowpass
-  const nbuf = audioCtx.createBuffer(1,
-    Math.floor(audioCtx.sampleRate * 0.018), audioCtx.sampleRate);
-  const nd = nbuf.getChannelData(0);
-  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  // Шумовой хвост — резонанс помещения
+  const nlen = Math.floor(audioCtx.sampleRate * 0.4);
+  const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+  const nd   = nbuf.getChannelData(0);
+  for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
   const ns = audioCtx.createBufferSource(); ns.buffer = nbuf;
   const nf = audioCtx.createBiquadFilter();
   const ng = audioCtx.createGain();
-  nf.type = 'lowpass'; nf.frequency.value = 180;
-  ng.gain.setValueAtTime(v * 0.28, now);
-  ng.gain.exponentialRampToValueAtTime(0.001, now + 0.018);
+  nf.type = 'lowpass'; nf.frequency.value = 120; nf.Q.value = 2;
+  ng.gain.setValueAtTime(v * 0.35, now);
+  ng.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
   ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
   ns.start(now);
 
@@ -648,130 +651,206 @@ function playKick(vol) {
 }
 
 // ════════════════════════════════════════════
-//  СНЕЙР — эмбиент-щелчок
-//  Шум через bandpass + тональная составляющая
-//  Звучит как деревянный клик или конга
+//  СНЕЙР — металлический резонанс
+//
+//  Удар по листу металла:
+//  три расстроенных тона создают биения
+//  + три полосы шума разных частот
+//  + короткий щелчок атаки
 // ════════════════════════════════════════════
 function playSnare(vol) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
-  const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.6;
+  const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.55;
 
-  // Шумовой слой — основа
-  const buf = audioCtx.createBuffer(1,
-    Math.floor(audioCtx.sampleRate * 0.16), audioCtx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  const src = audioCtx.createBufferSource(); src.buffer = buf;
-  const bp  = audioCtx.createBiquadFilter();
-  const hp  = audioCtx.createBiquadFilter();
-  const sg  = audioCtx.createGain();
-  bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 0.8;
-  hp.type = 'highpass'; hp.frequency.value = 1100;
-  sg.gain.setValueAtTime(v * 0.6, now);
-  sg.gain.exponentialRampToValueAtTime(v * 0.12, now + 0.04);
-  sg.gain.exponentialRampToValueAtTime(0.001,    now + 0.16);
-  src.connect(bp); bp.connect(hp); hp.connect(sg);
-  sg.connect(masterGain);
-  src.start(now);
+  // Три расстроенных тона — металлическая триада
+  const freqs = [185, 247, 318];
+  freqs.forEach((f, idx) => {
+    const o   = audioCtx.createOscillator();
+    const g   = audioCtx.createGain();
+    const flt = audioCtx.createBiquadFilter();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f, now);
+    o.frequency.linearRampToValueAtTime(f * 0.92, now + 0.25);
+    flt.type = 'bandpass'; flt.frequency.value = f; flt.Q.value = 8;
+    g.gain.setValueAtTime(v * (0.5 - idx * 0.1), now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.3 - idx * 0.05);
+    o.connect(flt); flt.connect(g); g.connect(masterGain);
+    o.start(now); o.stop(now + 0.35);
+  });
 
-  // Тональная составляющая — делает снейр музыкальным
-  const tone = audioCtx.createOscillator();
-  const tg   = audioCtx.createGain();
-  tone.type = 'triangle';
-  tone.frequency.setValueAtTime(210, now);
-  tone.frequency.exponentialRampToValueAtTime(95, now + 0.09);
-  tg.gain.setValueAtTime(v * 0.22, now);
-  tg.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
-  tone.connect(tg); tg.connect(masterGain);
-  tone.start(now); tone.stop(now + 0.12);
+  // Три полосы шума — имитация струн малого барабана
+  const nlen = Math.floor(audioCtx.sampleRate * 0.22);
+  const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+  const nd   = nbuf.getChannelData(0);
+  for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+
+  [900, 2200, 4500].forEach((f, idx) => {
+    const src = audioCtx.createBufferSource(); src.buffer = nbuf;
+    const bp  = audioCtx.createBiquadFilter();
+    const g   = audioCtx.createGain();
+    bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = 1.2;
+    g.gain.setValueAtTime(v * (0.4 - idx * 0.08), now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.22 - idx * 0.04);
+    src.connect(bp); bp.connect(g); g.connect(masterGain);
+    src.start(now);
+  });
+
+  // Щелчок атаки
+  const alen = Math.floor(audioCtx.sampleRate * 0.008);
+  const abuf = audioCtx.createBuffer(1, alen, audioCtx.sampleRate);
+  const ad   = abuf.getChannelData(0);
+  for (let i = 0; i < alen; i++) ad[i] = (1 - i / alen) * (Math.random() * 2 - 1);
+  const as_ = audioCtx.createBufferSource(); as_.buffer = abuf;
+  const ag  = audioCtx.createGain();
+  ag.gain.setValueAtTime(v * 0.7, now);
+  as_.connect(ag); ag.connect(masterGain);
+  as_.start(now);
 
   flashDrum('snare');
 }
 
 // ════════════════════════════════════════════
-//  ХЭТ — закрытая тарелка
-//  Высокочастотный шум, очень короткий
+//  ХЭТ — зернистый шелест
+//
+//  Не тарелка, а шелест плёнки/ткани:
+//  три случайные полосы шума каждый раз разные
+//  + 30% шанс тонального призвука
+//  Каждый удар звучит немного иначе
 // ════════════════════════════════════════════
 function playHihat(vol) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
-  const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.3;
+  const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.28;
 
-  const buf = audioCtx.createBuffer(1,
-    Math.floor(audioCtx.sampleRate * 0.045), audioCtx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  const src = audioCtx.createBufferSource(); src.buffer = buf;
-  const hp  = audioCtx.createBiquadFilter();
-  const bp  = audioCtx.createBiquadFilter();
-  const g   = audioCtx.createGain();
-  hp.type = 'highpass'; hp.frequency.value = 7500;
-  bp.type = 'bandpass'; bp.frequency.value = 10000; bp.Q.value = 0.6;
-  g.gain.setValueAtTime(v, now);
-  g.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-  src.connect(hp); hp.connect(bp); bp.connect(g);
-  g.connect(masterGain);
-  src.start(now);
+  // Случайная длина — иногда щелчок, иногда шелест
+  const duration = 0.025 + Math.random() * 0.055;
+  const nlen = Math.floor(audioCtx.sampleRate * duration);
+  const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+  const nd   = nbuf.getChannelData(0);
+  for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+
+  // Три полосы со случайными частотами
+  const bands = [
+    { f: 4000 + Math.random() * 1000, q: 2.0, g: 0.7  },
+    { f: 7000 + Math.random() * 2000, q: 1.5, g: 0.5  },
+    { f: 11000 + Math.random() * 2000, q: 1.0, g: 0.35 },
+  ];
+  bands.forEach(band => {
+    const src = audioCtx.createBufferSource(); src.buffer = nbuf;
+    const bp  = audioCtx.createBiquadFilter();
+    const g   = audioCtx.createGain();
+    bp.type = 'bandpass'; bp.frequency.value = band.f; bp.Q.value = band.q;
+    g.gain.setValueAtTime(v * band.g, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    src.connect(bp); bp.connect(g); g.connect(masterGain);
+    src.start(now);
+  });
+
+  // 30% шанс — тональный призвук, авангардная непредсказуемость
+  if (Math.random() < 0.30) {
+    const ghost = audioCtx.createOscillator();
+    const gg    = audioCtx.createGain();
+    ghost.type = 'sine';
+    ghost.frequency.value = 3000 + Math.random() * 5000;
+    gg.gain.setValueAtTime(v * 0.15, now);
+    gg.gain.exponentialRampToValueAtTime(0.001, now + 0.012);
+    ghost.connect(gg); gg.connect(masterGain);
+    ghost.start(now); ghost.stop(now + 0.015);
+  }
 
   flashDrum('hihat');
 }
 
 // ════════════════════════════════════════════
-//  ПЕРКУССИЯ — мягкий эмбиент-том
-//  Звучит как удар по деревянному брусу или
-//  маримба в стиле Arca/Aphex Twin
-//  pitchNorm 0..1 меняет высоту звука
+//  ПЕРКУССИЯ — три случайных характера
+//
+//  Яркость зоны = высота тона
+//  Случайный характер каждого удара:
+//
+//  40% — ДЕРЕВЯННЫЙ: сухой питч-даун, bandpass
+//  30% — МЕТАЛЛИЧЕСКИЙ: биения двух близких тонов
+//  30% — МЕМБРАННЫЙ: питч-даун + шумовой слой
 // ════════════════════════════════════════════
 function playPerc(vol, pitchNorm = 0.5) {
   if (!audioCtx || isMuted) return;
   const now  = audioCtx.currentTime;
   const v    = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.5;
-  const freq = 110 + pitchNorm * 300; // 110..410 Гц
+  const baseFreq = 80 + pitchNorm * 340; // 80..420 Гц
 
-  // Основной тон с питч-дауном
-  const osc = audioCtx.createOscillator();
-  const flt = audioCtx.createBiquadFilter();
-  const g   = audioCtx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(freq * 1.9, now);
-  osc.frequency.exponentialRampToValueAtTime(freq, now + 0.055);
-  flt.type = 'bandpass'; flt.frequency.value = freq * 1.3; flt.Q.value = 3.5;
-  g.gain.setValueAtTime(v, now);
-  g.gain.exponentialRampToValueAtTime(v * 0.28, now + 0.055);
-  g.gain.exponentialRampToValueAtTime(0.001,    now + 0.38);
-  osc.connect(flt); flt.connect(g); g.connect(masterGain);
-  osc.start(now); osc.stop(now + 0.42);
+  const character = Math.random();
 
-  // Второй обертон — делает звук богаче
-  const osc2 = audioCtx.createOscillator();
-  const g2   = audioCtx.createGain();
-  osc2.type = 'sine';
-  osc2.frequency.value = freq * 2.76; // натуральный обертон
-  g2.gain.setValueAtTime(v * 0.18, now);
-  g2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-  osc2.connect(g2); g2.connect(masterGain);
-  osc2.start(now); osc2.stop(now + 0.15);
+  if (character < 0.4) {
+    // ── ДЕРЕВЯННЫЙ — быстрый питч-даун, сухой ──
+    const o1  = audioCtx.createOscillator();
+    const g1  = audioCtx.createGain();
+    const f1  = audioCtx.createBiquadFilter();
+    o1.type = 'triangle';
+    o1.frequency.setValueAtTime(baseFreq * 2.1, now);
+    o1.frequency.exponentialRampToValueAtTime(baseFreq, now + 0.04);
+    f1.type = 'bandpass'; f1.frequency.value = baseFreq * 1.5; f1.Q.value = 5;
+    g1.gain.setValueAtTime(v, now);
+    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+    o1.connect(f1); f1.connect(g1); g1.connect(masterGain);
+    o1.start(now); o1.stop(now + 0.3);
 
-  // Лёгкий шумовой щелчок
-  const nbuf = audioCtx.createBuffer(1,
-    Math.floor(audioCtx.sampleRate * 0.022), audioCtx.sampleRate);
-  const nd = nbuf.getChannelData(0);
-  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
-  const ns = audioCtx.createBufferSource(); ns.buffer = nbuf;
-  const nf = audioCtx.createBiquadFilter();
-  const ng = audioCtx.createGain();
-  nf.type = 'bandpass'; nf.frequency.value = freq * 2.2; nf.Q.value = 1.2;
-  ng.gain.setValueAtTime(v * 0.22, now);
-  ng.gain.exponentialRampToValueAtTime(0.001, now + 0.022);
-  ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
-  ns.start(now);
+  } else if (character < 0.7) {
+    // ── МЕТАЛЛИЧЕСКИЙ — биения двух тонов ──
+    const beatFreq = baseFreq * (1.03 + Math.random() * 0.04);
+    [baseFreq, beatFreq].forEach(f => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(f, now);
+      o.frequency.linearRampToValueAtTime(f * 0.88, now + 0.5);
+      g.gain.setValueAtTime(v * 0.6, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      o.connect(g); g.connect(masterGain);
+      o.start(now); o.stop(now + 0.6);
+    });
+
+  } else {
+    // ── МЕМБРАННЫЙ — питч-даун + шум конги ──
+    const o1 = audioCtx.createOscillator();
+    const g1 = audioCtx.createGain();
+    o1.type = 'sine';
+    o1.frequency.setValueAtTime(baseFreq * 1.6, now);
+    o1.frequency.exponentialRampToValueAtTime(baseFreq * 0.7, now + 0.12);
+    g1.gain.setValueAtTime(v * 0.8, now);
+    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    o1.connect(g1); g1.connect(masterGain);
+    o1.start(now); o1.stop(now + 0.38);
+
+    const nlen = Math.floor(audioCtx.sampleRate * 0.15);
+    const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd   = nbuf.getChannelData(0);
+    for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+    const ns = audioCtx.createBufferSource(); ns.buffer = nbuf;
+    const nf = audioCtx.createBiquadFilter();
+    const ng = audioCtx.createGain();
+    nf.type = 'bandpass'; nf.frequency.value = baseFreq * 1.8; nf.Q.value = 3;
+    ng.gain.setValueAtTime(v * 0.4, now);
+    ng.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
+    ns.start(now);
+  }
+
+  // Щелчок атаки — общий для всех типов
+  const clen = Math.floor(audioCtx.sampleRate * 0.006);
+  const cbuf = audioCtx.createBuffer(1, clen, audioCtx.sampleRate);
+  const cd   = cbuf.getChannelData(0);
+  for (let i = 0; i < clen; i++) cd[i] = (1 - i / clen) * (Math.random() * 2 - 1);
+  const cs = audioCtx.createBufferSource(); cs.buffer = cbuf;
+  const cg = audioCtx.createGain();
+  cg.gain.setValueAtTime(v * 0.5, now);
+  cs.connect(cg); cg.connect(masterGain);
+  cs.start(now);
 
   flashDrum('perc');
 }
 
 // ════════════════════════════════════════════
-//  ВСПЫШКА КНОПКИ при ударе
+//  ВСПЫШКА КНОПКИ
 // ════════════════════════════════════════════
 function flashDrum(name) {
   const btn = document.querySelector(`[data-drum="${name}"]`);
@@ -962,7 +1041,7 @@ function applySoundMusical(scanCol, avgBright, motion) {
     if (zoneCooldowns[z] > 0) zoneCooldowns[z]--;
   }
 
-  // Яркость каждой зоны
+    // Яркость каждой зоны
   const zoneBright = new Float32Array(ZONE_COUNT);
   for (let z = 0; z < ZONE_COUNT; z++) {
     const s = Math.floor(z * zoneH);
@@ -1008,25 +1087,7 @@ function applySoundMusical(scanCol, avgBright, motion) {
     bassCooldown = 25;
   }
 
-  // ════════════════════════════════════════
-  //  АЛГОРИТМЫ УДАРНЫХ
-  //
-  //  КИК:   резкий скачок средней яркости
-  //         всего кадра — как вспышка света
-  //
-  //  СНЕЙР: большой контраст между верхней
-  //         и нижней половиной — граница
-  //         тени и света пересекает центр
-  //
-  //  ХЭТ:   накопленное мерцание верхней зоны
-  //         много мелких изменений подряд →
-  //         срабатывает как частая дробь
-  //
-  //  ПЕРК:  изменение в средних зонах (3,4,5)
-  //         высота звука = яркость этих зон
-  // ════════════════════════════════════════
-
-  // ── КИК ──
+  // ── КИК: резкий глобальный скачок яркости ──
   if (kickCooldown > 0) kickCooldown--;
   if (drums.kick) {
     const globalDelta = Math.abs(avgBright - prevBright);
@@ -1040,55 +1101,37 @@ function applySoundMusical(scanCol, avgBright, motion) {
   // ── СНЕЙР: контраст верх/низ ──
   if (snareCooldown > 0) snareCooldown--;
   if (drums.snare) {
-    // Верхняя половина (зоны 0,1,2,3) vs нижняя (4,5,6,7)
     let topSum = 0, botSum = 0;
     for (let z = 0; z < 4; z++) topSum += zoneBright[z];
     for (let z = 4; z < 8; z++) botSum += zoneBright[z];
-    const topAvg     = topSum / 4;
-    const botAvg     = botSum / 4;
-    const contrast   = Math.abs(topAvg - botAvg); // разница верх/низ
-
-    // Сглаживаем контраст — реагируем на его изменение
+    const topAvg      = topSum / 4;
+    const botAvg      = botSum / 4;
+    const contrast    = Math.abs(topAvg - botAvg);
     const contrastDelta = Math.abs(contrast - prevContrast);
     prevContrast = contrast * 0.7 + prevContrast * 0.3;
-
-        // Срабатывает когда граница света/тени резко смещается
     if (contrastDelta > 18 && contrast > 25 &&
         snareCooldown === 0 && motion > MOTION_THRESHOLD) {
-      const snareVol = Math.min(contrastDelta / 50, 1.0);
-      playSnare(snareVol);
+      playSnare(Math.min(contrastDelta / 50, 1.0));
       snareCooldown = 28;
     }
   }
 
   // ── ХЭТ: накопленное мерцание верхней зоны ──
-  // Логика: каждый кадр считаем абсолютное изменение
-  // верхней зоны и накапливаем в буфер hihatFlicker.
-  // Когда накопилось достаточно — срабатывает хэт.
-  // Это значит: много мелких движений = частая дробь,
-  // одно большое движение = один удар.
   if (hihatCooldown > 0) hihatCooldown--;
   if (drums.hihat) {
-    const topBright    = zoneBright[0];
-    const topDelta     = Math.abs(topBright - prevTopBright);
-    // Накапливаем мерцание, медленно затухает
+    const topBright = zoneBright[0];
+    const topDelta  = Math.abs(topBright - prevTopBright);
     hihatFlicker = hihatFlicker * 0.75 + topDelta * 0.25;
     prevTopBright = topBright;
-
     if (hihatFlicker > 6 && hihatCooldown === 0 &&
         topBright > 10 && motion > MOTION_THRESHOLD) {
-      const hatVol = Math.min(hihatFlicker / 20, 1.0);
-      playHihat(hatVol);
-      hihatCooldown = 7; // короткий кулдаун — хэт может частить
-      hihatFlicker *= 0.4; // сбрасываем часть накопленного
+      playHihat(Math.min(hihatFlicker / 20, 1.0));
+      hihatCooldown = 7;
+      hihatFlicker *= 0.4;
     }
   }
 
-  // ── ПЕРКУССИЯ: средние зоны 3,4,5 ──
-  // Средние зоны — самые музыкальные:
-  // они не верх (хаотичный) и не низ (бас).
-  // Яркость средних зон → высота тома.
-  // Изменение средних зон → триггер удара.
+  // ── ПЕРКУССИЯ: средние зоны 2-5 ──
   if (percCooldown > 0) percCooldown--;
   if (drums.perc) {
     let midSum = 0, midDeltaSum = 0;
@@ -1096,15 +1139,13 @@ function applySoundMusical(scanCol, avgBright, motion) {
       midSum      += zoneBright[z];
       midDeltaSum += Math.abs(zoneBright[z] - prevZoneBright[z]);
     }
-    const midAvg      = midSum / 4;
-    const midDelta    = midDeltaSum / 4;
-    const pitchNorm   = midAvg / 255; // яркость → высота тона
-
+    const midAvg   = midSum / 4;
+    const midDelta = midDeltaSum / 4;
+    const pitchNorm = midAvg / 255;
     if (midDelta > triggerThreshold * 0.9 &&
         percCooldown === 0 && midAvg > 15 &&
         motion > MOTION_THRESHOLD) {
-      const percVol = Math.min(midDelta / 45, 1.0);
-      playPerc(percVol, pitchNorm);
+      playPerc(Math.min(midDelta / 45, 1.0), pitchNorm);
       percCooldown = 18;
     }
   }
@@ -1185,14 +1226,13 @@ startOverlay.addEventListener('touchend', handleStart, { passive: false });
 startOverlay.addEventListener('click',    handleStart);
 
 // ════════════════════════════════════════════
-//  КНОПКИ УДАРНЫХ — переключение вкл/выкл
+//  КНОПКИ УДАРНЫХ
 // ════════════════════════════════════════════
 document.querySelectorAll('.drum-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const name = btn.dataset.drum;
     drums[name] = !drums[name];
     btn.classList.toggle('active', drums[name]);
-    // Сбрасываем кулдаун при включении
     if (drums[name]) {
       if (name === 'kick')  kickCooldown  = 0;
       if (name === 'snare') snareCooldown = 0;
