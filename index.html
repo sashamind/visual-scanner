@@ -3,11 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>data.scan</title>
+  <title>Письмо Звука</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+    :root {
+      --orange: #ff6a00;
+      --orange-dim: rgba(255,106,0,0.4);
+      --orange-faint: rgba(255,106,0,0.08);
+    }
 
     body {
       background: #000;
@@ -21,15 +27,21 @@
       overflow-x: hidden;
     }
 
+    /* ===== ХЕДЕР ===== */
     .header {
       width: 100%; max-width: 640px;
       padding: 12px 12px 8px;
       display: flex; justify-content: space-between; align-items: flex-end;
       border-bottom: 1px solid #222;
     }
-    .header-title { font-size: 0.75rem; letter-spacing: 4px; color: #fff; }
-    .header-sub   { font-size: 0.5rem; color: #444; letter-spacing: 2px; }
+    .header-title {
+      font-size: 0.85rem; letter-spacing: 4px;
+      color: var(--orange);
+      text-shadow: 0 0 20px var(--orange-dim);
+    }
+    .header-sub { font-size: 0.5rem; color: #444; letter-spacing: 2px; }
 
+    /* ===== КАМЕРА ===== */
     .scanner-wrapper {
       position: relative; width: 100%; max-width: 640px;
       aspect-ratio: 4/3; background: #000; overflow: hidden;
@@ -41,7 +53,7 @@
     .scan-line {
       position: absolute; top: 0; bottom: 0; left: 50%;
       transform: translateX(-50%);
-      width: 1px; background: #fff; opacity: 0.8;
+      width: 1px; background: #fff; opacity: 0.7;
       pointer-events: none; z-index: 10;
     }
     .tick {
@@ -52,28 +64,33 @@
 
     #audioStatus {
       position: absolute; bottom: 8px; left: 10px;
-      font-size: 0.45rem; color: #444; letter-spacing: 2px; z-index: 15;
+      font-size: 0.42rem; color: #444; letter-spacing: 2px; z-index: 15;
     }
 
     .live-data {
       position: absolute; bottom: 8px; right: 10px;
-      font-size: 0.45rem; color: #555; letter-spacing: 2px;
+      font-size: 0.42rem; color: #555; letter-spacing: 2px;
       z-index: 15; text-align: right; line-height: 1.8;
     }
 
-    /* Индикатор ноты — загорается когда играет нота */
+    /* Нота поверх камеры */
     #noteDisplay {
       position: absolute; top: 10px; left: 50%;
       transform: translateX(-50%);
-      font-size: 0.5rem; letter-spacing: 3px; color: rgba(255,255,255,0.5);
-      z-index: 15; transition: opacity 0.3s;
+      font-size: 0.55rem; letter-spacing: 3px;
+      color: var(--orange);
+      opacity: 0;
+      z-index: 15;
+      transition: opacity 0.4s;
+      text-shadow: 0 0 10px var(--orange-dim);
     }
 
+    /* ===== ОВЕРЛЕЙ СТАРТА ===== */
     #startOverlay {
       position: absolute; inset: 0; background: #000;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      z-index: 20; cursor: pointer; gap: 16px;
+      z-index: 20; cursor: pointer; gap: 12px;
     }
     .overlay-grid {
       position: absolute; inset: 0;
@@ -82,19 +99,40 @@
         linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
       background-size: 40px 40px;
     }
-    .overlay-label { font-size: 0.55rem; letter-spacing: 5px; color: #444; z-index: 1; }
+    .overlay-title {
+      font-size: 1.1rem; letter-spacing: 5px;
+      color: var(--orange); z-index: 1;
+      text-shadow: 0 0 30px var(--orange-dim);
+    }
+    .overlay-label { font-size: 0.5rem; letter-spacing: 4px; color: #444; z-index: 1; }
+
+    /* Предупреждение о беззвучном режиме */
+    .overlay-warning {
+      font-size: 0.5rem; letter-spacing: 2px;
+      color: #888; z-index: 1;
+      border: 1px solid #333;
+      padding: 8px 16px;
+      text-align: center;
+      line-height: 1.8;
+    }
+    .overlay-warning span { color: var(--orange); }
+
     .overlay-tap {
       font-size: 0.65rem; letter-spacing: 4px; color: #fff;
       border: 1px solid #fff; padding: 10px 28px; z-index: 1;
       animation: blink 1.4s step-end infinite;
+      margin-top: 8px;
     }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
+    /* ===== ВИЗУАЛИЗАТОР ===== */
     #vizCanvas {
-      width: 100%; max-width: 640px; height: 48px;
-      display: block; background: #000; border-top: 1px solid #1a1a1a;
+      width: 100%; max-width: 640px; height: 52px;
+      display: block; background: #000;
+      border-top: 1px solid #1a1a1a;
     }
 
+    /* ===== ДАННЫЕ ===== */
     .data-row {
       width: 100%; max-width: 640px;
       display: grid; grid-template-columns: repeat(4,1fr);
@@ -105,27 +143,30 @@
     .dc-label { font-size:0.38rem; color:#444; letter-spacing:2px; margin-bottom:3px; text-transform:uppercase; }
     .dc-val   { font-size:0.7rem; color:#fff; }
 
+    /* ===== СЕКЦИИ ===== */
     .section { width: 100%; max-width: 640px; }
     .section-head {
       font-size: 0.4rem; color: #333; letter-spacing: 3px;
-      padding: 10px 10px 0; text-transform: uppercase; border-top: 1px solid #111;
+      padding: 10px 10px 0; text-transform: uppercase;
+      border-top: 1px solid #111;
     }
 
+    /* ===== РЕЖИМ ЗВУКА ===== */
     .sound-modes { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; }
     .smode-btn {
       padding: 12px 10px; border:none; border-right:1px solid #1a1a1a;
       background:#000; color:#444;
       font-family:'Share Tech Mono',monospace;
       font-size:0.6rem; letter-spacing:2px; cursor:pointer;
-      text-align:left; line-height:1.8; transition:background 0.1s;
+      text-align:left; line-height:1.8; transition:background 0.15s;
     }
     .smode-btn:last-child { border-right:none; }
     .smode-btn .smode-name { display:block; }
     .smode-btn .smode-desc { font-size:0.38rem; color:#333; letter-spacing:1px; display:block; }
-    .smode-btn.active { background:#fff; color:#000; }
-    .smode-btn.active .smode-desc { color:#666; }
-    .smode-btn:active { background:#111; color:#fff; }
+    .smode-btn.active { background: var(--orange-faint); color: var(--orange); border-bottom: 1px solid var(--orange); }
+    .smode-btn.active .smode-desc { color: #884400; }
 
+    /* ===== ТИП ВОЛНЫ ===== */
     .wave-modes { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid #1a1a1a; }
     .wave-btn {
       padding:10px 0; border:none; border-right:1px solid #1a1a1a;
@@ -134,9 +175,9 @@
       font-size:0.6rem; letter-spacing:2px; cursor:pointer; transition:background 0.1s;
     }
     .wave-btn:last-child { border-right:none; }
-    .wave-btn.active { background:#fff; color:#000; }
-    .wave-btn:active  { background:#111; color:#fff; }
+    .wave-btn.active { background: var(--orange-faint); color: var(--orange); }
 
+    /* ===== СЛАЙДЕРЫ ===== */
     .sliders { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; }
     .slider-cell { padding:10px 12px; border-right:1px solid #1a1a1a; }
     .slider-cell:nth-child(even) { border-right:none; }
@@ -151,9 +192,10 @@
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance:none; width:16px; height:16px;
-      border-radius:0; background:#fff; cursor:pointer;
+      border-radius:0; background: var(--orange); cursor:pointer;
     }
 
+    /* ===== НИЖНИЕ КНОПКИ ===== */
     .bottom-btns {
       display:grid; grid-template-columns:1fr 1fr;
       border-bottom:1px solid #1a1a1a; margin-bottom:24px;
@@ -172,8 +214,8 @@
 <body>
 
   <div class="header">
-    <div class="header-title">DATA.SCAN</div>
-    <div class="header-sub">visual → audio</div>
+    <div class="header-title">ПИСЬМО ЗВУКА</div>
+    <div class="header-sub">визуал → звук</div>
   </div>
 
   <div class="scanner-wrapper">
@@ -184,78 +226,89 @@
     <div class="tick t"></div>
     <div class="tick b"></div>
     <div id="noteDisplay"></div>
-    <div id="audioStatus">audio: —</div>
+    <div id="audioStatus">аудио: —</div>
     <div class="live-data">
-      <div id="liveLum">lum —</div>
-      <div id="liveNote">— </div>
+      <div id="liveLum">яркость —</div>
+      <div id="liveNote">—</div>
     </div>
     <div id="startOverlay">
       <div class="overlay-grid"></div>
-      <div class="overlay-label">DATA.SCAN / visual→audio</div>
-      <div class="overlay-tap">[ tap to start ]</div>
+      <div class="overlay-title">ПИСЬМО ЗВУКА</div>
+      <div class="overlay-label">визуальное → аудио</div>
+      <div class="overlay-warning">
+        ⚠ перед стартом убедитесь<br>
+        что телефон <span>не в беззвучном режиме</span><br>
+        и громкость медиа поднята
+      </div>
+      <div class="overlay-tap">[ нажмите для старта ]</div>
     </div>
   </div>
 
-  <canvas id="vizCanvas" width="640" height="48"></canvas>
+  <canvas id="vizCanvas" width="640" height="52"></canvas>
 
   <div class="data-row">
-    <div class="data-cell"><div class="dc-label">lum</div><div class="dc-val" id="infoLum">—</div></div>
-    <div class="data-cell"><div class="dc-label">note</div><div class="dc-val" id="infoNote">—</div></div>
-    <div class="data-cell"><div class="dc-label">mode</div><div class="dc-val" id="infoMode">raw</div></div>
-    <div class="data-cell"><div class="dc-label">state</div><div class="dc-val" id="infoState">—</div></div>
+    <div class="data-cell"><div class="dc-label">яркость</div><div class="dc-val" id="infoLum">—</div></div>
+    <div class="data-cell"><div class="dc-label">нота</div><div class="dc-val" id="infoNote">—</div></div>
+    <div class="data-cell"><div class="dc-label">режим</div><div class="dc-val" id="infoMode">муз.</div></div>
+    <div class="data-cell"><div class="dc-label">статус</div><div class="dc-val" id="infoState">—</div></div>
   </div>
 
   <div class="section">
-    <div class="section-head">// sound.mode</div>
+    <div class="section-head">// режим звука</div>
     <div class="sound-modes">
-      <button class="smode-btn active" data-smode="raw">
-        <span class="smode-name">RAW</span>
+      <button class="smode-btn" data-smode="raw">
+        <span class="smode-name">СЫРОЙ</span>
         <span class="smode-desc">атональный дрон</span>
       </button>
-      <button class="smode-btn" data-smode="musical">
-        <span class="smode-name">MUSICAL</span>
-        <span class="smode-desc">ambient piano</span>
+      <button class="smode-btn active" data-smode="musical">
+        <span class="smode-name">МУЗЫКАЛЬНЫЙ</span>
+        <span class="smode-desc">эмбиент / авангард</span>
       </button>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-head">// wave.type (only raw)</div>
+    <div class="section-head">// тип волны (сырой) / тембр (муз.)</div>
     <div class="wave-modes">
-      <button class="wave-btn active" data-mode="sine">SINE</button>
-      <button class="wave-btn" data-mode="triangle">TRI</button>
-      <button class="wave-btn" data-mode="sawtooth">SAW</button>
-      <button class="wave-btn" data-mode="square">SQR</button>
+      <button class="wave-btn" data-mode="sine">СИНУС</button>
+      <button class="wave-btn active" data-mode="triangle">ТРЕУГОЛ</button>
+      <button class="wave-btn" data-mode="sawtooth">ПИЛА</button>
+      <button class="wave-btn" data-mode="square">КВАДРАТ</button>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-head">// parameters</div>
-    <div class="sliders">
+    <div class="section-head" id="sliderSectionLabel">// параметры</div>
+    <div class="sliders" id="slidersGrid">
+
+      <!-- Слайдеры меняются в зависимости от режима -->
+      <!-- RAW: громкость, голоса, min hz, max hz -->
+      <!-- MUSICAL: громкость, реверб, скорость, бас -->
+
       <div class="slider-cell">
-        <div class="sl-label">volume <span id="volVal">80%</span></div>
+        <div class="sl-label" id="s1label">громкость <span id="volVal">80%</span></div>
         <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.8">
       </div>
       <div class="slider-cell">
-        <div class="sl-label">voices <span id="voiceVal">8</span></div>
-        <input type="range" id="voicesSlider" min="1" max="16" step="1" value="8">
+        <div class="sl-label" id="s2label">реверб <span id="s2Val">40%</span></div>
+        <input type="range" id="slider2" min="0" max="1" step="0.01" value="0.4">
       </div>
       <div class="slider-cell">
-        <div class="sl-label">min.hz <span id="minVal">100</span></div>
-        <input type="range" id="minFreqSlider" min="50" max="500" step="10" value="100">
+        <div class="sl-label" id="s3label">скорость <span id="s3Val">ср.</span></div>
+        <input type="range" id="slider3" min="0" max="1" step="0.01" value="0.5">
       </div>
       <div class="slider-cell">
-        <div class="sl-label">max.hz <span id="maxVal">2000</span></div>
-        <input type="range" id="maxFreqSlider" min="500" max="4000" step="50" value="2000">
+        <div class="sl-label" id="s4label">бас <span id="s4Val">60%</span></div>
+        <input type="range" id="slider4" min="0" max="1" step="0.01" value="0.6">
       </div>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-head">// controls</div>
+    <div class="section-head">// управление</div>
     <div class="bottom-btns">
-      <button class="ctrl-btn active" id="muteBtn">[ sound: on ]</button>
-      <button class="ctrl-btn" id="camBtn">[ cam: rear ]</button>
+      <button class="ctrl-btn active" id="muteBtn">[ звук: вкл ]</button>
+      <button class="ctrl-btn" id="camBtn">[ камера: тыл ]</button>
     </div>
   </div>
 
@@ -272,10 +325,11 @@ const muteBtn      = document.getElementById('muteBtn');
 const camBtn       = document.getElementById('camBtn');
 const audioStatus  = document.getElementById('audioStatus');
 const noteDisplay  = document.getElementById('noteDisplay');
-const volumeSlider  = document.getElementById('volumeSlider');
-const voicesSlider  = document.getElementById('voicesSlider');
-const minFreqSlider = document.getElementById('minFreqSlider');
-const maxFreqSlider = document.getElementById('maxFreqSlider');
+
+const volumeSlider = document.getElementById('volumeSlider');
+const slider2      = document.getElementById('slider2');
+const slider3      = document.getElementById('slider3');
+const slider4      = document.getElementById('slider4');
 
 const ctx    = canvas.getContext('2d');
 const offCtx = offscreen.getContext('2d');
@@ -290,52 +344,53 @@ let analyser     = null;
 let reverbNode   = null;
 let dryGain      = null;
 let wetGain      = null;
-let oscillators  = [];  // для RAW режима
+let oscillators  = [];
 let gainNodes    = [];
 let isMuted      = false;
 let isRunning    = false;
-let waveType     = 'sine';
-let soundMode    = 'raw';
+let waveType     = 'triangle'; // по умолчанию треугольник — мягче
+let soundMode    = 'musical';  // по умолчанию музыкальный
 let animId       = null;
 let useFrontCam  = false;
 let audioReady   = false;
 let startHandled = false;
 let frameCount   = 0;
 
-// ════════════════════════════════════════════
-//  PIANO ENGINE — движок для musical режима
-//  Работает совсем иначе чем RAW:
-//  не постоянные осцилляторы, а одноразовые "удары"
-// ════════════════════════════════════════════
+// Параметры musical режима (управляются ползунками)
+let reverbAmount  = 0.4;  // slider2: сухо ↔ мокро
+let noteSpeed     = 0.5;  // slider3: медленно ↔ быстро (частота нот)
+let bassAmount    = 0.6;  // slider4: громкость баса
 
-// Пентатоника — C минор, 3 октавы (средний диапазон фортепиано)
-// Специально убрал очень высокие ноты которые дают писк
-const NOTES = {
-  'C3':  130.81, 'Eb3': 155.56, 'F3':  174.61, 'G3':  196.00, 'Bb3': 233.08,
-  'C4':  261.63, 'Eb4': 311.13, 'F4':  349.23, 'G4':  392.00, 'Bb4': 466.16,
-  'C5':  523.25, 'Eb5': 622.25, 'F5':  698.46, 'G5':  783.99, 'Bb5': 932.33,
-};
-const NOTE_NAMES = Object.keys(NOTES);
-const NOTE_FREQS = Object.values(NOTES);
-
-// Бас — только нижние ноты
-const BASS_NOTES = [65.41, 77.78, 87.31, 98.00, 116.54]; // C2-Bb2
-
-// Состояние piano engine
-let lastNoteIndex  = -1;   // последняя сыгранная нота
-let noteCooldown   = 0;    // кулдаун между нотами (в кадрах)
-let noteHoldTimer  = null; // таймер удержания ноты
-let prevBright     = 0;    // яркость предыдущего кадра
-let kickCooldown   = 0;
-let snareCooldown  = 0;
-let hihatCooldown  = 0;
-let bassOsc        = null;
-let bassGainNode   = null;
+// Piano engine
+let lastNoteIndex = -1;
+let noteCooldown  = 0;
+let noteHoldTimer = null;
+let prevBright    = 0;
+let kickCooldown  = 0;
+let hihatCooldown = 0;
 
 // ════════════════════════════════════════════
-//  НОТЫ ПЕНТАТОНИКИ — имена для отображения
+//  ПЕНТАТОНИКА — средний диапазон, без пищащих верхов
 // ════════════════════════════════════════════
-const NOTE_LABELS = ['C','Eb','F','G','Bb'];
+const NOTES = [
+  { name: 'До2',  freq: 65.41  },
+  { name: 'Ми♭2', freq: 77.78  },
+  { name: 'Фа2',  freq: 87.31  },
+  { name: 'Соль2',freq: 98.00  },
+  { name: 'Си♭2', freq: 116.54 },
+  { name: 'До3',  freq: 130.81 },
+  { name: 'Ми♭3', freq: 155.56 },
+  { name: 'Фа3',  freq: 174.61 },
+  { name: 'Соль3',freq: 196.00 },
+  { name: 'Си♭3', freq: 233.08 },
+  { name: 'До4',  freq: 261.63 },
+  { name: 'Ми♭4', freq: 311.13 },
+  { name: 'Фа4',  freq: 349.23 },
+  { name: 'Соль4',freq: 392.00 },
+  { name: 'Си♭4', freq: 466.16 },
+];
+
+const BASS_FREQS = [65.41, 77.78, 87.31, 98.00, 116.54];
 
 // ════════════════════════════════════════════
 //  iOS ФИКСЫ
@@ -361,25 +416,24 @@ function unlockWebAudio(actx) {
 }
 
 // ════════════════════════════════════════════
-//  РЕВЕРБ — имитация концертного зала
+//  РЕВЕРБ
 // ════════════════════════════════════════════
 function createReverb() {
   reverbNode = audioCtx.createConvolver();
-  // 3 секунды затухания — как в большом зале
-  const len = audioCtx.sampleRate * 3;
-  const buf = audioCtx.createBuffer(2, len, audioCtx.sampleRate);
+  const len  = audioCtx.sampleRate * 3.5;
+  const buf  = audioCtx.createBuffer(2, len, audioCtx.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
     const d = buf.getChannelData(ch);
     for (let i = 0; i < len; i++) {
-      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.0);
     }
   }
   reverbNode.buffer = buf;
 
   dryGain = audioCtx.createGain();
   wetGain = audioCtx.createGain();
-  dryGain.gain.value = 1.0;
-  wetGain.gain.value = 0.0;
+  dryGain.gain.value = 1 - reverbAmount;
+  wetGain.gain.value = reverbAmount;
 
   analyser.connect(dryGain);
   analyser.connect(reverbNode);
@@ -389,7 +443,7 @@ function createReverb() {
 }
 
 // ════════════════════════════════════════════
-//  ИНИЦИАЛИЗАЦИЯ АУДИО
+//  ИНИЦИАЛИЗАЦИЯ
 // ════════════════════════════════════════════
 async function initAudio() {
   if (audioCtx && audioCtx.state === 'running' && audioReady) return;
@@ -409,129 +463,136 @@ async function initAudio() {
     masterGain.connect(audioCtx.destination);
   }
 
-  // RAW осцилляторы создаём сразу
   createRawOscillators();
   audioReady = true;
   updateAudioStatus();
 }
 
 // ════════════════════════════════════════════
-//  RAW ОСЦИЛЛЯТОРЫ — постоянные, меняют частоту
+//  RAW ОСЦИЛЛЯТОРЫ
 // ════════════════════════════════════════════
 function createRawOscillators() {
   oscillators.forEach(o => { try { o.stop(); } catch(e) {} });
   oscillators = []; gainNodes = [];
-  const count = parseInt(voicesSlider.value);
+  const count = 8;
   const now   = audioCtx.currentTime;
   for (let i = 0; i < count; i++) {
     const osc  = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = waveType;
-    osc.frequency.value = 200 + i * 30;
+    osc.frequency.value = 150 + i * 40;
     gain.gain.setValueAtTime(0, now);
     osc.connect(gain); gain.connect(analyser);
     osc.start(now);
     oscillators.push(osc); gainNodes.push(gain);
   }
-  document.getElementById('infoNote').textContent = '—';
 }
 
 // ════════════════════════════════════════════
-//  PIANO NOTE — одиночный удар по клавише
-//  Это и есть секрет фортепианного звука:
-//  каждая нота = отдельный осциллятор который
-//  быстро нарастает и медленно затихает
+//  ВИОЛОНЧЕЛЬНЫЙ / АВАНГАРДНЫЙ ЗВУК НОТЫ
+//
+//  Секрет виолончельного тембра:
+//  1. Пилообразная волна (богатая обертонами)
+//  2. Фильтр срезает самые верхние частоты (убирает резкость)
+//  3. Медленная атака (смычок ложится на струну)
+//  4. Вибрато — небольшое колебание частоты
+//  5. Долгое затухание
 // ════════════════════════════════════════════
-function playPianoNote(freq, noteName, velocity = 0.7) {
+function playStringNote(freq, noteName, velocity = 0.6) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
-  const vol = parseFloat(volumeSlider.value) * velocity;
+  const vol = parseFloat(volumeSlider.value) * velocity * 0.55;
 
-  // ── Основной тон ──
+  // Тип волны зависит от выбранного тембра
+  // sawtooth = виолончель, triangle = флейта, square = орган, sine = чистый тон
+  const selectedWave = waveType;
+
+  // ── Основной осциллятор ──
   const osc1  = audioCtx.createOscillator();
+  const filt  = audioCtx.createBiquadFilter();
   const gain1 = audioCtx.createGain();
-  osc1.type = 'sine';
-  osc1.frequency.value = freq;
 
-  // ── Второй обертон (октава выше, тихий) ──
-  // Делает звук богаче как настоящее фортепиано
+  osc1.type = selectedWave;
+  osc1.frequency.setValueAtTime(freq, now);
+
+  // Вибрато — LFO (низкочастотный осциллятор) качает частоту
+  // Это даёт живой "смычковый" звук
+  const lfo      = audioCtx.createOscillator();
+  const lfoGain  = audioCtx.createGain();
+  lfo.type       = 'sine';
+  lfo.frequency.value  = 4.5 + Math.random() * 1.5; // 4.5-6 Гц вибрато
+  lfoGain.gain.value   = freq * 0.008; // глубина вибрато — 0.8% от частоты
+  lfo.connect(lfoGain);
+  lfoGain.connect(osc1.frequency);
+  lfo.start(now + 0.3); // вибрато включается не сразу
+
+  // Фильтр — срезает верхние частоты для мягкости
+  filt.type = 'lowpass';
+  // Cutoff зависит от тембра: пила требует больше срезки
+  filt.frequency.value = selectedWave === 'sawtooth' ? 1200 :
+                         selectedWave === 'square'   ? 800  : 3000;
+  filt.Q.value = 1.2;
+
+  // Огибающая: медленная атака как у смычка
+  const attackTime = selectedWave === 'sine' ? 0.05 : 0.12;
+  gain1.gain.setValueAtTime(0, now);
+  gain1.gain.linearRampToValueAtTime(vol, now + attackTime);
+  gain1.gain.setValueAtTime(vol, now + attackTime + 0.1);
+  gain1.gain.exponentialRampToValueAtTime(vol * 0.7, now + 0.8);
+  gain1.gain.exponentialRampToValueAtTime(0.001, now + 2.8);
+
+  osc1.connect(filt); filt.connect(gain1); gain1.connect(analyser);
+  osc1.start(now); osc1.stop(now + 3.0);
+  lfo.stop(now + 3.0);
+
+  // ── Субоктава (тихая) — добавляет глубины ──
   const osc2  = audioCtx.createOscillator();
   const gain2 = audioCtx.createGain();
   osc2.type = 'sine';
-  osc2.frequency.value = freq * 2;
-
-  // ── Третий обертон (квинта, очень тихий) ──
-  const osc3  = audioCtx.createOscillator();
-  const gain3 = audioCtx.createGain();
-  osc3.type = 'triangle';
-  osc3.frequency.value = freq * 3;
-
-  // ОГИБАЮЩАЯ ФОРТЕПИАНО:
-  // Атака очень быстрая (0.008с) — резкий удар
-  // Затем быстрый спад (0.1с) — характерный "щипок"
-  // Потом долгое медленное затухание (2с) — резонанс струны
-
-  // Основной тон
-  gain1.gain.setValueAtTime(0, now);
-  gain1.gain.linearRampToValueAtTime(vol, now + 0.008);        // атака
-  gain1.gain.linearRampToValueAtTime(vol * 0.6, now + 0.1);    // спад
-  gain1.gain.exponentialRampToValueAtTime(0.001, now + 2.5);   // затухание
-
-  // Октава — тихая, быстро затихает
+  osc2.frequency.value = freq * 0.5; // октава ниже
   gain2.gain.setValueAtTime(0, now);
-  gain2.gain.linearRampToValueAtTime(vol * 0.25, now + 0.008);
-  gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-
-  // Квинта — совсем тихая
-  gain3.gain.setValueAtTime(0, now);
-  gain3.gain.linearRampToValueAtTime(vol * 0.1, now + 0.008);
-  gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-
-  // Подключаем всё к analyser (через который идёт реверб)
-  osc1.connect(gain1); gain1.connect(analyser);
+  gain2.gain.linearRampToValueAtTime(vol * 0.2, now + 0.15);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
   osc2.connect(gain2); gain2.connect(analyser);
-  osc3.connect(gain3); gain3.connect(analyser);
+  osc2.start(now); osc2.stop(now + 2.1);
 
-  // Запускаем и останавливаем автоматически
-  osc1.start(now); osc1.stop(now + 2.6);
-  osc2.start(now); osc2.stop(now + 1.3);
-  osc3.start(now); osc3.stop(now + 0.9);
-
-  // Показываем ноту на экране
+  // Показываем ноту
   noteDisplay.textContent = noteName;
   noteDisplay.style.opacity = '1';
   clearTimeout(noteHoldTimer);
-  noteHoldTimer = setTimeout(() => { noteDisplay.style.opacity = '0'; }, 1500);
+  noteHoldTimer = setTimeout(() => { noteDisplay.style.opacity = '0'; }, 2000);
 
-  document.getElementById('infoNote').textContent  = noteName;
-  document.getElementById('liveNote').textContent  = noteName;
+  document.getElementById('infoNote').textContent = noteName;
+  document.getElementById('liveNote').textContent = noteName;
 }
 
 // ════════════════════════════════════════════
-//  БАС — отдельный тихий нижний тон
+//  БАС — глубокий гудящий
 // ════════════════════════════════════════════
 function playBassNote(freq, velocity = 0.5) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
-  const vol = parseFloat(volumeSlider.value) * velocity * 0.6;
+  // bassAmount — ползунок slider4
+  const vol = parseFloat(volumeSlider.value) * velocity * bassAmount * 1.2;
 
   const osc  = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
   const filt = audioCtx.createBiquadFilter();
+  const gain = audioCtx.createGain();
 
-  osc.type = 'sine';
+  osc.type = 'sawtooth';
   osc.frequency.value = freq;
-  filt.type = 'lowpass';
-  filt.frequency.value = 300;
 
-  // Бас дольше затихает — держит гармонию
+  filt.type = 'lowpass';
+  filt.frequency.value = 250;
+  filt.Q.value = 2;
+
   gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(vol, now + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 3.5);
+  gain.gain.linearRampToValueAtTime(vol, now + 0.08);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 4.0);
 
   osc.connect(filt); filt.connect(gain);
-  gain.connect(masterGain); // бас напрямую — без реверба (плотнее)
-  osc.start(now); osc.stop(now + 3.6);
+  gain.connect(masterGain); // бас напрямую — без реверба
+  osc.start(now); osc.stop(now + 4.1);
 }
 
 // ════════════════════════════════════════════
@@ -539,29 +600,53 @@ function playBassNote(freq, velocity = 0.5) {
 // ════════════════════════════════════════════
 function playKick(vol) {
   const now = audioCtx.currentTime;
-  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  const o   = audioCtx.createOscillator();
+  const g   = audioCtx.createGain();
   o.type = 'sine';
   o.frequency.setValueAtTime(100, now);
   o.frequency.exponentialRampToValueAtTime(28, now + 0.4);
-  g.gain.setValueAtTime(vol * 0.8, now);
+  g.gain.setValueAtTime(vol * bassAmount * 1.0, now);
   g.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
   o.connect(g); g.connect(masterGain);
   o.start(now); o.stop(now + 0.5);
 }
 
-function playHihat(vol, open = false) {
+function playHihat(vol) {
   const now = audioCtx.currentTime;
-  const dur = open ? 0.15 : 0.04;
-  const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
+  const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.06), audioCtx.sampleRate);
   const d   = buf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   const src = audioCtx.createBufferSource(); src.buffer = buf;
   const f   = audioCtx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 9000;
   const g   = audioCtx.createGain();
-  g.gain.setValueAtTime(vol * 0.4, now);
-  g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+  g.gain.setValueAtTime(vol * 0.3, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
   src.connect(f); f.connect(g); g.connect(masterGain);
   src.start(now);
+}
+
+// ════════════════════════════════════════════
+//  ОБНОВЛЕНИЕ ПОЛЗУНКОВ в зависимости от режима
+// ════════════════════════════════════════════
+function updateSliderLabels() {
+  if (soundMode === 'musical') {
+    document.getElementById('s2label').childNodes[0].textContent = 'реверб ';
+    document.getElementById('s3label').childNodes[0].textContent = 'скорость ';
+    document.getElementById('s4label').childNodes[0].textContent = 'бас ';
+    slider2.min = 0; slider2.max = 1; slider2.step = 0.01;
+    slider3.min = 0; slider3.max = 1; slider3.step = 0.01;
+    slider4.min = 0; slider4.max = 1; slider4.step = 0.01;
+  } else {
+    document.getElementById('s2label').childNodes[0].textContent = 'голоса ';
+    document.getElementById('s3label').childNodes[0].textContent = 'мин.гц ';
+    document.getElementById('s4label').childNodes[0].textContent = 'макс.гц ';
+    slider2.min = 1; slider2.max = 16; slider2.step = 1; slider2.value = 8;
+    slider3.min = 50; slider3.max = 500; slider3.step = 10; slider3.value = 100;
+    slider4.min = 500; slider4.max = 4000; slider4.step = 50; slider4.value = 2000;
+    document.getElementById('s2Val').textContent = '8';
+    document.getElementById('s3Val').textContent = '100 гц';
+    document.getElementById('s4Val').textContent = '2000 гц';
+  }
 }
 
 // ════════════════════════════════════════════
@@ -580,7 +665,7 @@ async function startCamera() {
     await video.play();
     isRunning = true;
     scanLoop();
-  } catch(e) { audioStatus.textContent = 'cam: ' + e.message; }
+  } catch(e) { audioStatus.textContent = 'камера: ' + e.message; }
 }
 
 // ════════════════════════════════════════════
@@ -603,7 +688,7 @@ function scanLoop() {
 // ════════════════════════════════════════════
 function processFrame(data) {
   const W = 640, H = 480;
-  const out = ctx.createImageData(W, H);
+  const out  = ctx.createImageData(W, H);
   const outD = out.data;
   const scanX = W / 2, scanW = 5;
   const scanCol = new Float32Array(H);
@@ -627,35 +712,30 @@ function processFrame(data) {
     ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
   }
 
-  // Средняя яркость
   let sum = 0;
   for (let i = 0; i < H; i++) sum += scanCol[i];
   const avgBright = sum / H;
 
   document.getElementById('infoLum').textContent = Math.round(avgBright);
-  document.getElementById('liveLum').textContent = `lum ${Math.round(avgBright)}`;
+  document.getElementById('liveLum').textContent = `ярк. ${Math.round(avgBright)}`;
 
-  if (soundMode === 'raw') {
-    applySoundRaw(scanCol, avgBright);
-  } else {
-    applySoundMusical(scanCol, avgBright);
-  }
+  soundMode === 'raw' ? applySoundRaw(scanCol, avgBright) : applySoundMusical(scanCol, avgBright);
 }
 
 // ════════════════════════════════════════════
-//  RAW РЕЖИМ — плавный непрерывный дрон
+//  RAW РЕЖИМ
 // ════════════════════════════════════════════
 function applySoundRaw(scanCol, avgBright) {
   if (!audioCtx || !audioReady || isMuted) return;
   if (audioCtx.state !== 'running') { audioCtx.resume(); return; }
 
-  // Сухой звук
   if (dryGain) dryGain.gain.setTargetAtTime(1.0, audioCtx.currentTime, 0.3);
   if (wetGain) wetGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.3);
 
   const H = scanCol.length, count = oscillators.length;
-  const minFreq = parseInt(minFreqSlider.value);
-  const maxFreq = parseInt(maxFreqSlider.value);
+  // В raw режиме slider3 = min Hz, slider4 = max Hz
+  const minFreq = soundMode === 'raw' ? parseFloat(slider3.value) : 100;
+  const maxFreq = soundMode === 'raw' ? parseFloat(slider4.value) : 2000;
   const zoneH   = H / count;
   const now     = audioCtx.currentTime;
   const volMax  = parseFloat(volumeSlider.value) / Math.sqrt(count);
@@ -671,157 +751,161 @@ function applySoundRaw(scanCol, avgBright) {
     oscillators[i].frequency.cancelScheduledValues(now);
     oscillators[i].frequency.setValueAtTime(oscillators[i].frequency.value, now);
     oscillators[i].frequency.linearRampToValueAtTime(freq, now + 0.04);
-
     gainNodes[i].gain.cancelScheduledValues(now);
     gainNodes[i].gain.setValueAtTime(gainNodes[i].gain.value, now);
     gainNodes[i].gain.linearRampToValueAtTime(Math.max(0, Math.min(vol,volMax)), now + 0.04);
   }
-
-  document.getElementById('infoMode').textContent = 'raw';
+  document.getElementById('infoMode').textContent = 'сырой';
   document.getElementById('infoNote').textContent = '—';
 }
 
 // ════════════════════════════════════════════
-//  MUSICAL РЕЖИМ — ambient piano
-//
-//  Логика совсем другая чем RAW:
-//  1. Камера не управляет постоянными осцилляторами
-//  2. Камера ТРИГГЕРИТ отдельные удары по клавишам
-//  3. Каждый удар = полная огибающая (атака + затухание)
-//  4. Между ударами — тишина (или предыдущая нота затихает)
-//  5. Нота выбирается из пентатоники по яркости
+//  MUSICAL РЕЖИМ — эмбиент / авангард
 // ════════════════════════════════════════════
 function applySoundMusical(scanCol, avgBright) {
   if (!audioCtx || !audioReady || isMuted) return;
   if (audioCtx.state !== 'running') { audioCtx.resume(); return; }
 
-  // Реверб включён — 40% мокрого сигнала
-  if (dryGain) dryGain.gain.setTargetAtTime(0.6, audioCtx.currentTime, 0.5);
-  if (wetGain) wetGain.gain.setTargetAtTime(0.4, audioCtx.currentTime, 0.5);
+  // Обновляем реверб из slider2
+  if (dryGain) dryGain.gain.setTargetAtTime(1 - reverbAmount, audioCtx.currentTime, 0.5);
+  if (wetGain) wetGain.gain.setTargetAtTime(reverbAmount, audioCtx.currentTime, 0.5);
 
-  // Тишим RAW осцилляторы — они не нужны в musical режиме
+  // Глушим raw осцилляторы
   const now = audioCtx.currentTime;
-  gainNodes.forEach(g => {
-    g.gain.cancelScheduledValues(now);
-    g.gain.setTargetAtTime(0, now, 0.1);
-  });
+  gainNodes.forEach(g => { g.gain.cancelScheduledValues(now); g.gain.setTargetAtTime(0, now, 0.1); });
 
-  const H         = scanCol.length;
-  const intensity = avgBright / 255;
-  const delta     = avgBright - prevBright;
+  const H = scanCol.length;
 
-  // ─── ВЫБОР НОТЫ ───
-  // Средняя яркость верхних 2/3 экрана → нота мелодии
-  // Нижняя 1/3 → нота баса
-  let melodySum = 0;
-  for (let y = 0; y < Math.floor(H * 0.67); y++) melodySum += scanCol[y];
-  const melodyAvg  = melodySum / Math.floor(H * 0.67);
-  const melodyNorm = melodyAvg / 255;
+  // Яркость верхних 2/3 → нота мелодии
+  let melSum = 0;
+  for (let y = 0; y < Math.floor(H * 0.67); y++) melSum += scanCol[y];
+  const melAvg  = melSum / Math.floor(H * 0.67);
+  const melNorm = melAvg / 255;
 
-  // Индекс ноты — ступенчато по пентатонике
-  const noteIdx = Math.min(
-    Math.floor(melodyNorm * NOTE_FREQS.length),
-    NOTE_FREQS.length - 1
-  );
-
-  // ─── КОГДА ИГРАТЬ НОТУ ───
-  // Не каждый кадр! Только когда:
-  // а) нота ИЗМЕНИЛАСЬ (камера сдвинулась на другую зону)
-  // б) прошёл минимальный кулдаун
-  // в) есть достаточная яркость (не полная тьма)
+  // Нота из пентатоники
+  const noteIdx = Math.min(Math.floor(melNorm * NOTES.length), NOTES.length - 1);
 
   if (noteCooldown > 0) noteCooldown--;
 
-  const noteChanged   = noteIdx !== lastNoteIndex;
-  const brightEnough  = melodyAvg > 20;
-  const cooldownDone  = noteCooldown === 0;
+  // Кулдаун между нотами:
+  // slider3 (скорость) 0=медленно(40кадров) 1=быстро(8кадров)
+  const minCooldown = Math.floor(8 + (1 - noteSpeed) * 32);
 
-  if (noteChanged && brightEnough && cooldownDone) {
-    const freq     = NOTE_FREQS[noteIdx];
-    const name     = NOTE_NAMES[noteIdx];
-    // Velocity (сила удара) зависит от яркости — темнее = тише
-    const velocity = 0.3 + melodyNorm * 0.7;
+  const noteChanged  = noteIdx !== lastNoteIndex;
+  const brightEnough = melAvg > 15;
+  const ready        = noteCooldown === 0;
 
-    playPianoNote(freq, name, velocity);
-
+  if ((noteChanged || ready) && brightEnough && noteCooldown === 0) {
+    const note     = NOTES[noteIdx];
+    const velocity = 0.25 + melNorm * 0.5; // тише чем раньше — не перебивает бас
+    playStringNote(note.freq, note.name, velocity);
     lastNoteIndex = noteIdx;
-    // Кулдаун: чем тише (темнее) — тем реже ноты
-    // 25-50 кадров = примерно 0.4-0.8 секунды между нотами
-    noteCooldown = Math.floor(25 + (1 - melodyNorm) * 25);
+    noteCooldown  = minCooldown;
   }
 
   // ─── БАС ───
-  // Играет реже — только при крупных изменениях яркости снизу
+  // Нижняя треть → нота баса
   let bassSum = 0;
   for (let y = Math.floor(H * 0.67); y < H; y++) bassSum += scanCol[y];
   const bassAvg  = bassSum / (H - Math.floor(H * 0.67));
   const bassNorm = bassAvg / 255;
 
-  // Бас играет когда нота меняется И прошло достаточно времени
-  if (noteChanged && bassAvg > 15 && noteCooldown > 22) {
-    const bassNoteIdx = Math.min(Math.floor(bassNorm * BASS_NOTES.length), BASS_NOTES.length - 1);
-    playBassNote(BASS_NOTES[bassNoteIdx], 0.4 + bassNorm * 0.4);
+  // Бас играет независимо — каждые ~40 кадров если есть яркость
+  if (frameCount % 40 === 0 && bassAvg > 10) {
+    const bIdx = Math.min(Math.floor(bassNorm * BASS_FREQS.length), BASS_FREQS.length - 1);
+    playBassNote(BASS_FREQS[bIdx], 0.5 + bassNorm * 0.5);
   }
 
-  // ─── РИТМ — только лёгкий хэтчик ───
-  // В ambient стиле ритм очень деликатный
-  if (kickCooldown  > 0) kickCooldown--;
+  // ─── ТЕКСТУРНЫЙ ХЭТ ───
   if (hihatCooldown > 0) hihatCooldown--;
-
-  // Лёгкий хэт когда яркость верхней части выше порога
   const topAvg = (() => {
     let s = 0;
     for (let y = 0; y < Math.floor(H * 0.25); y++) s += scanCol[y];
     return s / Math.floor(H * 0.25);
   })();
 
-  // Хэт очень редкий и тихий — создаёт текстуру но не доминирует
-  const hiEvery = Math.max(30, Math.floor(60 - (topAvg / 255) * 30));
-  if (frameCount % hiEvery === 0 && hihatCooldown === 0 && topAvg > 40) {
-    playHihat((topAvg / 255) * 0.2 * parseFloat(volumeSlider.value), false);
-    hihatCooldown = 8;
+  const hiEvery = Math.max(20, Math.floor(50 - (topAvg/255) * 30));
+  if (frameCount % hiEvery === 0 && hihatCooldown === 0 && topAvg > 30) {
+    playHihat((topAvg/255) * parseFloat(volumeSlider.value));
+    hihatCooldown = 6;
   }
 
-  // Кик — только при очень резком большом скачке яркости
-  // В ambient стиле это редкость
-  if (delta > 35 && kickCooldown === 0 && intensity > 0.15) {
-    playKick(Math.min(delta / 80, 0.6) * parseFloat(volumeSlider.value));
-    kickCooldown = 45; // долгий кулдаун — кик редко
+  // ─── КИК — редкий ───
+  if (kickCooldown > 0) kickCooldown--;
+  const delta = avgBright - prevBright;
+  if (delta > 30 && kickCooldown === 0 && avgBright/255 > 0.1) {
+    playKick(Math.min(delta/70, 0.8) * parseFloat(volumeSlider.value));
+    kickCooldown = 50;
   }
 
   prevBright = avgBright;
-  document.getElementById('infoMode').textContent = 'musical';
+  document.getElementById('infoMode').textContent = 'муз.';
 }
 
 // ════════════════════════════════════════════
 //  ВИЗУАЛИЗАТОР
+//  RAW: оранжевые бары
+//  MUSICAL: аналоговая осциллоскопная линия
 // ════════════════════════════════════════════
 function drawVisualizer() {
   if (!analyser) return;
   const W = vizCanvas.width, H = vizCanvas.height;
-  const buf = analyser.frequencyBinCount;
-  const dat = new Uint8Array(buf);
-  analyser.getByteFrequencyData(dat);
+
   vizCtx.fillStyle = '#000';
   vizCtx.fillRect(0, 0, W, H);
-  for (let i = 0; i < buf; i++) {
-    const v = dat[i] / 255;
-    if (v < 0.015) continue;
-    const x = (i / buf) * W;
-    const h = v * H;
-    vizCtx.fillStyle = `rgba(255,255,255,${0.2 + v * 0.8})`;
-    vizCtx.fillRect(x, H - h, 1, h);
+
+  if (soundMode === 'raw') {
+    // ── Бары — оранжевые ──
+    const buf = analyser.frequencyBinCount;
+    const dat = new Uint8Array(buf);
+    analyser.getByteFrequencyData(dat);
+
+    for (let i = 0; i < buf; i++) {
+      const v = dat[i] / 255;
+      if (v < 0.015) continue;
+      const x = (i / buf) * W;
+      const h = v * H;
+      // Градиент от тёмно-оранжевого до яркого
+      vizCtx.fillStyle = `rgba(255, ${Math.floor(106 * v)}, 0, ${0.3 + v * 0.7})`;
+      vizCtx.fillRect(x, H - h, 1.5, h);
+    }
+
+  } else {
+    // ── Аналоговая линия осциллоскопа ──
+    const buf = analyser.fftSize;
+    const dat = new Uint8Array(buf);
+    analyser.getByteTimeDomainData(dat); // временная область (форма волны)
+
+    vizCtx.beginPath();
+    vizCtx.strokeStyle = 'rgba(255, 106, 0, 0.85)';
+    vizCtx.lineWidth   = 1.5;
+    vizCtx.shadowColor = 'rgba(255, 106, 0, 0.4)';
+    vizCtx.shadowBlur  = 6;
+
+    for (let i = 0; i < buf; i++) {
+      const x = (i / buf) * W;
+      // dat[i] это 0-255 где 128 = ноль
+      const y = ((dat[i] / 255) * 2 - 1) * (H * 0.45) + H / 2;
+      i === 0 ? vizCtx.moveTo(x, y) : vizCtx.lineTo(x, y);
+    }
+    vizCtx.stroke();
+    vizCtx.shadowBlur = 0;
+
+    // Горизонтальная линия центра
+    vizCtx.strokeStyle = 'rgba(255,106,0,0.12)';
+    vizCtx.lineWidth   = 1;
+    vizCtx.beginPath();
+    vizCtx.moveTo(0, H/2); vizCtx.lineTo(W, H/2);
+    vizCtx.stroke();
   }
-  vizCtx.fillStyle = 'rgba(255,255,255,0.06)';
-  vizCtx.fillRect(0, H/2, W, 1);
 }
 
 // ════════════════════════════════════════════
 //  СТАТУС
 // ════════════════════════════════════════════
 function updateAudioStatus() {
-  if (!audioCtx) { audioStatus.textContent = 'audio: —'; return; }
-  audioStatus.textContent = `audio: ${audioCtx.state}`;
+  if (!audioCtx) { audioStatus.textContent = 'аудио: —'; return; }
+  audioStatus.textContent = `аудио: ${audioCtx.state}`;
   audioStatus.style.color = audioCtx.state === 'running' ? 'rgba(255,255,255,0.3)' : '#f44';
   document.getElementById('infoState').textContent = audioCtx.state;
 }
@@ -835,8 +919,8 @@ async function handleStart(e) {
   startHandled = true;
   await initAudio();
   startOverlay.style.display = 'none';
-  // Тест-тон — одна нота C4
-  if (audioCtx && masterGain) playPianoNote(261.63, 'C4', 0.5);
+  // Тест-нота До4
+  if (audioCtx && masterGain) playStringNote(261.63, 'До4', 0.4);
   await startCamera();
 }
 
@@ -851,29 +935,90 @@ document.querySelectorAll('.smode-btn').forEach(btn => {
     soundMode = btn.dataset.smode;
     document.querySelectorAll('.smode-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    updateSliderLabels();
 
-    if (soundMode === 'musical') {
-      // Сбрасываем состояние piano engine
-      lastNoteIndex = -1;
-      noteCooldown  = 0;
-      prevBright    = 0;
-    } else {
-      // Возвращаем RAW осцилляторы
+    if (soundMode === 'raw') {
+      lastNoteIndex = -1; noteCooldown = 0; prevBright = 0;
       if (audioCtx && audioReady) createRawOscillators();
+    } else {
+      lastNoteIndex = -1; noteCooldown = 0; prevBright = 0;
     }
   });
 });
 
 // ════════════════════════════════════════════
-//  ТИПЫ ВОЛНЫ (только для RAW)
+//  ТИПЫ ВОЛНЫ / ТЕМБРА
 // ════════════════════════════════════════════
 document.querySelectorAll('.wave-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     waveType = btn.dataset.mode;
     document.querySelectorAll('.wave-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    oscillators.forEach(o => { o.type = waveType; });
+    // В RAW режиме — меняем тип осцилляторов
+    if (soundMode === 'raw') oscillators.forEach(o => { o.type = waveType; });
+    // В MUSICAL — waveType используется при следующем ударе ноты
   });
+});
+
+// ════════════════════════════════════════════
+//  СЛАЙДЕРЫ
+// ════════════════════════════════════════════
+
+// Громкость — работает в обоих режимах
+volumeSlider.addEventListener('input', () => {
+  document.getElementById('volVal').textContent = Math.round(volumeSlider.value * 100) + '%';
+  if (masterGain && !isMuted) {
+    const now = audioCtx.currentTime;
+    masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+    masterGain.gain.linearRampToValueAtTime(parseFloat(volumeSlider.value), now + 0.05);
+  }
+});
+
+// Slider2: реверб (musical) / голоса (raw)
+slider2.addEventListener('input', () => {
+  if (soundMode === 'musical') {
+    reverbAmount = parseFloat(slider2.value);
+    document.getElementById('s2Val').textContent = Math.round(reverbAmount * 100) + '%';
+    // Реверб применяется в следующем кадре через applySoundMusical
+  } else {
+    const count = parseInt(slider2.value);
+    document.getElementById('s2Val').textContent = count;
+    if (audioCtx && audioReady) {
+      oscillators.forEach(o => { try { o.stop(); } catch(e) {} });
+      oscillators = []; gainNodes = [];
+      const now = audioCtx.currentTime;
+      for (let i = 0; i < count; i++) {
+        const osc  = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = waveType; osc.frequency.value = 150 + i * 40;
+        gain.gain.setValueAtTime(0, now);
+        osc.connect(gain); gain.connect(analyser); osc.start(now);
+        oscillators.push(osc); gainNodes.push(gain);
+      }
+    }
+  }
+});
+
+// Slider3: скорость нот (musical) / min Hz (raw)
+slider3.addEventListener('input', () => {
+  if (soundMode === 'musical') {
+    noteSpeed = parseFloat(slider3.value);
+    const labels = ['оч.медл.', 'медл.', 'ср.', 'быстро', 'оч.быст.'];
+    const idx = Math.floor(noteSpeed * 4);
+    document.getElementById('s3Val').textContent = labels[Math.min(idx, 4)];
+  } else {
+    document.getElementById('s3Val').textContent = slider3.value + ' гц';
+  }
+});
+
+// Slider4: бас (musical) / max Hz (raw)
+slider4.addEventListener('input', () => {
+  if (soundMode === 'musical') {
+    bassAmount = parseFloat(slider4.value);
+    document.getElementById('s4Val').textContent = Math.round(bassAmount * 100) + '%';
+  } else {
+    document.getElementById('s4Val').textContent = slider4.value + ' гц';
+  }
 });
 
 // ════════════════════════════════════════════
@@ -883,14 +1028,12 @@ muteBtn.addEventListener('click', async () => {
   if (!audioCtx) return;
   if (audioCtx.state === 'suspended') await audioCtx.resume();
   isMuted = !isMuted;
-  muteBtn.textContent = isMuted ? '[ sound: off ]' : '[ sound: on ]';
+  muteBtn.textContent = isMuted ? '[ звук: выкл ]' : '[ звук: вкл ]';
   muteBtn.classList.toggle('active', !isMuted);
   const now = audioCtx.currentTime;
   masterGain.gain.cancelScheduledValues(now);
   masterGain.gain.setValueAtTime(masterGain.gain.value, now);
-  masterGain.gain.linearRampToValueAtTime(
-    isMuted ? 0 : parseFloat(volumeSlider.value), now + 0.1
-  );
+  masterGain.gain.linearRampToValueAtTime(isMuted ? 0 : parseFloat(volumeSlider.value), now + 0.1);
 });
 
 // ════════════════════════════════════════════
@@ -898,36 +1041,11 @@ muteBtn.addEventListener('click', async () => {
 // ════════════════════════════════════════════
 camBtn.addEventListener('click', async () => {
   useFrontCam = !useFrontCam;
-  camBtn.textContent = useFrontCam ? '[ cam: front ]' : '[ cam: rear ]';
+  camBtn.textContent = useFrontCam ? '[ камера: фронт ]' : '[ камера: тыл ]';
   if (isRunning) {
-    cancelAnimationFrame(animId);
-    isRunning = false;
+    cancelAnimationFrame(animId); isRunning = false;
     await startCamera();
   }
-});
-
-// ════════════════════════════════════════════
-//  СЛАЙДЕРЫ
-// ════════════════════════════════════════════
-volumeSlider.addEventListener('input', () => {
-  document.getElementById('volVal').textContent = Math.round(volumeSlider.value * 100) + '%';
-  if (masterGain && !isMuted) {
-    const now = audioCtx.currentTime;
-    masterGain.gain.setValueAtTime(masterGain.gain.value, now);
-    masterGain.gain.linearRampToValueAtTime(parseFloat(volumeSlider.value), now + 0.05);
-  }
-});
-voicesSlider.addEventListener('input', () => {
-  document.getElementById('voiceVal').textContent = voicesSlider.value;
-});
-voicesSlider.addEventListener('change', () => {
-  if (audioCtx && audioReady && soundMode === 'raw') createRawOscillators();
-});
-minFreqSlider.addEventListener('input', () => {
-  document.getElementById('minVal').textContent = minFreqSlider.value;
-});
-maxFreqSlider.addEventListener('input', () => {
-  document.getElementById('maxVal').textContent = maxFreqSlider.value;
 });
 
 // ════════════════════════════════════════════
@@ -944,6 +1062,9 @@ document.addEventListener('visibilitychange', async () => {
     await audioCtx.resume(); updateAudioStatus();
   }
 });
+
+// Инициализируем правильные подписи слайдеров сразу
+updateSliderLabels();
 </script>
 </body>
 </html>
