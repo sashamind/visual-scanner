@@ -22,43 +22,30 @@
     }
 
     .header {
-      width: 100%;
-      max-width: 640px;
+      width: 100%; max-width: 640px;
       padding: 12px 12px 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
+      display: flex; justify-content: space-between; align-items: flex-end;
       border-bottom: 1px solid #222;
     }
     .header-title { font-size: 0.75rem; letter-spacing: 4px; color: #fff; }
-    .header-sub   { font-size: 0.5rem;  color: #444; letter-spacing: 2px; }
+    .header-sub   { font-size: 0.5rem; color: #444; letter-spacing: 2px; }
 
     .scanner-wrapper {
-      position: relative;
-      width: 100%;
-      max-width: 640px;
-      aspect-ratio: 4/3;
-      background: #000;
-      overflow: hidden;
+      position: relative; width: 100%; max-width: 640px;
+      aspect-ratio: 4/3; background: #000; overflow: hidden;
     }
 
     #video, #offscreen { display: none; }
-
     #canvas { display: block; width: 100%; height: 100%; }
 
     .scan-line {
-      position: absolute;
-      top: 0; bottom: 0; left: 50%;
+      position: absolute; top: 0; bottom: 0; left: 50%;
       transform: translateX(-50%);
-      width: 1px;
-      background: #fff;
-      opacity: 0.8;
-      pointer-events: none;
-      z-index: 10;
+      width: 1px; background: #fff; opacity: 0.8;
+      pointer-events: none; z-index: 10;
     }
     .tick {
-      position: absolute; left: 50%;
-      transform: translateX(-50%);
+      position: absolute; left: 50%; transform: translateX(-50%);
       width: 7px; height: 1px; background: #fff; z-index: 11;
     }
     .tick.t { top: 0; } .tick.b { bottom: 0; }
@@ -72,6 +59,14 @@
       position: absolute; bottom: 8px; right: 10px;
       font-size: 0.45rem; color: #555; letter-spacing: 2px;
       z-index: 15; text-align: right; line-height: 1.8;
+    }
+
+    /* Индикатор ноты — загорается когда играет нота */
+    #noteDisplay {
+      position: absolute; top: 10px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.5rem; letter-spacing: 3px; color: rgba(255,255,255,0.5);
+      z-index: 15; transition: opacity 0.3s;
     }
 
     #startOverlay {
@@ -97,8 +92,7 @@
 
     #vizCanvas {
       width: 100%; max-width: 640px; height: 48px;
-      display: block; background: #000;
-      border-top: 1px solid #1a1a1a;
+      display: block; background: #000; border-top: 1px solid #1a1a1a;
     }
 
     .data-row {
@@ -114,8 +108,7 @@
     .section { width: 100%; max-width: 640px; }
     .section-head {
       font-size: 0.4rem; color: #333; letter-spacing: 3px;
-      padding: 10px 10px 0; text-transform: uppercase;
-      border-top: 1px solid #111;
+      padding: 10px 10px 0; text-transform: uppercase; border-top: 1px solid #111;
     }
 
     .sound-modes { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; }
@@ -150,21 +143,21 @@
     .slider-cell:nth-child(3), .slider-cell:nth-child(4) { border-top:1px solid #1a1a1a; }
     .sl-label {
       font-size:0.4rem; color:#444; letter-spacing:2px;
-      display:flex; justify-content:space-between;
-      margin-bottom:8px; text-transform:uppercase;
+      display:flex; justify-content:space-between; margin-bottom:8px; text-transform:uppercase;
     }
     .sl-label span { color:#fff; }
-
     input[type="range"] {
-      -webkit-appearance:none; width:100%; height:1px;
-      background:#333; outline:none;
+      -webkit-appearance:none; width:100%; height:1px; background:#333; outline:none;
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance:none; width:16px; height:16px;
       border-radius:0; background:#fff; cursor:pointer;
     }
 
-    .bottom-btns { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; margin-bottom:24px; }
+    .bottom-btns {
+      display:grid; grid-template-columns:1fr 1fr;
+      border-bottom:1px solid #1a1a1a; margin-bottom:24px;
+    }
     .ctrl-btn {
       padding:12px; border:none; border-right:1px solid #1a1a1a;
       background:#000; color:#444;
@@ -172,7 +165,7 @@
       font-size:0.6rem; letter-spacing:2px; cursor:pointer; transition:background 0.1s;
     }
     .ctrl-btn:last-child { border-right:none; }
-    .ctrl-btn.active  { color:#fff; }
+    .ctrl-btn.active { color:#fff; }
     .ctrl-btn:active  { background:#111; }
   </style>
 </head>
@@ -190,10 +183,11 @@
     <div class="scan-line"></div>
     <div class="tick t"></div>
     <div class="tick b"></div>
+    <div id="noteDisplay"></div>
     <div id="audioStatus">audio: —</div>
     <div class="live-data">
       <div id="liveLum">lum —</div>
-      <div id="liveFreq">freq —</div>
+      <div id="liveNote">— </div>
     </div>
     <div id="startOverlay">
       <div class="overlay-grid"></div>
@@ -206,7 +200,7 @@
 
   <div class="data-row">
     <div class="data-cell"><div class="dc-label">lum</div><div class="dc-val" id="infoLum">—</div></div>
-    <div class="data-cell"><div class="dc-label">voices</div><div class="dc-val" id="infoVoices">—</div></div>
+    <div class="data-cell"><div class="dc-label">note</div><div class="dc-val" id="infoNote">—</div></div>
     <div class="data-cell"><div class="dc-label">mode</div><div class="dc-val" id="infoMode">raw</div></div>
     <div class="data-cell"><div class="dc-label">state</div><div class="dc-val" id="infoState">—</div></div>
   </div>
@@ -220,13 +214,13 @@
       </button>
       <button class="smode-btn" data-smode="musical">
         <span class="smode-name">MUSICAL</span>
-        <span class="smode-desc">ноты + бас + ритм</span>
+        <span class="smode-desc">ambient piano</span>
       </button>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-head">// wave.type</div>
+    <div class="section-head">// wave.type (only raw)</div>
     <div class="wave-modes">
       <button class="wave-btn active" data-mode="sine">SINE</button>
       <button class="wave-btn" data-mode="triangle">TRI</button>
@@ -277,6 +271,7 @@ const startOverlay = document.getElementById('startOverlay');
 const muteBtn      = document.getElementById('muteBtn');
 const camBtn       = document.getElementById('camBtn');
 const audioStatus  = document.getElementById('audioStatus');
+const noteDisplay  = document.getElementById('noteDisplay');
 const volumeSlider  = document.getElementById('volumeSlider');
 const voicesSlider  = document.getElementById('voicesSlider');
 const minFreqSlider = document.getElementById('minFreqSlider');
@@ -292,10 +287,10 @@ const vizCtx = vizCanvas.getContext('2d');
 let audioCtx     = null;
 let masterGain   = null;
 let analyser     = null;
-let dryGain      = null;  // сухой сигнал (без реверба)
-let wetGain      = null;  // мокрый сигнал (с ревербом)
-let reverbNode   = null;  // узел реверба
-let oscillators  = [];
+let reverbNode   = null;
+let dryGain      = null;
+let wetGain      = null;
+let oscillators  = [];  // для RAW режима
 let gainNodes    = [];
 let isMuted      = false;
 let isRunning    = false;
@@ -307,43 +302,40 @@ let audioReady   = false;
 let startHandled = false;
 let frameCount   = 0;
 
-// Бас
-let bassOsc    = null;
-let bassGain   = null;
+// ════════════════════════════════════════════
+//  PIANO ENGINE — движок для musical режима
+//  Работает совсем иначе чем RAW:
+//  не постоянные осцилляторы, а одноразовые "удары"
+// ════════════════════════════════════════════
 
-// Детектор ритма
-let prevBrightness = 0;
+// Пентатоника — C минор, 3 октавы (средний диапазон фортепиано)
+// Специально убрал очень высокие ноты которые дают писк
+const NOTES = {
+  'C3':  130.81, 'Eb3': 155.56, 'F3':  174.61, 'G3':  196.00, 'Bb3': 233.08,
+  'C4':  261.63, 'Eb4': 311.13, 'F4':  349.23, 'G4':  392.00, 'Bb4': 466.16,
+  'C5':  523.25, 'Eb5': 622.25, 'F5':  698.46, 'G5':  783.99, 'Bb5': 932.33,
+};
+const NOTE_NAMES = Object.keys(NOTES);
+const NOTE_FREQS = Object.values(NOTES);
+
+// Бас — только нижние ноты
+const BASS_NOTES = [65.41, 77.78, 87.31, 98.00, 116.54]; // C2-Bb2
+
+// Состояние piano engine
+let lastNoteIndex  = -1;   // последняя сыгранная нота
+let noteCooldown   = 0;    // кулдаун между нотами (в кадрах)
+let noteHoldTimer  = null; // таймер удержания ноты
+let prevBright     = 0;    // яркость предыдущего кадра
 let kickCooldown   = 0;
 let snareCooldown  = 0;
 let hihatCooldown  = 0;
+let bassOsc        = null;
+let bassGainNode   = null;
 
 // ════════════════════════════════════════════
-//  ПЕНТАТОНИКА — широкий диапазон 4 октавы
-//  Это даёт реально слышимый разброс нот
+//  НОТЫ ПЕНТАТОНИКИ — имена для отображения
 // ════════════════════════════════════════════
-const PENTATONIC = [
-  // Октава 1 — очень низко (бас)
-  65.41, 77.78, 87.31, 98.00, 116.54,
-  // Октава 2 — низко
-  130.81, 155.56, 174.61, 196.00, 233.08,
-  // Октава 3 — средне (основной диапазон голоса)
-  261.63, 311.13, 349.23, 392.00, 466.16,
-  // Октава 4 — высоко
-  523.25, 622.25, 698.46, 783.99, 932.33,
-  // Октава 5 — очень высоко
-  1046.50, 1244.51, 1396.91
-];
-
-// ════════════════════════════════════════════
-//  СТАТУС
-// ════════════════════════════════════════════
-function updateAudioStatus() {
-  if (!audioCtx) { audioStatus.textContent = 'audio: —'; return; }
-  const s = audioCtx.state;
-  audioStatus.textContent = `audio: ${s}`;
-  audioStatus.style.color = s === 'running' ? 'rgba(255,255,255,0.35)' : '#f44';
-  document.getElementById('infoState').textContent = s;
-}
+const NOTE_LABELS = ['C','Eb','F','G','Bb'];
 
 // ════════════════════════════════════════════
 //  iOS ФИКСЫ
@@ -369,32 +361,25 @@ function unlockWebAudio(actx) {
 }
 
 // ════════════════════════════════════════════
-//  СОЗДАНИЕ РЕВЕРБА
-//  Свёрточный реверб — имитирует отражения в пространстве
-//  Делает musical режим "объёмным" в отличие от сухого raw
+//  РЕВЕРБ — имитация концертного зала
 // ════════════════════════════════════════════
 function createReverb() {
   reverbNode = audioCtx.createConvolver();
-
-  // Генерируем импульсный отклик (IR) — затухающий шум
-  // 3 секунды реверберации
+  // 3 секунды затухания — как в большом зале
   const len = audioCtx.sampleRate * 3;
   const buf = audioCtx.createBuffer(2, len, audioCtx.sampleRate);
-
   for (let ch = 0; ch < 2; ch++) {
     const d = buf.getChannelData(ch);
     for (let i = 0; i < len; i++) {
-      // Случайный шум × экспоненциальное затухание = звук зала
       d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
     }
   }
   reverbNode.buffer = buf;
 
-  // Два пути: сухой (прямой) и мокрый (через реверб)
   dryGain = audioCtx.createGain();
   wetGain = audioCtx.createGain();
-  dryGain.gain.value = 1.0;  // raw: сухой
-  wetGain.gain.value = 0.0;  // raw: без реверба
+  dryGain.gain.value = 1.0;
+  wetGain.gain.value = 0.0;
 
   analyser.connect(dryGain);
   analyser.connect(reverbNode);
@@ -408,7 +393,6 @@ function createReverb() {
 // ════════════════════════════════════════════
 async function initAudio() {
   if (audioCtx && audioCtx.state === 'running' && audioReady) return;
-
   await switchToMediaChannel();
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   try { await audioCtx.resume(); } catch(e) {}
@@ -417,71 +401,137 @@ async function initAudio() {
   if (audioCtx.state === 'suspended') await audioCtx.resume();
 
   if (!masterGain) {
-    analyser    = audioCtx.createAnalyser();
+    analyser = audioCtx.createAnalyser();
     analyser.fftSize = 512;
-    masterGain  = audioCtx.createGain();
+    masterGain = audioCtx.createGain();
     masterGain.gain.value = parseFloat(volumeSlider.value);
-
-    // Создаём реверб и подключаем цепочку
     createReverb();
     masterGain.connect(audioCtx.destination);
   }
 
-  createOscillators();
+  // RAW осцилляторы создаём сразу
+  createRawOscillators();
   audioReady = true;
   updateAudioStatus();
 }
 
 // ════════════════════════════════════════════
-//  ОСЦИЛЛЯТОРЫ
+//  RAW ОСЦИЛЛЯТОРЫ — постоянные, меняют частоту
 // ════════════════════════════════════════════
-function createOscillators() {
+function createRawOscillators() {
   oscillators.forEach(o => { try { o.stop(); } catch(e) {} });
   oscillators = []; gainNodes = [];
-  stopBass();
-
   const count = parseInt(voicesSlider.value);
   const now   = audioCtx.currentTime;
-
   for (let i = 0; i < count; i++) {
     const osc  = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = waveType;
     osc.frequency.value = 200 + i * 30;
     gain.gain.setValueAtTime(0, now);
-    osc.connect(gain);
-    gain.connect(analyser);
+    osc.connect(gain); gain.connect(analyser);
     osc.start(now);
-    oscillators.push(osc);
-    gainNodes.push(gain);
+    oscillators.push(osc); gainNodes.push(gain);
   }
-
-  if (soundMode === 'musical') createBass();
-  document.getElementById('infoVoices').textContent = count;
+  document.getElementById('infoNote').textContent = '—';
 }
 
 // ════════════════════════════════════════════
-//  БАС
+//  PIANO NOTE — одиночный удар по клавише
+//  Это и есть секрет фортепианного звука:
+//  каждая нота = отдельный осциллятор который
+//  быстро нарастает и медленно затихает
 // ════════════════════════════════════════════
-function createBass() {
-  if (!audioCtx) return;
-  stopBass();
-  const now  = audioCtx.currentTime;
-  bassOsc    = audioCtx.createOscillator();
-  bassGain   = audioCtx.createGain();
+function playPianoNote(freq, noteName, velocity = 0.7) {
+  if (!audioCtx || isMuted) return;
+  const now = audioCtx.currentTime;
+  const vol = parseFloat(volumeSlider.value) * velocity;
+
+  // ── Основной тон ──
+  const osc1  = audioCtx.createOscillator();
+  const gain1 = audioCtx.createGain();
+  osc1.type = 'sine';
+  osc1.frequency.value = freq;
+
+  // ── Второй обертон (октава выше, тихий) ──
+  // Делает звук богаче как настоящее фортепиано
+  const osc2  = audioCtx.createOscillator();
+  const gain2 = audioCtx.createGain();
+  osc2.type = 'sine';
+  osc2.frequency.value = freq * 2;
+
+  // ── Третий обертон (квинта, очень тихий) ──
+  const osc3  = audioCtx.createOscillator();
+  const gain3 = audioCtx.createGain();
+  osc3.type = 'triangle';
+  osc3.frequency.value = freq * 3;
+
+  // ОГИБАЮЩАЯ ФОРТЕПИАНО:
+  // Атака очень быстрая (0.008с) — резкий удар
+  // Затем быстрый спад (0.1с) — характерный "щипок"
+  // Потом долгое медленное затухание (2с) — резонанс струны
+
+  // Основной тон
+  gain1.gain.setValueAtTime(0, now);
+  gain1.gain.linearRampToValueAtTime(vol, now + 0.008);        // атака
+  gain1.gain.linearRampToValueAtTime(vol * 0.6, now + 0.1);    // спад
+  gain1.gain.exponentialRampToValueAtTime(0.001, now + 2.5);   // затухание
+
+  // Октава — тихая, быстро затихает
+  gain2.gain.setValueAtTime(0, now);
+  gain2.gain.linearRampToValueAtTime(vol * 0.25, now + 0.008);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+  // Квинта — совсем тихая
+  gain3.gain.setValueAtTime(0, now);
+  gain3.gain.linearRampToValueAtTime(vol * 0.1, now + 0.008);
+  gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+  // Подключаем всё к analyser (через который идёт реверб)
+  osc1.connect(gain1); gain1.connect(analyser);
+  osc2.connect(gain2); gain2.connect(analyser);
+  osc3.connect(gain3); gain3.connect(analyser);
+
+  // Запускаем и останавливаем автоматически
+  osc1.start(now); osc1.stop(now + 2.6);
+  osc2.start(now); osc2.stop(now + 1.3);
+  osc3.start(now); osc3.stop(now + 0.9);
+
+  // Показываем ноту на экране
+  noteDisplay.textContent = noteName;
+  noteDisplay.style.opacity = '1';
+  clearTimeout(noteHoldTimer);
+  noteHoldTimer = setTimeout(() => { noteDisplay.style.opacity = '0'; }, 1500);
+
+  document.getElementById('infoNote').textContent  = noteName;
+  document.getElementById('liveNote').textContent  = noteName;
+}
+
+// ════════════════════════════════════════════
+//  БАС — отдельный тихий нижний тон
+// ════════════════════════════════════════════
+function playBassNote(freq, velocity = 0.5) {
+  if (!audioCtx || isMuted) return;
+  const now = audioCtx.currentTime;
+  const vol = parseFloat(volumeSlider.value) * velocity * 0.6;
+
+  const osc  = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
   const filt = audioCtx.createBiquadFilter();
-  filt.type  = 'lowpass'; filt.frequency.value = 280; filt.Q.value = 2;
-  bassOsc.type = 'sine';
-  bassOsc.frequency.value = 55;
-  bassGain.gain.setValueAtTime(0, now);
-  bassOsc.connect(filt); filt.connect(bassGain);
-  bassGain.connect(masterGain); // бас идёт напрямую — без реверба (плотнее)
-  bassOsc.start(now);
-}
 
-function stopBass() {
-  if (bassOsc) { try { bassOsc.stop(); } catch(e) {} bassOsc = null; }
-  bassGain = null;
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  filt.type = 'lowpass';
+  filt.frequency.value = 300;
+
+  // Бас дольше затихает — держит гармонию
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(vol, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 3.5);
+
+  osc.connect(filt); filt.connect(gain);
+  gain.connect(masterGain); // бас напрямую — без реверба (плотнее)
+  osc.start(now); osc.stop(now + 3.6);
 }
 
 // ════════════════════════════════════════════
@@ -491,9 +541,9 @@ function playKick(vol) {
   const now = audioCtx.currentTime;
   const o = audioCtx.createOscillator(), g = audioCtx.createGain();
   o.type = 'sine';
-  o.frequency.setValueAtTime(110, now);
+  o.frequency.setValueAtTime(100, now);
   o.frequency.exponentialRampToValueAtTime(28, now + 0.4);
-  g.gain.setValueAtTime(vol * 1.3, now);
+  g.gain.setValueAtTime(vol * 0.8, now);
   g.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
   o.connect(g); g.connect(masterGain);
   o.start(now); o.stop(now + 0.5);
@@ -501,37 +551,17 @@ function playKick(vol) {
 
 function playHihat(vol, open = false) {
   const now = audioCtx.currentTime;
-  const dur = open ? 0.18 : 0.05;
+  const dur = open ? 0.15 : 0.04;
   const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
   const d   = buf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   const src = audioCtx.createBufferSource(); src.buffer = buf;
-  const f   = audioCtx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 8000;
+  const f   = audioCtx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 9000;
   const g   = audioCtx.createGain();
-  g.gain.setValueAtTime(vol, now);
+  g.gain.setValueAtTime(vol * 0.4, now);
   g.gain.exponentialRampToValueAtTime(0.001, now + dur);
   src.connect(f); f.connect(g); g.connect(masterGain);
   src.start(now);
-}
-
-function playSnare(vol) {
-  const now = audioCtx.currentTime;
-  const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.12), audioCtx.sampleRate);
-  const d   = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  const src = audioCtx.createBufferSource(); src.buffer = buf;
-  const ng  = audioCtx.createGain();
-  ng.gain.setValueAtTime(vol * 0.7, now);
-  ng.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-  const o = audioCtx.createOscillator(); o.type = 'triangle';
-  o.frequency.setValueAtTime(190, now);
-  o.frequency.linearRampToValueAtTime(70, now + 0.1);
-  const og = audioCtx.createGain();
-  og.gain.setValueAtTime(vol * 0.5, now);
-  og.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-  src.connect(ng); ng.connect(masterGain);
-  o.connect(og);   og.connect(masterGain);
-  src.start(now); o.start(now); o.stop(now + 0.15);
 }
 
 // ════════════════════════════════════════════
@@ -542,7 +572,7 @@ async function startCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: useFrontCam ? 'user' : 'environment',
-               width: {ideal:1280}, height: {ideal:960} },
+               width:{ideal:1280}, height:{ideal:960} },
       audio: false
     });
     video.srcObject = stream;
@@ -573,7 +603,7 @@ function scanLoop() {
 // ════════════════════════════════════════════
 function processFrame(data) {
   const W = 640, H = 480;
-  const out  = ctx.createImageData(W, H);
+  const out = ctx.createImageData(W, H);
   const outD = out.data;
   const scanX = W / 2, scanW = 5;
   const scanCol = new Float32Array(H);
@@ -590,13 +620,14 @@ function processFrame(data) {
 
   ctx.putImageData(out, 0, 0);
 
-  // Сетка линий Ikeda
+  // Сетка Ikeda
   ctx.strokeStyle = 'rgba(255,255,255,0.03)';
   ctx.lineWidth = 1;
   for (let y = 0; y < H; y += 40) {
     ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
   }
 
+  // Средняя яркость
   let sum = 0;
   for (let i = 0; i < H; i++) sum += scanCol[i];
   const avgBright = sum / H;
@@ -612,20 +643,17 @@ function processFrame(data) {
 }
 
 // ════════════════════════════════════════════
-//  RAW РЕЖИМ
-//  Плавное непрерывное скольжение по любым частотам
-//  Реверб выключен — сухой сигнал
+//  RAW РЕЖИМ — плавный непрерывный дрон
 // ════════════════════════════════════════════
 function applySoundRaw(scanCol, avgBright) {
   if (!audioCtx || !audioReady || isMuted) return;
   if (audioCtx.state !== 'running') { audioCtx.resume(); return; }
 
-  // RAW — сухой звук без реверба
+  // Сухой звук
   if (dryGain) dryGain.gain.setTargetAtTime(1.0, audioCtx.currentTime, 0.3);
   if (wetGain) wetGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.3);
 
-  const H       = scanCol.length;
-  const count   = oscillators.length;
+  const H = scanCol.length, count = oscillators.length;
   const minFreq = parseInt(minFreqSlider.value);
   const maxFreq = parseInt(maxFreqSlider.value);
   const zoneH   = H / count;
@@ -637,8 +665,6 @@ function applySoundRaw(scanCol, avgBright) {
     let sm = 0;
     for (let y = s; y < e; y++) sm += scanCol[y];
     const b    = (sm / (e - s)) / 255;
-
-    // RAW: непрерывная шкала частот — любое значение
     const freq = minFreq * Math.pow(maxFreq / minFreq, b);
     const vol  = Math.sin(b * Math.PI) * volMax;
 
@@ -648,125 +674,122 @@ function applySoundRaw(scanCol, avgBright) {
 
     gainNodes[i].gain.cancelScheduledValues(now);
     gainNodes[i].gain.setValueAtTime(gainNodes[i].gain.value, now);
-    gainNodes[i].gain.linearRampToValueAtTime(Math.max(0, Math.min(vol, volMax)), now + 0.04);
+    gainNodes[i].gain.linearRampToValueAtTime(Math.max(0, Math.min(vol,volMax)), now + 0.04);
   }
 
-  const topFreq = parseInt(minFreqSlider.value) *
-    Math.pow(parseInt(maxFreqSlider.value)/parseInt(minFreqSlider.value), avgBright/255);
-  document.getElementById('liveFreq').textContent = `${Math.round(topFreq)} hz`;
   document.getElementById('infoMode').textContent = 'raw';
+  document.getElementById('infoNote').textContent = '—';
 }
 
 // ════════════════════════════════════════════
-//  MUSICAL РЕЖИМ
-//  Ступенчатые ноты пентатоники + большой диапазон
-//  + реверб + бас + ритм от сканирования
+//  MUSICAL РЕЖИМ — ambient piano
+//
+//  Логика совсем другая чем RAW:
+//  1. Камера не управляет постоянными осцилляторами
+//  2. Камера ТРИГГЕРИТ отдельные удары по клавишам
+//  3. Каждый удар = полная огибающая (атака + затухание)
+//  4. Между ударами — тишина (или предыдущая нота затихает)
+//  5. Нота выбирается из пентатоники по яркости
 // ════════════════════════════════════════════
 function applySoundMusical(scanCol, avgBright) {
   if (!audioCtx || !audioReady || isMuted) return;
   if (audioCtx.state !== 'running') { audioCtx.resume(); return; }
 
-  // MUSICAL — включаем реверб для пространственности
-  if (dryGain) dryGain.gain.setTargetAtTime(0.5, audioCtx.currentTime, 0.5);
-  if (wetGain) wetGain.gain.setTargetAtTime(0.5, audioCtx.currentTime, 0.5);
+  // Реверб включён — 40% мокрого сигнала
+  if (dryGain) dryGain.gain.setTargetAtTime(0.6, audioCtx.currentTime, 0.5);
+  if (wetGain) wetGain.gain.setTargetAtTime(0.4, audioCtx.currentTime, 0.5);
+
+  // Тишим RAW осцилляторы — они не нужны в musical режиме
+  const now = audioCtx.currentTime;
+  gainNodes.forEach(g => {
+    g.gain.cancelScheduledValues(now);
+    g.gain.setTargetAtTime(0, now, 0.1);
+  });
 
   const H         = scanCol.length;
-  const count     = oscillators.length;
-  const zoneH     = H / count;
-  const now       = audioCtx.currentTime;
-  const vol       = parseFloat(volumeSlider.value);
   const intensity = avgBright / 255;
-  const volPerVoice = vol / Math.sqrt(count) * 0.55;
+  const delta     = avgBright - prevBright;
 
-  // ─── ГОЛОСА ───
-  for (let i = 0; i < count; i++) {
-    const s = Math.floor(i * zoneH), e = Math.floor((i+1)*zoneH);
-    let sm = 0;
-    for (let y = s; y < e; y++) sm += scanCol[y];
-    const b = (sm / (e - s)) / 255;
+  // ─── ВЫБОР НОТЫ ───
+  // Средняя яркость верхних 2/3 экрана → нота мелодии
+  // Нижняя 1/3 → нота баса
+  let melodySum = 0;
+  for (let y = 0; y < Math.floor(H * 0.67); y++) melodySum += scanCol[y];
+  const melodyAvg  = melodySum / Math.floor(H * 0.67);
+  const melodyNorm = melodyAvg / 255;
 
-    // MUSICAL: индекс ноты — ступенчатый прыжок между нотами пентатоники
-    // Весь диапазон яркости (0-255) распределяется по 22 нотам
-    // Это даёт СЛЫШИМЫЕ прыжки между нотами вместо плавного скольжения
-    const noteIdx  = Math.min(Math.floor(b * PENTATONIC.length), PENTATONIC.length - 1);
-    const baseFreq = PENTATONIC[noteIdx];
+  // Индекс ноты — ступенчато по пентатонике
+  const noteIdx = Math.min(
+    Math.floor(melodyNorm * NOTE_FREQS.length),
+    NOTE_FREQS.length - 1
+  );
 
-    // Верхние голоса — октаву выше (добавляет воздух)
-    const freq = i < count * 0.4 ? baseFreq * 4 :
-                 i < count * 0.7 ? baseFreq * 2 : baseFreq;
+  // ─── КОГДА ИГРАТЬ НОТУ ───
+  // Не каждый кадр! Только когда:
+  // а) нота ИЗМЕНИЛАСЬ (камера сдвинулась на другую зону)
+  // б) прошёл минимальный кулдаун
+  // в) есть достаточная яркость (не полная тьма)
 
-    // Плавность смены ноты — чуть медленнее чем в raw
-    // чтобы ноты были слышны отдельно
-    const voiceVol = Math.sin(b * Math.PI) * volPerVoice;
+  if (noteCooldown > 0) noteCooldown--;
 
-    oscillators[i].frequency.cancelScheduledValues(now);
-    oscillators[i].frequency.setValueAtTime(oscillators[i].frequency.value, now);
-    // Медленнее (0.12 vs 0.04 в raw) — ноты успевают "зазвучать"
-    oscillators[i].frequency.linearRampToValueAtTime(freq, now + 0.12);
+  const noteChanged   = noteIdx !== lastNoteIndex;
+  const brightEnough  = melodyAvg > 20;
+  const cooldownDone  = noteCooldown === 0;
 
-    gainNodes[i].gain.cancelScheduledValues(now);
-    gainNodes[i].gain.setValueAtTime(gainNodes[i].gain.value, now);
-    gainNodes[i].gain.linearRampToValueAtTime(
-      Math.max(0, Math.min(voiceVol, volPerVoice)), now + 0.12
-    );
+  if (noteChanged && brightEnough && cooldownDone) {
+    const freq     = NOTE_FREQS[noteIdx];
+    const name     = NOTE_NAMES[noteIdx];
+    // Velocity (сила удара) зависит от яркости — темнее = тише
+    const velocity = 0.3 + melodyNorm * 0.7;
+
+    playPianoNote(freq, name, velocity);
+
+    lastNoteIndex = noteIdx;
+    // Кулдаун: чем тише (темнее) — тем реже ноты
+    // 25-50 кадров = примерно 0.4-0.8 секунды между нотами
+    noteCooldown = Math.floor(25 + (1 - melodyNorm) * 25);
   }
 
-  // ─── БАС — нижняя треть экрана ───
-  if (bassOsc && bassGain) {
-    let bs = 0;
-    const bStart = Math.floor(H * 0.67);
-    for (let y = bStart; y < H; y++) bs += scanCol[y];
-    const bNorm    = (bs / (H - bStart)) / 255;
-    // Только первые 5 нот = самые низкие (65-116 Гц)
-    const bNoteIdx = Math.min(Math.floor(bNorm * 5), 4);
-    const bFreq    = PENTATONIC[bNoteIdx];
+  // ─── БАС ───
+  // Играет реже — только при крупных изменениях яркости снизу
+  let bassSum = 0;
+  for (let y = Math.floor(H * 0.67); y < H; y++) bassSum += scanCol[y];
+  const bassAvg  = bassSum / (H - Math.floor(H * 0.67));
+  const bassNorm = bassAvg / 255;
 
-    bassOsc.frequency.cancelScheduledValues(now);
-    bassOsc.frequency.setValueAtTime(bassOsc.frequency.value, now);
-    bassOsc.frequency.linearRampToValueAtTime(bFreq, now + 0.15);
-
-    const bVol = Math.sin(bNorm * Math.PI) * vol * 0.65;
-    bassGain.gain.cancelScheduledValues(now);
-    bassGain.gain.setValueAtTime(bassGain.gain.value, now);
-    bassGain.gain.linearRampToValueAtTime(Math.max(0, bVol), now + 0.12);
-
-    document.getElementById('liveFreq').textContent = `bass ${Math.round(bFreq)} hz`;
+  // Бас играет когда нота меняется И прошло достаточно времени
+  if (noteChanged && bassAvg > 15 && noteCooldown > 22) {
+    const bassNoteIdx = Math.min(Math.floor(bassNorm * BASS_NOTES.length), BASS_NOTES.length - 1);
+    playBassNote(BASS_NOTES[bassNoteIdx], 0.4 + bassNorm * 0.4);
   }
 
-  // ─── РИТМ от изменений яркости ───
-  const delta    = avgBright - prevBrightness;
-  const absDelta = Math.abs(delta);
-
+  // ─── РИТМ — только лёгкий хэтчик ───
+  // В ambient стиле ритм очень деликатный
   if (kickCooldown  > 0) kickCooldown--;
-  if (snareCooldown > 0) snareCooldown--;
   if (hihatCooldown > 0) hihatCooldown--;
 
-  // Кик — резкий рост яркости
-  if (delta > 15 && kickCooldown === 0 && intensity > 0.05) {
-    playKick(Math.min(delta / 50, 1.0) * vol);
-    kickCooldown = 20;
-  }
-
-  // Снейр — резкое падение яркости
-  if (delta < -12 && snareCooldown === 0 && intensity > 0.03) {
-    playSnare(Math.min(absDelta / 40, 1.0) * vol * 0.75);
-    snareCooldown = 25;
-  }
-
-  // Хэт — от яркости верхней трети + каждые N кадров
+  // Лёгкий хэт когда яркость верхней части выше порога
   const topAvg = (() => {
     let s = 0;
-    for (let y = 0; y < Math.floor(H * 0.33); y++) s += scanCol[y];
-    return s / Math.floor(H * 0.33);
+    for (let y = 0; y < Math.floor(H * 0.25); y++) s += scanCol[y];
+    return s / Math.floor(H * 0.25);
   })();
 
-  const hiEvery = Math.max(5, Math.floor(18 - (topAvg / 255) * 13));
-  if (frameCount % hiEvery === 0 && hihatCooldown === 0 && topAvg > 20) {
-    playHihat((topAvg / 255) * vol * 0.3, topAvg > 190);
-    hihatCooldown = 4;
+  // Хэт очень редкий и тихий — создаёт текстуру но не доминирует
+  const hiEvery = Math.max(30, Math.floor(60 - (topAvg / 255) * 30));
+  if (frameCount % hiEvery === 0 && hihatCooldown === 0 && topAvg > 40) {
+    playHihat((topAvg / 255) * 0.2 * parseFloat(volumeSlider.value), false);
+    hihatCooldown = 8;
   }
 
-  prevBrightness = avgBright;
+  // Кик — только при очень резком большом скачке яркости
+  // В ambient стиле это редкость
+  if (delta > 35 && kickCooldown === 0 && intensity > 0.15) {
+    playKick(Math.min(delta / 80, 0.6) * parseFloat(volumeSlider.value));
+    kickCooldown = 45; // долгий кулдаун — кик редко
+  }
+
+  prevBright = avgBright;
   document.getElementById('infoMode').textContent = 'musical';
 }
 
@@ -786,11 +809,21 @@ function drawVisualizer() {
     if (v < 0.015) continue;
     const x = (i / buf) * W;
     const h = v * H;
-    vizCtx.fillStyle = `rgba(255,255,255,${0.25 + v * 0.75})`;
+    vizCtx.fillStyle = `rgba(255,255,255,${0.2 + v * 0.8})`;
     vizCtx.fillRect(x, H - h, 1, h);
   }
-  vizCtx.fillStyle = 'rgba(255,255,255,0.07)';
+  vizCtx.fillStyle = 'rgba(255,255,255,0.06)';
   vizCtx.fillRect(0, H/2, W, 1);
+}
+
+// ════════════════════════════════════════════
+//  СТАТУС
+// ════════════════════════════════════════════
+function updateAudioStatus() {
+  if (!audioCtx) { audioStatus.textContent = 'audio: —'; return; }
+  audioStatus.textContent = `audio: ${audioCtx.state}`;
+  audioStatus.style.color = audioCtx.state === 'running' ? 'rgba(255,255,255,0.3)' : '#f44';
+  document.getElementById('infoState').textContent = audioCtx.state;
 }
 
 // ════════════════════════════════════════════
@@ -802,18 +835,8 @@ async function handleStart(e) {
   startHandled = true;
   await initAudio();
   startOverlay.style.display = 'none';
-
-  if (audioCtx && masterGain) {
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    const t = audioCtx.currentTime;
-    o.frequency.value = 660;
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.25, t + 0.02);
-    g.gain.linearRampToValueAtTime(0, t + 0.25);
-    o.connect(g); g.connect(masterGain);
-    o.start(t); o.stop(t + 0.3);
-  }
-
+  // Тест-тон — одна нота C4
+  if (audioCtx && masterGain) playPianoNote(261.63, 'C4', 0.5);
   await startCamera();
 }
 
@@ -830,22 +853,19 @@ document.querySelectorAll('.smode-btn').forEach(btn => {
     btn.classList.add('active');
 
     if (soundMode === 'musical') {
-      waveType = 'sine';
-      document.querySelectorAll('.wave-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.mode === 'sine');
-      });
-      if (audioCtx && audioReady) createOscillators();
+      // Сбрасываем состояние piano engine
+      lastNoteIndex = -1;
+      noteCooldown  = 0;
+      prevBright    = 0;
     } else {
-      // RAW — убираем бас, сбрасываем детектор
-      stopBass();
-      prevBrightness = 0;
-      kickCooldown = snareCooldown = hihatCooldown = 0;
+      // Возвращаем RAW осцилляторы
+      if (audioCtx && audioReady) createRawOscillators();
     }
   });
 });
 
 // ════════════════════════════════════════════
-//  ТИПЫ ВОЛНЫ
+//  ТИПЫ ВОЛНЫ (только для RAW)
 // ════════════════════════════════════════════
 document.querySelectorAll('.wave-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -874,7 +894,7 @@ muteBtn.addEventListener('click', async () => {
 });
 
 // ════════════════════════════════════════════
-//  КАМЕРА ПЕРЕКЛЮЧЕНИЕ
+//  КАМЕРА
 // ════════════════════════════════════════════
 camBtn.addEventListener('click', async () => {
   useFrontCam = !useFrontCam;
@@ -897,14 +917,12 @@ volumeSlider.addEventListener('input', () => {
     masterGain.gain.linearRampToValueAtTime(parseFloat(volumeSlider.value), now + 0.05);
   }
 });
-
 voicesSlider.addEventListener('input', () => {
   document.getElementById('voiceVal').textContent = voicesSlider.value;
 });
 voicesSlider.addEventListener('change', () => {
-  if (audioCtx && audioReady) createOscillators();
+  if (audioCtx && audioReady && soundMode === 'raw') createRawOscillators();
 });
-
 minFreqSlider.addEventListener('input', () => {
   document.getElementById('minVal').textContent = minFreqSlider.value;
 });
