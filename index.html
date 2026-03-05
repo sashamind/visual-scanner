@@ -142,10 +142,21 @@
       display: grid; grid-template-columns: repeat(4,1fr);
       border-top: 1px solid #1a1a1a; border-bottom: 1px solid #1a1a1a;
     }
-    .data-cell { padding: 8px 10px; border-right: 1px solid #1a1a1a; }
+    .data-cell {
+  padding: 8px 10px;
+  border-right: 1px solid #1a1a1a;
+  min-width: 0;      /* позволяет grid сжимать ячейки */
+  overflow: hidden;  /* ячейка не расширяется от контента */
+}
     .data-cell:last-child { border-right: none; }
     .dc-label { font-size:0.38rem; color:#333; letter-spacing:2px; margin-bottom:3px; text-transform:uppercase; }
-    .dc-val   { font-size:0.7rem; color:#fff; }
+    .dc-val {
+  font-size: 0.7rem;
+  color: #fff;
+  white-space: nowrap;     /* запрет переноса на новую строку */
+  overflow: hidden;        /* если не влезает — обрезаем */
+  text-overflow: ellipsis; /* показываем ... вместо обрезки */
+}
 
     /* ===== СЕКЦИИ ===== */
     .section { width: 100%; max-width: 640px; }
