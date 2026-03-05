@@ -147,6 +147,37 @@
     .wave-btn:last-child { border-right:none; }
     .wave-btn.active { background:var(--orange-faint); color:var(--orange); }
 
+    /* ═══ УДАРНЫЕ ═══ */
+    .drums-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .drum-btn {
+      padding: 11px 10px; border: none; border-right: 1px solid #1a1a1a;
+      background: #000; color: #333; font-family: 'Share Tech Mono', monospace;
+      font-size: 0.52rem; letter-spacing: 2px; cursor: pointer;
+      text-align: left; line-height: 1.9; transition: background 0.12s;
+      position: relative; overflow: hidden;
+    }
+    .drum-btn:nth-child(2n)  { border-right: none; }
+    .drum-btn:nth-child(3),
+    .drum-btn:nth-child(4)   { border-top: 1px solid #1a1a1a; }
+    .drum-btn .d-name { display: block; color: #555; }
+    .drum-btn .d-desc { font-size: 0.36rem; color: #2a2a2a; letter-spacing: 1px; display: block; }
+    .drum-btn.active  { background: var(--orange-faint); }
+    .drum-btn.active .d-name { color: var(--orange); }
+    .drum-btn.active .d-desc { color: #663300; }
+    /* Точка-индикатор */
+    .drum-btn::after {
+      content: ''; position: absolute; top: 9px; right: 9px;
+      width: 4px; height: 4px; border-radius: 50%;
+      background: #1a1a1a; transition: background 0.1s;
+    }
+    .drum-btn.active::after { background: var(--orange); }
+    /* Вспышка при ударе */
+    .drum-btn.hit { background: rgba(255,106,0,0.22) !important; }
+    .drum-btn.hit::after { background: #fff !important; }
+
     .sliders { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; }
     .slider-cell { padding:10px 12px; border-right:1px solid #1a1a1a; }
     .slider-cell:nth-child(even) { border-right:none; }
@@ -239,6 +270,29 @@
     </div>
   </div>
 
+  <!-- ═══ УДАРНЫЕ ═══ -->
+  <div class="section">
+    <div class="section-head">// перкуссия (муз. режим)</div>
+    <div class="drums-grid">
+      <button class="drum-btn" data-drum="kick">
+        <span class="d-name">КИК</span>
+        <span class="d-desc">скачок яркости → удар</span>
+      </button>
+      <button class="drum-btn" data-drum="snare">
+        <span class="d-name">СНЕЙР</span>
+        <span class="d-desc">контраст верх/низ</span>
+      </button>
+      <button class="drum-btn" data-drum="hihat">
+        <span class="d-name">ХЭТ</span>
+        <span class="d-desc">мерцание → тарелка</span>
+      </button>
+      <button class="drum-btn" data-drum="perc">
+        <span class="d-name">ПЕРК</span>
+        <span class="d-desc">средина → эмбиент-том</span>
+      </button>
+    </div>
+  </div>
+
   <div class="section">
     <div class="section-head">// параметры</div>
     <div class="sliders">
@@ -283,7 +337,6 @@ const camBtn       = document.getElementById('camBtn');
 const audioStatus  = document.getElementById('audioStatus');
 const noteDisplay  = document.getElementById('noteDisplay');
 const motionBar    = document.getElementById('motionBar');
-
 const volumeSlider = document.getElementById('volumeSlider');
 const slider2      = document.getElementById('slider2');
 const slider3      = document.getElementById('slider3');
@@ -314,10 +367,23 @@ let audioReady   = false;
 let startHandled = false;
 let frameCount   = 0;
 
-// Параметры musical
-let reverbAmount  = 0.4;
-let sensitivity   = 0.5;  // slider3 — чувствительность к изменениям
-let bassAmount    = 0.6;
+let reverbAmount = 0.4;
+let sensitivity  = 0.5;
+let bassAmount   = 0.6;
+
+// ════════════════════════════════════════════
+//  СОСТОЯНИЕ УДАРНЫХ
+//  true = включён, false = выключен
+// ════════════════════════════════════════════
+const drums = { kick: false, snare: false, hihat: false, perc: false };
+
+// Кулдауны каждого инструмента (в кадрах)
+// Защита от частых срабатываний
+let kickCooldown  = 0;
+let snareCooldown = 0;
+let hihatCooldown = 0;
+let percCooldown  = 0;
+let bassCooldown  = 0;
 
 // ════════════════════════════════════════════
 //  ДЕТЕКТОР ДВИЖЕНИЯ
@@ -326,36 +392,20 @@ let prevScanCol    = new Float32Array(480);
 let motionSmoothed = 0;
 const MOTION_THRESHOLD = 2.5;
 
-// ════════════════════════════════════════════
-//  ТРИГГЕР НОТ — новая система
-//
-//  Вместо равномерного таймера теперь три сигнала:
-//
-//  1. zoneDelta[i] — изменение яркости в каждой зоне
-//     Когда зона меняется больше порога → нота этой зоны
-//
-//  2. globalDelta — общее изменение по всей линии
-//     Большое изменение = "акцент", нота играет громче
-//
-//  3. hardCooldown — минимальная пауза между любыми нотами
-//     Чтобы не было каши когда всё двигается сразу
-// ════════════════════════════════════════════
+const ZONE_COUNT   = 8;
+let prevZoneBright = new Float32Array(ZONE_COUNT);
+let zoneCooldowns  = new Int32Array(ZONE_COUNT);
+let hardCooldown   = 0;
+let brightHistory  = new Float32Array(30).fill(128);
+let historyIdx     = 0;
+let noteHoldTimer  = null;
+let prevBright     = 0;
 
-// Предыдущие значения яркости по зонам (8 зон)
-const ZONE_COUNT    = 8;
-let prevZoneBright  = new Float32Array(ZONE_COUNT);
-let zoneCooldowns   = new Int32Array(ZONE_COUNT); // кулдаун для каждой зоны
-let hardCooldown    = 0;  // общий кулдаун — не чаще чем раз в N кадров
-
-// История яркости для анализа паттернов
-let brightHistory   = new Float32Array(30).fill(128); // последние 30 кадров
-let historyIdx      = 0;
-
-let noteHoldTimer   = null;
-let prevBright      = 0;
-let kickCooldown    = 0;
-let hihatCooldown   = 0;
-let bassCooldown    = 0;
+// Для снейра — история контраста (сглаживание)
+let prevContrast   = 0;
+// Для хэта — история мерцания верхней зоны
+let prevTopBright  = 0;
+let hihatFlicker   = 0; // накопленное мерцание
 
 // ════════════════════════════════════════════
 //  ПЕНТАТОНИКА
@@ -377,7 +427,6 @@ const NOTES = [
   { name: 'Соль4', freq: 392.00 },
   { name: 'Си♭4',  freq: 466.16 },
 ];
-
 const BASS_FREQS = [65.41, 77.78, 87.31, 98.00, 116.54];
 
 // ════════════════════════════════════════════
@@ -418,12 +467,10 @@ function createReverb() {
     }
   }
   reverbNode.buffer = buf;
-
   dryGain = audioCtx.createGain();
   wetGain = audioCtx.createGain();
   dryGain.gain.value = 1 - reverbAmount;
   wetGain.gain.value = reverbAmount;
-
   analyser.connect(dryGain);
   analyser.connect(reverbNode);
   reverbNode.connect(wetGain);
@@ -436,14 +483,12 @@ function createReverb() {
 // ════════════════════════════════════════════
 async function initAudio() {
   if (audioCtx && audioCtx.state === 'running' && audioReady) return;
-
   await switchToMediaChannel();
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   try { await audioCtx.resume(); } catch(e) {}
   unlockWebAudio(audioCtx);
   await new Promise(r => setTimeout(r, 200));
   if (audioCtx.state === 'suspended') await audioCtx.resume();
-
   if (!masterGain) {
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 512;
@@ -452,7 +497,6 @@ async function initAudio() {
     createReverb();
     masterGain.connect(audioCtx.destination);
   }
-
   createRawOscillators();
   audioReady = true;
   updateAudioStatus();
@@ -478,26 +522,24 @@ function createRawOscillators() {
 }
 
 // ════════════════════════════════════════════
-//  СМЫЧКОВЫЙ ЗВУК НОТЫ
+//  НОТА (смычковый звук)
 // ════════════════════════════════════════════
 function playStringNote(freq, noteName, velocity = 0.5) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const vol = parseFloat(volumeSlider.value) * velocity * 0.45;
 
-  const osc1  = audioCtx.createOscillator();
-  const filt  = audioCtx.createBiquadFilter();
+  const osc1 = audioCtx.createOscillator();
+  const filt = audioCtx.createBiquadFilter();
   const gain1 = audioCtx.createGain();
-
   osc1.type = waveType;
   osc1.frequency.setValueAtTime(freq, now);
 
-  // Вибрато
   const lfo  = audioCtx.createOscillator();
   const lfoG = audioCtx.createGain();
   lfo.type = 'sine';
   lfo.frequency.value = 4.5 + Math.random() * 1.5;
-  lfoG.gain.value     = freq * 0.007;
+  lfoG.gain.value = freq * 0.007;
   lfo.connect(lfoG); lfoG.connect(osc1.frequency);
   lfo.start(now + 0.25);
 
@@ -517,7 +559,6 @@ function playStringNote(freq, noteName, velocity = 0.5) {
   osc1.start(now); osc1.stop(now + 3.0);
   lfo.stop(now + 3.0);
 
-  // Субоктава
   const osc2  = audioCtx.createOscillator();
   const gain2 = audioCtx.createGain();
   osc2.type = 'sine';
@@ -537,13 +578,12 @@ function playStringNote(freq, noteName, velocity = 0.5) {
 }
 
 // ════════════════════════════════════════════
-//  БАС
+//  БАС-НОТА
 // ════════════════════════════════════════════
 function playBassNote(freq, velocity = 0.5) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const vol = parseFloat(volumeSlider.value) * velocity * bassAmount * 1.3;
-
   const osc  = audioCtx.createOscillator();
   const filt = audioCtx.createBiquadFilter();
   const gain = audioCtx.createGain();
@@ -559,35 +599,185 @@ function playBassNote(freq, velocity = 0.5) {
 }
 
 // ════════════════════════════════════════════
-//  УДАРНЫЕ
+//  КИК — глубокий эмбиент-удар
+//  Мягкий, с долгим хвостом — не клубный
+//  Три слоя: субтон + основной тон + щелчок
 // ════════════════════════════════════════════
 function playKick(vol) {
+  if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
-  const o   = audioCtx.createOscillator();
-  const g   = audioCtx.createGain();
-  o.type = 'sine';
-  o.frequency.setValueAtTime(100, now);
-  o.frequency.exponentialRampToValueAtTime(28, now + 0.4);
-  g.gain.setValueAtTime(vol * bassAmount, now);
-  g.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-  o.connect(g); g.connect(masterGain);
-  o.start(now); o.stop(now + 0.5);
+  const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * bassAmount;
+
+  // Субтон 45→20 Гц — глубина и вес
+  const sub = audioCtx.createOscillator();
+  const sg  = audioCtx.createGain();
+  sub.type = 'sine';
+  sub.frequency.setValueAtTime(45, now);
+  sub.frequency.exponentialRampToValueAtTime(20, now + 0.45);
+  sg.gain.setValueAtTime(v * 0.55, now);
+  sg.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+  sub.connect(sg); sg.connect(masterGain);
+  sub.start(now); sub.stop(now + 0.6);
+
+  // Основной тон 80→30 Гц
+  const mid = audioCtx.createOscillator();
+  const mg  = audioCtx.createGain();
+  mid.type = 'sine';
+  mid.frequency.setValueAtTime(80, now);
+  mid.frequency.exponentialRampToValueAtTime(30, now + 0.5);
+  mg.gain.setValueAtTime(v * 0.85, now);
+  mg.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+  mid.connect(mg); mg.connect(masterGain);
+  mid.start(now); mid.stop(now + 0.65);
+
+  // Щелчок атаки — короткий шум через lowpass
+  const nbuf = audioCtx.createBuffer(1,
+    Math.floor(audioCtx.sampleRate * 0.018), audioCtx.sampleRate);
+  const nd = nbuf.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const ns = audioCtx.createBufferSource(); ns.buffer = nbuf;
+  const nf = audioCtx.createBiquadFilter();
+  const ng = audioCtx.createGain();
+  nf.type = 'lowpass'; nf.frequency.value = 180;
+  ng.gain.setValueAtTime(v * 0.28, now);
+  ng.gain.exponentialRampToValueAtTime(0.001, now + 0.018);
+  ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
+  ns.start(now);
+
+  flashDrum('kick');
 }
 
-function playHihat(vol) {
+// ════════════════════════════════════════════
+//  СНЕЙР — эмбиент-щелчок
+//  Шум через bandpass + тональная составляющая
+//  Звучит как деревянный клик или конга
+// ════════════════════════════════════════════
+function playSnare(vol) {
+  if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
+  const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.6;
+
+  // Шумовой слой — основа
   const buf = audioCtx.createBuffer(1,
-    Math.floor(audioCtx.sampleRate * 0.06), audioCtx.sampleRate);
+    Math.floor(audioCtx.sampleRate * 0.16), audioCtx.sampleRate);
   const d = buf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   const src = audioCtx.createBufferSource(); src.buffer = buf;
-  const f   = audioCtx.createBiquadFilter();
-  f.type = 'highpass'; f.frequency.value = 9000;
-  const g = audioCtx.createGain();
-  g.gain.setValueAtTime(vol * 0.28, now);
-  g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-  src.connect(f); f.connect(g); g.connect(masterGain);
+  const bp  = audioCtx.createBiquadFilter();
+  const hp  = audioCtx.createBiquadFilter();
+  const sg  = audioCtx.createGain();
+  bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 0.8;
+  hp.type = 'highpass'; hp.frequency.value = 1100;
+  sg.gain.setValueAtTime(v * 0.6, now);
+  sg.gain.exponentialRampToValueAtTime(v * 0.12, now + 0.04);
+  sg.gain.exponentialRampToValueAtTime(0.001,    now + 0.16);
+  src.connect(bp); bp.connect(hp); hp.connect(sg);
+  sg.connect(masterGain);
   src.start(now);
+
+  // Тональная составляющая — делает снейр музыкальным
+  const tone = audioCtx.createOscillator();
+  const tg   = audioCtx.createGain();
+  tone.type = 'triangle';
+  tone.frequency.setValueAtTime(210, now);
+  tone.frequency.exponentialRampToValueAtTime(95, now + 0.09);
+  tg.gain.setValueAtTime(v * 0.22, now);
+  tg.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+  tone.connect(tg); tg.connect(masterGain);
+  tone.start(now); tone.stop(now + 0.12);
+
+  flashDrum('snare');
+}
+
+// ════════════════════════════════════════════
+//  ХЭТ — закрытая тарелка
+//  Высокочастотный шум, очень короткий
+// ════════════════════════════════════════════
+function playHihat(vol) {
+  if (!audioCtx || isMuted) return;
+  const now = audioCtx.currentTime;
+  const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.3;
+
+  const buf = audioCtx.createBuffer(1,
+    Math.floor(audioCtx.sampleRate * 0.045), audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src = audioCtx.createBufferSource(); src.buffer = buf;
+  const hp  = audioCtx.createBiquadFilter();
+  const bp  = audioCtx.createBiquadFilter();
+  const g   = audioCtx.createGain();
+  hp.type = 'highpass'; hp.frequency.value = 7500;
+  bp.type = 'bandpass'; bp.frequency.value = 10000; bp.Q.value = 0.6;
+  g.gain.setValueAtTime(v, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+  src.connect(hp); hp.connect(bp); bp.connect(g);
+  g.connect(masterGain);
+  src.start(now);
+
+  flashDrum('hihat');
+}
+
+// ════════════════════════════════════════════
+//  ПЕРКУССИЯ — мягкий эмбиент-том
+//  Звучит как удар по деревянному брусу или
+//  маримба в стиле Arca/Aphex Twin
+//  pitchNorm 0..1 меняет высоту звука
+// ════════════════════════════════════════════
+function playPerc(vol, pitchNorm = 0.5) {
+  if (!audioCtx || isMuted) return;
+  const now  = audioCtx.currentTime;
+  const v    = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.5;
+  const freq = 110 + pitchNorm * 300; // 110..410 Гц
+
+  // Основной тон с питч-дауном
+  const osc = audioCtx.createOscillator();
+  const flt = audioCtx.createBiquadFilter();
+  const g   = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq * 1.9, now);
+  osc.frequency.exponentialRampToValueAtTime(freq, now + 0.055);
+  flt.type = 'bandpass'; flt.frequency.value = freq * 1.3; flt.Q.value = 3.5;
+  g.gain.setValueAtTime(v, now);
+  g.gain.exponentialRampToValueAtTime(v * 0.28, now + 0.055);
+  g.gain.exponentialRampToValueAtTime(0.001,    now + 0.38);
+  osc.connect(flt); flt.connect(g); g.connect(masterGain);
+  osc.start(now); osc.stop(now + 0.42);
+
+  // Второй обертон — делает звук богаче
+  const osc2 = audioCtx.createOscillator();
+  const g2   = audioCtx.createGain();
+  osc2.type = 'sine';
+  osc2.frequency.value = freq * 2.76; // натуральный обертон
+  g2.gain.setValueAtTime(v * 0.18, now);
+  g2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+  osc2.connect(g2); g2.connect(masterGain);
+  osc2.start(now); osc2.stop(now + 0.15);
+
+  // Лёгкий шумовой щелчок
+  const nbuf = audioCtx.createBuffer(1,
+    Math.floor(audioCtx.sampleRate * 0.022), audioCtx.sampleRate);
+  const nd = nbuf.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const ns = audioCtx.createBufferSource(); ns.buffer = nbuf;
+  const nf = audioCtx.createBiquadFilter();
+  const ng = audioCtx.createGain();
+  nf.type = 'bandpass'; nf.frequency.value = freq * 2.2; nf.Q.value = 1.2;
+  ng.gain.setValueAtTime(v * 0.22, now);
+  ng.gain.exponentialRampToValueAtTime(0.001, now + 0.022);
+  ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
+  ns.start(now);
+
+  flashDrum('perc');
+}
+
+// ════════════════════════════════════════════
+//  ВСПЫШКА КНОПКИ при ударе
+// ════════════════════════════════════════════
+function flashDrum(name) {
+  const btn = document.querySelector(`[data-drum="${name}"]`);
+  if (!btn || !btn.classList.contains('active')) return;
+  btn.classList.add('hit');
+  setTimeout(() => btn.classList.remove('hit'), 75);
 }
 
 // ════════════════════════════════════════════
@@ -641,19 +831,12 @@ async function startCamera() {
 function scanLoop() {
   if (!isRunning) return;
   if (video.readyState >= 2) {
-    // Кроп видео под 4:3
     const vw = video.videoWidth  || 640;
     const vh = video.videoHeight || 480;
-    const targetAspect = 640 / 480;
-    const videoAspect  = vw / vh;
+    const ta = 640 / 480, va = vw / vh;
     let sx = 0, sy = 0, sw = vw, sh = vh;
-    if (videoAspect > targetAspect) {
-      sw = Math.round(vh * targetAspect);
-      sx = Math.round((vw - sw) / 2);
-    } else {
-      sh = Math.round(vw / targetAspect);
-      sy = Math.round((vh - sh) / 2);
-    }
+    if (va > ta) { sw = Math.round(vh * ta); sx = Math.round((vw - sw) / 2); }
+    else         { sh = Math.round(vw / ta); sy = Math.round((vh - sh) / 2); }
     offCtx.drawImage(video, sx, sy, sw, sh, 0, 0, 640, 480);
     const frame = offCtx.getImageData(0, 0, 640, 480);
     processFrame(frame.data);
@@ -682,9 +865,7 @@ function processFrame(data) {
       outD[i+3] = 255;
     }
   }
-
   ctx.putImageData(out, 0, 0);
-
   ctx.strokeStyle = 'rgba(255,255,255,0.03)';
   ctx.lineWidth = 1;
   for (let y = 0; y < H; y += 40) {
@@ -695,7 +876,6 @@ function processFrame(data) {
   for (let i = 0; i < H; i++) sum += scanCol[i];
   const avgBright = sum / H;
 
-  // Детектор движения
   let motionSum = 0;
   for (let y = 0; y < H; y++) motionSum += Math.abs(scanCol[y] - prevScanCol[y]);
   const motionRaw = motionSum / H;
@@ -704,7 +884,6 @@ function processFrame(data) {
     : motionSmoothed * 0.92 + motionRaw * 0.08;
   prevScanCol.set(scanCol);
 
-  // История яркости
   brightHistory[historyIdx % 30] = avgBright;
   historyIdx++;
 
@@ -724,17 +903,14 @@ function processFrame(data) {
 function applySoundRaw(scanCol, avgBright) {
   if (!audioCtx || !audioReady || isMuted) return;
   if (audioCtx.state !== 'running') { audioCtx.resume(); return; }
-
   if (dryGain) dryGain.gain.setTargetAtTime(1.0, audioCtx.currentTime, 0.3);
   if (wetGain) wetGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.3);
-
   const H = scanCol.length, count = oscillators.length;
   const minFreq = parseFloat(slider3.value);
   const maxFreq = parseFloat(slider4.value);
   const zoneH   = H / count;
   const now     = audioCtx.currentTime;
   const volMax  = parseFloat(volumeSlider.value) / Math.sqrt(count);
-
   for (let i = 0; i < count; i++) {
     const s = Math.floor(i * zoneH), e = Math.floor((i+1)*zoneH);
     let sm = 0;
@@ -742,7 +918,6 @@ function applySoundRaw(scanCol, avgBright) {
     const b    = (sm / (e - s)) / 255;
     const freq = minFreq * Math.pow(maxFreq / minFreq, b);
     const vol  = Math.sin(b * Math.PI) * volMax;
-
     oscillators[i].frequency.cancelScheduledValues(now);
     oscillators[i].frequency.setValueAtTime(oscillators[i].frequency.value, now);
     oscillators[i].frequency.linearRampToValueAtTime(freq, now + 0.04);
@@ -750,28 +925,12 @@ function applySoundRaw(scanCol, avgBright) {
     gainNodes[i].gain.setValueAtTime(gainNodes[i].gain.value, now);
     gainNodes[i].gain.linearRampToValueAtTime(Math.max(0, Math.min(vol, volMax)), now + 0.04);
   }
-
   document.getElementById('infoMode').textContent = 'сырой';
   document.getElementById('infoNote').textContent = '—';
 }
 
 // ════════════════════════════════════════════
-//  MUSICAL РЕЖИМ — ритм от картинки
-//
-//  Как это работает:
-//
-//  Линия сканера делится на ZONE_COUNT зон.
-//  Каждый кадр считаем яркость каждой зоны.
-//  Сравниваем с предыдущим кадром.
-//
-//  Если зона резко изменилась → триггер:
-//    - маленькое изменение = тихая нота
-//    - большое изменение   = громкая нота
-//    - какая зона изменилась → какая нота (по высоте в кадре)
-//
-//  Ползунок "чувств." меняет порог срабатывания:
-//    - низкая чувствительность = только сильные изменения
-//    - высокая = реагирует на мелкие движения
+//  MUSICAL РЕЖИМ
 // ════════════════════════════════════════════
 function applySoundMusical(scanCol, avgBright, motion) {
   if (!audioCtx || !audioReady || isMuted) return;
@@ -784,11 +943,11 @@ function applySoundMusical(scanCol, avgBright, motion) {
     g.gain.setTargetAtTime(0, now, 0.05);
   });
 
-  // Тишина если нет движения
   if (motion < MOTION_THRESHOLD) {
     document.getElementById('infoMode').textContent = 'тихо';
     prevZoneBright.fill(0);
     hardCooldown = 0;
+    prevBright   = avgBright;
     return;
   }
 
@@ -798,13 +957,12 @@ function applySoundMusical(scanCol, avgBright, motion) {
   const H     = scanCol.length;
   const zoneH = H / ZONE_COUNT;
 
-  // Убываем кулдауны
   if (hardCooldown > 0) hardCooldown--;
   for (let z = 0; z < ZONE_COUNT; z++) {
     if (zoneCooldowns[z] > 0) zoneCooldowns[z]--;
   }
 
-  // ── СЧИТАЕМ ЯРКОСТЬ КАЖДОЙ ЗОНЫ ──
+  // Яркость каждой зоны
   const zoneBright = new Float32Array(ZONE_COUNT);
   for (let z = 0; z < ZONE_COUNT; z++) {
     const s = Math.floor(z * zoneH);
@@ -814,87 +972,141 @@ function applySoundMusical(scanCol, avgBright, motion) {
     zoneBright[z] = sm / (e - s);
   }
 
-  // ── ПОРОГ СРАБАТЫВАНИЯ от ползунка чувствительности ──
-  // sensitivity 0 = порог высокий (только сильные вспышки)
-  // sensitivity 1 = порог низкий  (любое движение)
-  const triggerThreshold = 30 - sensitivity * 24; // 6..30
-  // Минимальная пауза между нотами (hardCooldown)
-  const minHardCooldown  = Math.floor(4 + (1 - sensitivity) * 10); // 4..14 кадров
+  const triggerThreshold = 30 - sensitivity * 24;
+  const minHardCooldown  = Math.floor(4 + (1 - sensitivity) * 10);
 
-  // ── ИЩЕМ ЗОНУ С МАКСИМАЛЬНЫМ ИЗМЕНЕНИЕМ ──
-  // Выбираем только одну зону за кадр — ту что изменилась больше всего
-  // Это даёт чёткие одиночные ноты вместо каши
-  let maxDelta    = 0;
-  let triggerZone = -1;
-
+  // Нота — зона с максимальным изменением
+  let maxDelta = 0, triggerZone = -1;
   for (let z = 0; z < ZONE_COUNT; z++) {
     const delta = Math.abs(zoneBright[z] - prevZoneBright[z]);
     if (delta > maxDelta && delta > triggerThreshold && zoneCooldowns[z] === 0) {
-      maxDelta    = delta;
-      triggerZone = z;
+      maxDelta = delta; triggerZone = z;
     }
   }
 
-  // ── ИГРАЕМ НОТУ ЗОНЫ ──
   if (triggerZone >= 0 && hardCooldown === 0) {
-    const zNorm = zoneBright[triggerZone] / 255; // яркость зоны → нота
-
-    // Нота выбирается по ЯРКОСТИ зоны (что в ней — то и звучит)
-    const noteIdx = Math.min(
-      Math.floor(zNorm * NOTES.length),
-      NOTES.length - 1
-    );
-
-    // Velocity = сила изменения яркости
-    // Небольшой сдвиг = тихая нота, резкий = громкая
+    const zNorm   = zoneBright[triggerZone] / 255;
+    const noteIdx = Math.min(Math.floor(zNorm * NOTES.length), NOTES.length - 1);
     const velocity = Math.min(maxDelta / 80, 1.0) * 0.5 +
-                     (zNorm * 0.3) +
-                     Math.min(motion / 20, 0.2);
-
+                     zNorm * 0.3 + Math.min(motion / 20, 0.2);
     playStringNote(NOTES[noteIdx].freq, NOTES[noteIdx].name,
                    Math.max(0.15, Math.min(velocity, 0.85)));
-
-    // Кулдаун зоны — эта зона не триггерит пока не успокоится
     zoneCooldowns[triggerZone] = 12;
-    // Общий кулдаун — следующая нота не раньше чем через N кадров
     hardCooldown = minHardCooldown;
   }
 
-  // Запоминаем яркости зон
   prevZoneBright.set(zoneBright);
 
-  // ── БАС — нижняя часть экрана ──
-  // Бас срабатывает от нижней зоны независимо
+  // БАС-НОТА от нижней зоны
   if (bassCooldown > 0) bassCooldown--;
-  const bottomBright = zoneBright[ZONE_COUNT - 1]; // самая нижняя зона
+  const bottomBright = zoneBright[ZONE_COUNT - 1];
   const bottomDelta  = Math.abs(bottomBright - prevZoneBright[ZONE_COUNT - 1]);
-
-  if (bottomDelta > triggerThreshold * 0.8 &&
-      bassCooldown === 0 && bottomBright > 15) {
+  if (bottomDelta > triggerThreshold * 0.8 && bassCooldown === 0 && bottomBright > 15) {
     const bassNorm = bottomBright / 255;
-    const bIdx     = Math.min(Math.floor(bassNorm * BASS_FREQS.length), BASS_FREQS.length - 1);
+    const bIdx = Math.min(Math.floor(bassNorm * BASS_FREQS.length), BASS_FREQS.length - 1);
     playBassNote(BASS_FREQS[bIdx], 0.4 + bassNorm * 0.4);
     bassCooldown = 25;
   }
 
-  // ── ХЭТ от верхней зоны ──
-  if (hihatCooldown > 0) hihatCooldown--;
-  const topBright = zoneBright[0];
-  const topDelta  = Math.abs(topBright - prevZoneBright[0]);
+  // ════════════════════════════════════════
+  //  АЛГОРИТМЫ УДАРНЫХ
+  //
+  //  КИК:   резкий скачок средней яркости
+  //         всего кадра — как вспышка света
+  //
+  //  СНЕЙР: большой контраст между верхней
+  //         и нижней половиной — граница
+  //         тени и света пересекает центр
+  //
+  //  ХЭТ:   накопленное мерцание верхней зоны
+  //         много мелких изменений подряд →
+  //         срабатывает как частая дробь
+  //
+  //  ПЕРК:  изменение в средних зонах (3,4,5)
+  //         высота звука = яркость этих зон
+  // ════════════════════════════════════════
 
-  if (topDelta > triggerThreshold * 0.6 &&
-      hihatCooldown === 0 && topBright > 20) {
-    playHihat((topBright / 255) * parseFloat(volumeSlider.value) * 0.4);
-    hihatCooldown = 8;
+  // ── КИК ──
+  if (kickCooldown > 0) kickCooldown--;
+  if (drums.kick) {
+    const globalDelta = Math.abs(avgBright - prevBright);
+    if (globalDelta > 28 && kickCooldown === 0 &&
+        avgBright > 12 && motion > MOTION_THRESHOLD * 1.5) {
+      playKick(Math.min(globalDelta / 55, 1.0));
+      kickCooldown = 42;
+    }
   }
 
-  // ── КИК от резкого общего скачка ──
-  if (kickCooldown > 0) kickCooldown--;
-  const globalDelta = Math.abs(avgBright - prevBright);
-  if (globalDelta > 35 && kickCooldown === 0 &&
-      avgBright / 255 > 0.1 && motion > MOTION_THRESHOLD * 2) {
-    playKick(Math.min(globalDelta / 65, 0.8) * parseFloat(volumeSlider.value));
-    kickCooldown = 50;
+  // ── СНЕЙР: контраст верх/низ ──
+  if (snareCooldown > 0) snareCooldown--;
+  if (drums.snare) {
+    // Верхняя половина (зоны 0,1,2,3) vs нижняя (4,5,6,7)
+    let topSum = 0, botSum = 0;
+    for (let z = 0; z < 4; z++) topSum += zoneBright[z];
+    for (let z = 4; z < 8; z++) botSum += zoneBright[z];
+    const topAvg     = topSum / 4;
+    const botAvg     = botSum / 4;
+    const contrast   = Math.abs(topAvg - botAvg); // разница верх/низ
+
+    // Сглаживаем контраст — реагируем на его изменение
+    const contrastDelta = Math.abs(contrast - prevContrast);
+    prevContrast = contrast * 0.7 + prevContrast * 0.3;
+
+        // Срабатывает когда граница света/тени резко смещается
+    if (contrastDelta > 18 && contrast > 25 &&
+        snareCooldown === 0 && motion > MOTION_THRESHOLD) {
+      const snareVol = Math.min(contrastDelta / 50, 1.0);
+      playSnare(snareVol);
+      snareCooldown = 28;
+    }
+  }
+
+  // ── ХЭТ: накопленное мерцание верхней зоны ──
+  // Логика: каждый кадр считаем абсолютное изменение
+  // верхней зоны и накапливаем в буфер hihatFlicker.
+  // Когда накопилось достаточно — срабатывает хэт.
+  // Это значит: много мелких движений = частая дробь,
+  // одно большое движение = один удар.
+  if (hihatCooldown > 0) hihatCooldown--;
+  if (drums.hihat) {
+    const topBright    = zoneBright[0];
+    const topDelta     = Math.abs(topBright - prevTopBright);
+    // Накапливаем мерцание, медленно затухает
+    hihatFlicker = hihatFlicker * 0.75 + topDelta * 0.25;
+    prevTopBright = topBright;
+
+    if (hihatFlicker > 6 && hihatCooldown === 0 &&
+        topBright > 10 && motion > MOTION_THRESHOLD) {
+      const hatVol = Math.min(hihatFlicker / 20, 1.0);
+      playHihat(hatVol);
+      hihatCooldown = 7; // короткий кулдаун — хэт может частить
+      hihatFlicker *= 0.4; // сбрасываем часть накопленного
+    }
+  }
+
+  // ── ПЕРКУССИЯ: средние зоны 3,4,5 ──
+  // Средние зоны — самые музыкальные:
+  // они не верх (хаотичный) и не низ (бас).
+  // Яркость средних зон → высота тома.
+  // Изменение средних зон → триггер удара.
+  if (percCooldown > 0) percCooldown--;
+  if (drums.perc) {
+    let midSum = 0, midDeltaSum = 0;
+    for (let z = 2; z <= 5; z++) {
+      midSum      += zoneBright[z];
+      midDeltaSum += Math.abs(zoneBright[z] - prevZoneBright[z]);
+    }
+    const midAvg      = midSum / 4;
+    const midDelta    = midDeltaSum / 4;
+    const pitchNorm   = midAvg / 255; // яркость → высота тона
+
+    if (midDelta > triggerThreshold * 0.9 &&
+        percCooldown === 0 && midAvg > 15 &&
+        motion > MOTION_THRESHOLD) {
+      const percVol = Math.min(midDelta / 45, 1.0);
+      playPerc(percVol, pitchNorm);
+      percCooldown = 18;
+    }
   }
 
   prevBright = avgBright;
@@ -907,7 +1119,6 @@ function applySoundMusical(scanCol, avgBright, motion) {
 function drawVisualizer() {
   if (!analyser) return;
   const W = vizCanvas.width, H = vizCanvas.height;
-
   vizCtx.fillStyle = '#000';
   vizCtx.fillRect(0, 0, W, H);
 
@@ -927,15 +1138,12 @@ function drawVisualizer() {
     const buf = analyser.fftSize;
     const dat = new Uint8Array(buf);
     analyser.getByteTimeDomainData(dat);
-
     const isQuiet = motionSmoothed < MOTION_THRESHOLD;
-
     vizCtx.beginPath();
     vizCtx.strokeStyle = isQuiet ? 'rgba(255,106,0,0.12)' : 'rgba(255,106,0,0.85)';
     vizCtx.lineWidth   = isQuiet ? 1 : 1.5;
     vizCtx.shadowColor = 'rgba(255,106,0,0.35)';
     vizCtx.shadowBlur  = isQuiet ? 0 : 6;
-
     for (let i = 0; i < buf; i++) {
       const x = (i / buf) * W;
       const y = ((dat[i] / 255) * 2 - 1) * (H * 0.44) + H / 2;
@@ -943,7 +1151,6 @@ function drawVisualizer() {
     }
     vizCtx.stroke();
     vizCtx.shadowBlur = 0;
-
     vizCtx.strokeStyle = 'rgba(255,106,0,0.08)';
     vizCtx.lineWidth   = 1;
     vizCtx.beginPath();
@@ -974,9 +1181,26 @@ async function handleStart(e) {
   if (audioCtx && masterGain) playStringNote(261.63, 'До4', 0.35);
   await startCamera();
 }
-
 startOverlay.addEventListener('touchend', handleStart, { passive: false });
 startOverlay.addEventListener('click',    handleStart);
+
+// ════════════════════════════════════════════
+//  КНОПКИ УДАРНЫХ — переключение вкл/выкл
+// ════════════════════════════════════════════
+document.querySelectorAll('.drum-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const name = btn.dataset.drum;
+    drums[name] = !drums[name];
+    btn.classList.toggle('active', drums[name]);
+    // Сбрасываем кулдаун при включении
+    if (drums[name]) {
+      if (name === 'kick')  kickCooldown  = 0;
+      if (name === 'snare') snareCooldown = 0;
+      if (name === 'hihat') { hihatCooldown = 0; hihatFlicker = 0; }
+      if (name === 'perc')  percCooldown  = 0;
+    }
+  });
+});
 
 // ════════════════════════════════════════════
 //  ПЕРЕКЛЮЧЕНИЕ РЕЖИМА
@@ -987,14 +1211,14 @@ document.querySelectorAll('.smode-btn').forEach(btn => {
     document.querySelectorAll('.smode-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     updateSliderLabels();
-
     prevZoneBright.fill(0);
     zoneCooldowns.fill(0);
     hardCooldown   = 0;
     motionSmoothed = 0;
     prevScanCol.fill(0);
-    prevBright = 0;
-
+    prevBright     = 0;
+    prevContrast   = 0;
+    hihatFlicker   = 0;
     if (soundMode === 'raw' && audioCtx && audioReady) createRawOscillators();
   });
 });
