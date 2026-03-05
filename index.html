@@ -16,18 +16,13 @@
     }
 
     body {
-      background: #000;
-      color: #fff;
+      background: #000; color: #fff;
       font-family: 'Share Tech Mono', 'Courier New', monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      min-height: -webkit-fill-available;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; min-height: -webkit-fill-available;
       overflow-x: hidden;
     }
 
-    /* ===== ХЕДЕР ===== */
     .header {
       width: 100%; max-width: 640px;
       padding: 10px 12px 8px;
@@ -35,25 +30,18 @@
       border-bottom: 1px solid #1a1a1a;
     }
     .header-title {
-      font-family: 'Inter', sans-serif;
-      font-weight: 600;
-      font-size: 0.85rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--orange);
-      text-shadow: 0 0 16px var(--orange-dim);
+      font-family: 'Inter', sans-serif; font-weight: 600;
+      font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--orange); text-shadow: 0 0 16px var(--orange-dim);
     }
     .header-sub { font-size: 0.45rem; color: #333; letter-spacing: 2px; }
 
-    /* ===== КАМЕРА ===== */
     .scanner-wrapper {
       position: relative; width: 100%; max-width: 640px;
       aspect-ratio: 4/3; background: #000; overflow: hidden;
     }
 
     #video, #offscreen { display: none; }
-
-    /* Canvas заполняет всю область */
     #canvas { display: block; width: 100%; height: 100%; }
 
     .scan-line {
@@ -72,35 +60,24 @@
       position: absolute; bottom: 8px; left: 10px;
       font-size: 0.42rem; color: #333; letter-spacing: 2px; z-index: 15;
     }
-
     .live-data {
       position: absolute; bottom: 8px; right: 10px;
       font-size: 0.42rem; color: #444; letter-spacing: 2px;
       z-index: 15; text-align: right; line-height: 1.8;
     }
-
     #noteDisplay {
       position: absolute; top: 10px; left: 50%;
       transform: translateX(-50%);
-      font-size: 0.55rem; letter-spacing: 3px;
-      color: var(--orange);
-      opacity: 0;
-      z-index: 15;
-      transition: opacity 0.4s;
-      text-shadow: 0 0 10px var(--orange-dim);
-      white-space: nowrap;
+      font-size: 0.55rem; letter-spacing: 3px; color: var(--orange);
+      opacity: 0; z-index: 15; transition: opacity 0.4s;
+      text-shadow: 0 0 10px var(--orange-dim); white-space: nowrap;
     }
-
-    /* Полоска движения */
     #motionBar {
       position: absolute; top: 0; left: 0;
       height: 2px; background: var(--orange);
-      width: 0%; z-index: 15;
-      transition: width 0.1s;
-      opacity: 0.6;
+      width: 0%; z-index: 15; transition: width 0.1s; opacity: 0.6;
     }
 
-    /* ===== ОВЕРЛЕЙ СТАРТА ===== */
     #startOverlay {
       position: absolute; inset: 0; background: #000;
       display: flex; flex-direction: column;
@@ -117,8 +94,7 @@
     .overlay-label { font-size: 0.5rem; letter-spacing: 4px; color: #444; z-index: 1; }
     .overlay-warning {
       font-size: 0.48rem; letter-spacing: 2px; color: #666; z-index: 1;
-      border: 1px solid #222; padding: 10px 18px;
-      text-align: center; line-height: 2;
+      border: 1px solid #222; padding: 10px 18px; text-align: center; line-height: 2;
     }
     .overlay-warning span { color: var(--orange); }
     .overlay-tap {
@@ -128,42 +104,31 @@
     }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-    /* ===== ВИЗУАЛИЗАТОР ===== */
     #vizCanvas {
       width: 100%; max-width: 640px; height: 52px;
       display: block; background: #000; border-top: 1px solid #1a1a1a;
     }
 
-    /* ===== ДАННЫЕ ===== */
     .data-row {
       width: 100%; max-width: 640px;
       display: grid; grid-template-columns: repeat(4,1fr);
       border-top: 1px solid #1a1a1a; border-bottom: 1px solid #1a1a1a;
     }
-    .data-cell {
-      padding: 8px 10px; border-right: 1px solid #1a1a1a;
-      min-width: 0; overflow: hidden;
-    }
+    .data-cell { padding: 8px 10px; border-right: 1px solid #1a1a1a; min-width:0; overflow:hidden; }
     .data-cell:last-child { border-right: none; }
     .dc-label { font-size:0.38rem; color:#333; letter-spacing:2px; margin-bottom:3px; text-transform:uppercase; }
-    .dc-val {
-      font-size:0.7rem; color:#fff;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
+    .dc-val { font-size:0.7rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-    /* ===== СЕКЦИИ ===== */
     .section { width: 100%; max-width: 640px; }
     .section-head {
       font-size: 0.38rem; color: #2a2a2a; letter-spacing: 3px;
       padding: 10px 10px 0; text-transform: uppercase; border-top: 1px solid #111;
     }
 
-    /* ===== РЕЖИМ ЗВУКА ===== */
     .sound-modes { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; }
     .smode-btn {
       padding: 12px 10px; border:none; border-right:1px solid #1a1a1a;
-      background:#000; color:#444;
-      font-family:'Share Tech Mono',monospace;
+      background:#000; color:#444; font-family:'Share Tech Mono',monospace;
       font-size:0.6rem; letter-spacing:2px; cursor:pointer;
       text-align:left; line-height:1.8; transition:background 0.15s;
     }
@@ -173,18 +138,15 @@
     .smode-btn.active { background:var(--orange-faint); color:var(--orange); border-bottom:1px solid var(--orange); }
     .smode-btn.active .smode-desc { color:#663300; }
 
-    /* ===== ТИП ВОЛНЫ ===== */
     .wave-modes { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid #1a1a1a; }
     .wave-btn {
       padding:10px 0; border:none; border-right:1px solid #1a1a1a;
-      background:#000; color:#444;
-      font-family:'Share Tech Mono',monospace;
+      background:#000; color:#444; font-family:'Share Tech Mono',monospace;
       font-size:0.6rem; letter-spacing:2px; cursor:pointer;
     }
     .wave-btn:last-child { border-right:none; }
     .wave-btn.active { background:var(--orange-faint); color:var(--orange); }
 
-    /* ===== СЛАЙДЕРЫ ===== */
     .sliders { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; }
     .slider-cell { padding:10px 12px; border-right:1px solid #1a1a1a; }
     .slider-cell:nth-child(even) { border-right:none; }
@@ -194,20 +156,16 @@
       display:flex; justify-content:space-between; margin-bottom:8px; text-transform:uppercase;
     }
     .sl-label span { color:#fff; }
-    input[type="range"] {
-      -webkit-appearance:none; width:100%; height:1px; background:#222; outline:none;
-    }
+    input[type="range"] { -webkit-appearance:none; width:100%; height:1px; background:#222; outline:none; }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance:none; width:16px; height:16px;
       border-radius:0; background:var(--orange); cursor:pointer;
     }
 
-    /* ===== НИЖНИЕ КНОПКИ ===== */
     .bottom-btns { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; margin-bottom:24px; }
     .ctrl-btn {
       padding:12px; border:none; border-right:1px solid #1a1a1a;
-      background:#000; color:#444;
-      font-family:'Share Tech Mono',monospace;
+      background:#000; color:#444; font-family:'Share Tech Mono',monospace;
       font-size:0.6rem; letter-spacing:2px; cursor:pointer;
     }
     .ctrl-btn:last-child { border-right:none; }
@@ -251,22 +209,10 @@
   <canvas id="vizCanvas" width="640" height="52"></canvas>
 
   <div class="data-row">
-    <div class="data-cell">
-      <div class="dc-label">яркость</div>
-      <div class="dc-val" id="infoLum">—</div>
-    </div>
-    <div class="data-cell">
-      <div class="dc-label">нота</div>
-      <div class="dc-val" id="infoNote">—</div>
-    </div>
-    <div class="data-cell">
-      <div class="dc-label">режим</div>
-      <div class="dc-val" id="infoMode">муз.</div>
-    </div>
-    <div class="data-cell">
-      <div class="dc-label">движение</div>
-      <div class="dc-val" id="infoMotion">—</div>
-    </div>
+    <div class="data-cell"><div class="dc-label">яркость</div><div class="dc-val" id="infoLum">—</div></div>
+    <div class="data-cell"><div class="dc-label">нота</div><div class="dc-val" id="infoNote">—</div></div>
+    <div class="data-cell"><div class="dc-label">режим</div><div class="dc-val" id="infoMode">муз.</div></div>
+    <div class="data-cell"><div class="dc-label">движение</div><div class="dc-val" id="infoMotion">—</div></div>
   </div>
 
   <div class="section">
@@ -305,7 +251,7 @@
         <input type="range" id="slider2" min="0" max="1" step="0.01" value="0.4">
       </div>
       <div class="slider-cell">
-        <div class="sl-label" id="s3label">скорость <span id="s3Val">ср.</span></div>
+        <div class="sl-label" id="s3label">чувств. <span id="s3Val">ср.</span></div>
         <input type="range" id="slider3" min="0" max="1" step="0.01" value="0.5">
       </div>
       <div class="slider-cell">
@@ -369,22 +315,47 @@ let startHandled = false;
 let frameCount   = 0;
 
 // Параметры musical
-let reverbAmount = 0.4;
-let noteSpeed    = 0.5;
-let bassAmount   = 0.6;
+let reverbAmount  = 0.4;
+let sensitivity   = 0.5;  // slider3 — чувствительность к изменениям
+let bassAmount    = 0.6;
 
-// Piano engine
-let lastNoteIndex = -1;
-let noteCooldown  = 0;
-let noteHoldTimer = null;
-let prevBright    = 0;
-let kickCooldown  = 0;
-let hihatCooldown = 0;
-
-// Детектор движения
+// ════════════════════════════════════════════
+//  ДЕТЕКТОР ДВИЖЕНИЯ
+// ════════════════════════════════════════════
 let prevScanCol    = new Float32Array(480);
 let motionSmoothed = 0;
 const MOTION_THRESHOLD = 2.5;
+
+// ════════════════════════════════════════════
+//  ТРИГГЕР НОТ — новая система
+//
+//  Вместо равномерного таймера теперь три сигнала:
+//
+//  1. zoneDelta[i] — изменение яркости в каждой зоне
+//     Когда зона меняется больше порога → нота этой зоны
+//
+//  2. globalDelta — общее изменение по всей линии
+//     Большое изменение = "акцент", нота играет громче
+//
+//  3. hardCooldown — минимальная пауза между любыми нотами
+//     Чтобы не было каши когда всё двигается сразу
+// ════════════════════════════════════════════
+
+// Предыдущие значения яркости по зонам (8 зон)
+const ZONE_COUNT    = 8;
+let prevZoneBright  = new Float32Array(ZONE_COUNT);
+let zoneCooldowns   = new Int32Array(ZONE_COUNT); // кулдаун для каждой зоны
+let hardCooldown    = 0;  // общий кулдаун — не чаще чем раз в N кадров
+
+// История яркости для анализа паттернов
+let brightHistory   = new Float32Array(30).fill(128); // последние 30 кадров
+let historyIdx      = 0;
+
+let noteHoldTimer   = null;
+let prevBright      = 0;
+let kickCooldown    = 0;
+let hihatCooldown   = 0;
+let bassCooldown    = 0;
 
 // ════════════════════════════════════════════
 //  ПЕНТАТОНИКА
@@ -493,8 +464,7 @@ async function initAudio() {
 function createRawOscillators() {
   oscillators.forEach(o => { try { o.stop(); } catch(e) {} });
   oscillators = []; gainNodes = [];
-  const count = 8;
-  const now   = audioCtx.currentTime;
+  const count = 8, now = audioCtx.currentTime;
   for (let i = 0; i < count; i++) {
     const osc  = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -515,7 +485,6 @@ function playStringNote(freq, noteName, velocity = 0.5) {
   const now = audioCtx.currentTime;
   const vol = parseFloat(volumeSlider.value) * velocity * 0.45;
 
-  // Основной осциллятор + фильтр
   const osc1  = audioCtx.createOscillator();
   const filt  = audioCtx.createBiquadFilter();
   const gain1 = audioCtx.createGain();
@@ -523,25 +492,22 @@ function playStringNote(freq, noteName, velocity = 0.5) {
   osc1.type = waveType;
   osc1.frequency.setValueAtTime(freq, now);
 
-  // Вибрато — LFO
+  // Вибрато
   const lfo  = audioCtx.createOscillator();
   const lfoG = audioCtx.createGain();
   lfo.type = 'sine';
   lfo.frequency.value = 4.5 + Math.random() * 1.5;
   lfoG.gain.value     = freq * 0.007;
-  lfo.connect(lfoG);
-  lfoG.connect(osc1.frequency);
+  lfo.connect(lfoG); lfoG.connect(osc1.frequency);
   lfo.start(now + 0.25);
 
-  // Фильтр — мягкость в зависимости от тембра
   filt.type = 'lowpass';
   filt.frequency.value = waveType === 'sawtooth' ? 1100 :
                          waveType === 'square'   ? 700  :
                          waveType === 'triangle' ? 2500 : 3500;
   filt.Q.value = 1.5;
 
-  // Огибающая — медленная атака как смычок
-  const atk = waveType === 'sine' ? 0.04 : 0.15;
+  const atk = waveType === 'sine' ? 0.04 : 0.12;
   gain1.gain.setValueAtTime(0, now);
   gain1.gain.linearRampToValueAtTime(vol, now + atk);
   gain1.gain.exponentialRampToValueAtTime(vol * 0.65, now + 0.7);
@@ -551,7 +517,7 @@ function playStringNote(freq, noteName, velocity = 0.5) {
   osc1.start(now); osc1.stop(now + 3.0);
   lfo.stop(now + 3.0);
 
-  // Субоктава для глубины
+  // Субоктава
   const osc2  = audioCtx.createOscillator();
   const gain2 = audioCtx.createGain();
   osc2.type = 'sine';
@@ -562,11 +528,10 @@ function playStringNote(freq, noteName, velocity = 0.5) {
   osc2.connect(gain2); gain2.connect(analyser);
   osc2.start(now); osc2.stop(now + 2.3);
 
-  // Показываем ноту
   noteDisplay.textContent = noteName;
   noteDisplay.style.opacity = '1';
   clearTimeout(noteHoldTimer);
-  noteHoldTimer = setTimeout(() => { noteDisplay.style.opacity = '0'; }, 2200);
+  noteHoldTimer = setTimeout(() => { noteDisplay.style.opacity = '0'; }, 2000);
   document.getElementById('infoNote').textContent = noteName;
   document.getElementById('liveNote').textContent = noteName;
 }
@@ -582,17 +547,12 @@ function playBassNote(freq, velocity = 0.5) {
   const osc  = audioCtx.createOscillator();
   const filt = audioCtx.createBiquadFilter();
   const gain = audioCtx.createGain();
-
   osc.type = 'sawtooth';
   osc.frequency.value = freq;
-  filt.type = 'lowpass';
-  filt.frequency.value = 260;
-  filt.Q.value = 2;
-
+  filt.type = 'lowpass'; filt.frequency.value = 260; filt.Q.value = 2;
   gain.gain.setValueAtTime(0, now);
   gain.gain.linearRampToValueAtTime(vol, now + 0.08);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 4.0);
-
   osc.connect(filt); filt.connect(gain);
   gain.connect(masterGain);
   osc.start(now); osc.stop(now + 4.1);
@@ -636,11 +596,11 @@ function playHihat(vol) {
 function updateSliderLabels() {
   if (soundMode === 'musical') {
     document.getElementById('s2label').firstChild.textContent = 'реверб ';
-    document.getElementById('s3label').firstChild.textContent = 'скорость ';
+    document.getElementById('s3label').firstChild.textContent = 'чувств. ';
     document.getElementById('s4label').firstChild.textContent = 'бас ';
-    slider2.min = 0;   slider2.max = 1;    slider2.step = 0.01;
-    slider3.min = 0;   slider3.max = 1;    slider3.step = 0.01;
-    slider4.min = 0;   slider4.max = 1;    slider4.step = 0.01;
+    slider2.min = 0; slider2.max = 1; slider2.step = 0.01;
+    slider3.min = 0; slider3.max = 1; slider3.step = 0.01;
+    slider4.min = 0; slider4.max = 1; slider4.step = 0.01;
   } else {
     document.getElementById('s2label').firstChild.textContent = 'голоса ';
     document.getElementById('s3label').firstChild.textContent = 'мин.гц ';
@@ -672,9 +632,7 @@ async function startCamera() {
     await video.play();
     isRunning = true;
     scanLoop();
-  } catch(e) {
-    audioStatus.textContent = 'камера: ' + e.message;
-  }
+  } catch(e) { audioStatus.textContent = 'камера: ' + e.message; }
 }
 
 // ════════════════════════════════════════════
@@ -683,25 +641,19 @@ async function startCamera() {
 function scanLoop() {
   if (!isRunning) return;
   if (video.readyState >= 2) {
-    // ── object-fit: cover для canvas ──
-    // Вычисляем какую часть видео взять чтобы заполнить 4:3 без искажений
+    // Кроп видео под 4:3
     const vw = video.videoWidth  || 640;
     const vh = video.videoHeight || 480;
     const targetAspect = 640 / 480;
     const videoAspect  = vw / vh;
-
     let sx = 0, sy = 0, sw = vw, sh = vh;
-
     if (videoAspect > targetAspect) {
-      // Видео шире — обрезаем по бокам
       sw = Math.round(vh * targetAspect);
       sx = Math.round((vw - sw) / 2);
     } else {
-      // Видео выше — обрезаем сверху и снизу
       sh = Math.round(vw / targetAspect);
       sy = Math.round((vh - sh) / 2);
     }
-
     offCtx.drawImage(video, sx, sy, sw, sh, 0, 0, 640, 480);
     const frame = offCtx.getImageData(0, 0, 640, 480);
     processFrame(frame.data);
@@ -733,45 +685,37 @@ function processFrame(data) {
 
   ctx.putImageData(out, 0, 0);
 
-  // Сетка Ikeda
   ctx.strokeStyle = 'rgba(255,255,255,0.03)';
   ctx.lineWidth = 1;
   for (let y = 0; y < H; y += 40) {
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }
 
-  // Средняя яркость
   let sum = 0;
   for (let i = 0; i < H; i++) sum += scanCol[i];
   const avgBright = sum / H;
 
-  // ── ДЕТЕКТОР ДВИЖЕНИЯ ──
+  // Детектор движения
   let motionSum = 0;
-  for (let y = 0; y < H; y++) {
-    motionSum += Math.abs(scanCol[y] - prevScanCol[y]);
-  }
+  for (let y = 0; y < H; y++) motionSum += Math.abs(scanCol[y] - prevScanCol[y]);
   const motionRaw = motionSum / H;
-
-  // Быстрый подъём, медленный спад
   motionSmoothed = motionRaw > motionSmoothed
     ? motionSmoothed * 0.6 + motionRaw * 0.4
     : motionSmoothed * 0.92 + motionRaw * 0.08;
-
   prevScanCol.set(scanCol);
 
-  // Обновляем UI
+  // История яркости
+  brightHistory[historyIdx % 30] = avgBright;
+  historyIdx++;
+
   document.getElementById('infoLum').textContent    = Math.round(avgBright);
   document.getElementById('liveLum').textContent    = `ярк. ${Math.round(avgBright)}`;
   document.getElementById('infoMotion').textContent = Math.round(motionSmoothed * 10) / 10;
-
-  // Полоска движения
   motionBar.style.width = Math.min(motionSmoothed / 15 * 100, 100) + '%';
 
-  if (soundMode === 'raw') {
-    applySoundRaw(scanCol, avgBright);
-  } else {
-    applySoundMusical(scanCol, avgBright, motionSmoothed);
-  }
+  soundMode === 'raw'
+    ? applySoundRaw(scanCol, avgBright)
+    : applySoundMusical(scanCol, avgBright, motionSmoothed);
 }
 
 // ════════════════════════════════════════════
@@ -784,8 +728,7 @@ function applySoundRaw(scanCol, avgBright) {
   if (dryGain) dryGain.gain.setTargetAtTime(1.0, audioCtx.currentTime, 0.3);
   if (wetGain) wetGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.3);
 
-  const H       = scanCol.length;
-  const count   = oscillators.length;
+  const H = scanCol.length, count = oscillators.length;
   const minFreq = parseFloat(slider3.value);
   const maxFreq = parseFloat(slider4.value);
   const zoneH   = H / count;
@@ -803,12 +746,9 @@ function applySoundRaw(scanCol, avgBright) {
     oscillators[i].frequency.cancelScheduledValues(now);
     oscillators[i].frequency.setValueAtTime(oscillators[i].frequency.value, now);
     oscillators[i].frequency.linearRampToValueAtTime(freq, now + 0.04);
-
     gainNodes[i].gain.cancelScheduledValues(now);
     gainNodes[i].gain.setValueAtTime(gainNodes[i].gain.value, now);
-    gainNodes[i].gain.linearRampToValueAtTime(
-      Math.max(0, Math.min(vol, volMax)), now + 0.04
-    );
+    gainNodes[i].gain.linearRampToValueAtTime(Math.max(0, Math.min(vol, volMax)), now + 0.04);
   }
 
   document.getElementById('infoMode').textContent = 'сырой';
@@ -816,7 +756,22 @@ function applySoundRaw(scanCol, avgBright) {
 }
 
 // ════════════════════════════════════════════
-//  MUSICAL РЕЖИМ
+//  MUSICAL РЕЖИМ — ритм от картинки
+//
+//  Как это работает:
+//
+//  Линия сканера делится на ZONE_COUNT зон.
+//  Каждый кадр считаем яркость каждой зоны.
+//  Сравниваем с предыдущим кадром.
+//
+//  Если зона резко изменилась → триггер:
+//    - маленькое изменение = тихая нота
+//    - большое изменение   = громкая нота
+//    - какая зона изменилась → какая нота (по высоте в кадре)
+//
+//  Ползунок "чувств." меняет порог срабатывания:
+//    - низкая чувствительность = только сильные изменения
+//    - высокая = реагирует на мелкие движения
 // ════════════════════════════════════════════
 function applySoundMusical(scanCol, avgBright, motion) {
   if (!audioCtx || !audioReady || isMuted) return;
@@ -824,85 +779,121 @@ function applySoundMusical(scanCol, avgBright, motion) {
 
   const now = audioCtx.currentTime;
 
-  // Глушим raw осцилляторы
   gainNodes.forEach(g => {
     g.gain.cancelScheduledValues(now);
     g.gain.setTargetAtTime(0, now, 0.05);
   });
 
-  // ── ТИШИНА ЕСЛИ НЕТ ДВИЖЕНИЯ ──
+  // Тишина если нет движения
   if (motion < MOTION_THRESHOLD) {
-    // Короткое слово чтобы не прыгал интерфейс
     document.getElementById('infoMode').textContent = 'тихо';
-    noteCooldown  = 0;
-    lastNoteIndex = -1;
+    prevZoneBright.fill(0);
+    hardCooldown = 0;
     return;
   }
 
-  // Реверб
   if (dryGain) dryGain.gain.setTargetAtTime(1 - reverbAmount, now, 0.5);
   if (wetGain) wetGain.gain.setTargetAtTime(reverbAmount, now, 0.5);
 
-  const H = scanCol.length;
+  const H     = scanCol.length;
+  const zoneH = H / ZONE_COUNT;
 
-  // Яркость верхних 2/3 → нота
-  let melSum = 0;
-  for (let y = 0; y < Math.floor(H * 0.67); y++) melSum += scanCol[y];
-  const melAvg  = melSum / Math.floor(H * 0.67);
-  const melNorm = melAvg / 255;
-
-  const noteIdx = Math.min(
-    Math.floor(melNorm * NOTES.length),
-    NOTES.length - 1
-  );
-
-  if (noteCooldown > 0) noteCooldown--;
-
-  // Кулдаун от ползунка скорости: 0=40 кадров, 1=6 кадров
-  const minCooldown = Math.floor(6 + (1 - noteSpeed) * 34);
-  const noteChanged  = noteIdx !== lastNoteIndex;
-  const brightEnough = melAvg > 12;
-
-  if ((noteChanged || noteCooldown === 0) && brightEnough && noteCooldown === 0) {
-    const motionVel = Math.min(motion / 15, 1.0);
-    const velocity  = 0.2 + melNorm * 0.3 + motionVel * 0.25;
-    playStringNote(NOTES[noteIdx].freq, NOTES[noteIdx].name, velocity);
-    lastNoteIndex = noteIdx;
-    noteCooldown  = minCooldown;
+  // Убываем кулдауны
+  if (hardCooldown > 0) hardCooldown--;
+  for (let z = 0; z < ZONE_COUNT; z++) {
+    if (zoneCooldowns[z] > 0) zoneCooldowns[z]--;
   }
 
-  // БАС — нижняя треть
-  let bassSum = 0;
-  for (let y = Math.floor(H * 0.67); y < H; y++) bassSum += scanCol[y];
-  const bassAvg  = bassSum / (H - Math.floor(H * 0.67));
-  const bassNorm = bassAvg / 255;
+  // ── СЧИТАЕМ ЯРКОСТЬ КАЖДОЙ ЗОНЫ ──
+  const zoneBright = new Float32Array(ZONE_COUNT);
+  for (let z = 0; z < ZONE_COUNT; z++) {
+    const s = Math.floor(z * zoneH);
+    const e = Math.floor((z + 1) * zoneH);
+    let sm = 0;
+    for (let y = s; y < e; y++) sm += scanCol[y];
+    zoneBright[z] = sm / (e - s);
+  }
 
-  if (frameCount % 38 === 0 && bassAvg > 10) {
-    const bIdx = Math.min(
-      Math.floor(bassNorm * BASS_FREQS.length),
-      BASS_FREQS.length - 1
+  // ── ПОРОГ СРАБАТЫВАНИЯ от ползунка чувствительности ──
+  // sensitivity 0 = порог высокий (только сильные вспышки)
+  // sensitivity 1 = порог низкий  (любое движение)
+  const triggerThreshold = 30 - sensitivity * 24; // 6..30
+  // Минимальная пауза между нотами (hardCooldown)
+  const minHardCooldown  = Math.floor(4 + (1 - sensitivity) * 10); // 4..14 кадров
+
+  // ── ИЩЕМ ЗОНУ С МАКСИМАЛЬНЫМ ИЗМЕНЕНИЕМ ──
+  // Выбираем только одну зону за кадр — ту что изменилась больше всего
+  // Это даёт чёткие одиночные ноты вместо каши
+  let maxDelta    = 0;
+  let triggerZone = -1;
+
+  for (let z = 0; z < ZONE_COUNT; z++) {
+    const delta = Math.abs(zoneBright[z] - prevZoneBright[z]);
+    if (delta > maxDelta && delta > triggerThreshold && zoneCooldowns[z] === 0) {
+      maxDelta    = delta;
+      triggerZone = z;
+    }
+  }
+
+  // ── ИГРАЕМ НОТУ ЗОНЫ ──
+  if (triggerZone >= 0 && hardCooldown === 0) {
+    const zNorm = zoneBright[triggerZone] / 255; // яркость зоны → нота
+
+    // Нота выбирается по ЯРКОСТИ зоны (что в ней — то и звучит)
+    const noteIdx = Math.min(
+      Math.floor(zNorm * NOTES.length),
+      NOTES.length - 1
     );
-    playBassNote(BASS_FREQS[bIdx], 0.5 + bassNorm * 0.5);
+
+    // Velocity = сила изменения яркости
+    // Небольшой сдвиг = тихая нота, резкий = громкая
+    const velocity = Math.min(maxDelta / 80, 1.0) * 0.5 +
+                     (zNorm * 0.3) +
+                     Math.min(motion / 20, 0.2);
+
+    playStringNote(NOTES[noteIdx].freq, NOTES[noteIdx].name,
+                   Math.max(0.15, Math.min(velocity, 0.85)));
+
+    // Кулдаун зоны — эта зона не триггерит пока не успокоится
+    zoneCooldowns[triggerZone] = 12;
+    // Общий кулдаун — следующая нота не раньше чем через N кадров
+    hardCooldown = minHardCooldown;
   }
 
-  // ХЭТ
+  // Запоминаем яркости зон
+  prevZoneBright.set(zoneBright);
+
+  // ── БАС — нижняя часть экрана ──
+  // Бас срабатывает от нижней зоны независимо
+  if (bassCooldown > 0) bassCooldown--;
+  const bottomBright = zoneBright[ZONE_COUNT - 1]; // самая нижняя зона
+  const bottomDelta  = Math.abs(bottomBright - prevZoneBright[ZONE_COUNT - 1]);
+
+  if (bottomDelta > triggerThreshold * 0.8 &&
+      bassCooldown === 0 && bottomBright > 15) {
+    const bassNorm = bottomBright / 255;
+    const bIdx     = Math.min(Math.floor(bassNorm * BASS_FREQS.length), BASS_FREQS.length - 1);
+    playBassNote(BASS_FREQS[bIdx], 0.4 + bassNorm * 0.4);
+    bassCooldown = 25;
+  }
+
+  // ── ХЭТ от верхней зоны ──
   if (hihatCooldown > 0) hihatCooldown--;
-  const topAvg = (() => {
-    let s = 0;
-    for (let y = 0; y < Math.floor(H * 0.25); y++) s += scanCol[y];
-    return s / Math.floor(H * 0.25);
-  })();
-  const hiEvery = Math.max(22, Math.floor(55 - (topAvg / 255) * 33));
-  if (frameCount % hiEvery === 0 && hihatCooldown === 0 && topAvg > 25) {
-    playHihat((topAvg / 255) * parseFloat(volumeSlider.value));
-    hihatCooldown = 6;
+  const topBright = zoneBright[0];
+  const topDelta  = Math.abs(topBright - prevZoneBright[0]);
+
+  if (topDelta > triggerThreshold * 0.6 &&
+      hihatCooldown === 0 && topBright > 20) {
+    playHihat((topBright / 255) * parseFloat(volumeSlider.value) * 0.4);
+    hihatCooldown = 8;
   }
 
-  // КИК
+  // ── КИК от резкого общего скачка ──
   if (kickCooldown > 0) kickCooldown--;
-  const delta = avgBright - prevBright;
-  if (delta > 28 && kickCooldown === 0 && avgBright / 255 > 0.1 && motion > MOTION_THRESHOLD * 2) {
-    playKick(Math.min(delta / 65, 0.8) * parseFloat(volumeSlider.value));
+  const globalDelta = Math.abs(avgBright - prevBright);
+  if (globalDelta > 35 && kickCooldown === 0 &&
+      avgBright / 255 > 0.1 && motion > MOTION_THRESHOLD * 2) {
+    playKick(Math.min(globalDelta / 65, 0.8) * parseFloat(volumeSlider.value));
     kickCooldown = 50;
   }
 
@@ -921,7 +912,6 @@ function drawVisualizer() {
   vizCtx.fillRect(0, 0, W, H);
 
   if (soundMode === 'raw') {
-    // Оранжевые бары
     const buf = analyser.frequencyBinCount;
     const dat = new Uint8Array(buf);
     analyser.getByteFrequencyData(dat);
@@ -934,7 +924,6 @@ function drawVisualizer() {
       vizCtx.fillRect(x, H - h, 1.5, h);
     }
   } else {
-    // Аналоговая линия осциллоскопа
     const buf = analyser.fftSize;
     const dat = new Uint8Array(buf);
     analyser.getByteTimeDomainData(dat);
@@ -955,7 +944,6 @@ function drawVisualizer() {
     vizCtx.stroke();
     vizCtx.shadowBlur = 0;
 
-    // Центральная линия
     vizCtx.strokeStyle = 'rgba(255,106,0,0.08)';
     vizCtx.lineWidth   = 1;
     vizCtx.beginPath();
@@ -1000,18 +988,19 @@ document.querySelectorAll('.smode-btn').forEach(btn => {
     btn.classList.add('active');
     updateSliderLabels();
 
-    lastNoteIndex  = -1;
-    noteCooldown   = 0;
-    prevBright     = 0;
+    prevZoneBright.fill(0);
+    zoneCooldowns.fill(0);
+    hardCooldown   = 0;
     motionSmoothed = 0;
     prevScanCol.fill(0);
+    prevBright = 0;
 
     if (soundMode === 'raw' && audioCtx && audioReady) createRawOscillators();
   });
 });
 
 // ════════════════════════════════════════════
-//  ТЕМБР / ВОЛНА
+//  ТЕМБР
 // ════════════════════════════════════════════
 document.querySelectorAll('.wave-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1060,10 +1049,10 @@ slider2.addEventListener('input', () => {
 
 slider3.addEventListener('input', () => {
   if (soundMode === 'musical') {
-    noteSpeed = parseFloat(slider3.value);
-    const labels = ['оч.медл.','медленно','средне','быстро','оч.быстро'];
+    sensitivity = parseFloat(slider3.value);
+    const labels = ['мало','низк.','ср.','высок.','макс.'];
     document.getElementById('s3Val').textContent =
-      labels[Math.min(Math.floor(noteSpeed * 4), 4)];
+      labels[Math.min(Math.floor(sensitivity * 4), 4)];
   } else {
     document.getElementById('s3Val').textContent = slider3.value + ' гц';
   }
@@ -1102,14 +1091,13 @@ camBtn.addEventListener('click', async () => {
   useFrontCam = !useFrontCam;
   camBtn.textContent = useFrontCam ? '[ камера: фронт ]' : '[ камера: тыл ]';
   if (isRunning) {
-    cancelAnimationFrame(animId);
-    isRunning = false;
+    cancelAnimationFrame(animId); isRunning = false;
     await startCamera();
   }
 });
 
 // ════════════════════════════════════════════
-//  iOS ФОНОВЫЕ ФИКСЫ
+//  iOS ФИКСЫ
 // ════════════════════════════════════════════
 document.addEventListener('touchstart', async () => {
   if (audioCtx && audioCtx.state === 'suspended') {
@@ -1123,7 +1111,6 @@ document.addEventListener('visibilitychange', async () => {
   }
 });
 
-// Инициализируем подписи
 updateSliderLabels();
 </script>
 </body>
