@@ -87,6 +87,20 @@
     .scan-label.top { top: 8px; }
     .scan-label.bot { bottom: 8px; }
 
+    /* Статус аудио поверх камеры */
+    #audioStatus {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 0.55rem;
+      background: #00000099;
+      padding: 4px 8px;
+      border-radius: 6px;
+      z-index: 15;
+      letter-spacing: 1px;
+      color: #556;
+    }
+
     #startOverlay {
       position: absolute;
       inset: 0;
@@ -128,19 +142,6 @@
     @keyframes pulse {
       0%   { transform: scale(0.8); opacity: 1; }
       100% { transform: scale(2);   opacity: 0; }
-    }
-
-    /* Статус AudioContext — показываем на экране для отладки */
-    #audioStatus {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      font-size: 0.55rem;
-      background: #00000088;
-      padding: 4px 8px;
-      border-radius: 6px;
-      z-index: 15;
-      letter-spacing: 1px;
     }
 
     #vizCanvas {
@@ -226,8 +227,8 @@
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       background: #00ffcc;
       cursor: pointer;
@@ -265,7 +266,7 @@
     #status {
       margin-top: 10px;
       font-size: 0.65rem;
-      color: #556;
+      color: #00ffcc99;
       letter-spacing: 1px;
       text-align: center;
       padding: 0 10px;
@@ -296,9 +297,7 @@
     <div class="scan-line"></div>
     <div class="scan-label top">SCAN</div>
     <div class="scan-label bot">SCAN</div>
-
-    <!-- Статус звука — виден поверх камеры -->
-    <div id="audioStatus" style="color:#556">⏳ audio init</div>
+    <div id="audioStatus">⏳ init</div>
 
     <div id="startOverlay">
       <div class="pulse"></div>
@@ -325,8 +324,8 @@
   <div class="sliders-grid">
     <div class="slider-group">
       <label>Громкость</label>
-      <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.7">
-      <div class="value" id="volVal">70%</div>
+      <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.8">
+      <div class="value" id="volVal">80%</div>
     </div>
     <div class="slider-group">
       <label>Голоса</label>
@@ -354,7 +353,7 @@
 
 <script>
 // ————————————————————————————————————————————
-//  ЭЛЕМЕНТЫ
+//  ЭЛЕМЕНТЫ СТРАНИЦЫ
 // ————————————————————————————————————————————
 const video        = document.getElementById('video');
 const canvas       = document.getElementById('canvas');
@@ -390,91 +389,124 @@ let isRunning   = false;
 let waveType    = 'sine';
 let animId      = null;
 let useFrontCam = false;
-let audioReady  = false; // флаг — звук реально работает
+let audioReady  = false;
 
 // ————————————————————————————————————————————
-//  ОБНОВЛЕНИЕ СТАТУСА — показываем всё что знаем
+//  СТАТУС АУДИО — выводим поверх камеры
 // ————————————————————————————————————————————
 function updateAudioStatus() {
   if (!audioCtx) {
-    audioStatus.textContent = '⏳ нет аудио';
-    audioStatus.style.color = '#ff6644';
+    audioStatus.textContent = '⏳ init';
+    audioStatus.style.color = '#556';
     return;
   }
-
-  // Собираем полную информацию для отладки
-  const state    = audioCtx.state;
-  const oscCount = oscillators.length;
-  const vol      = masterGain ? masterGain.gain.value.toFixed(2) : '?';
-
-  audioStatus.textContent = `${state} | osc:${oscCount} | vol:${vol}`;
+  const state = audioCtx.state;
+  const vol   = masterGain ? masterGain.gain.value.toFixed(2) : '?';
+  audioStatus.textContent = `${state} | osc:${oscillators.length} | v:${vol}`;
   audioStatus.style.color = state === 'running' ? '#00ffcc' : '#ff6644';
 }
 
 // ————————————————————————————————————————————
-//  iOS РАЗБЛОКИРОВКА — воспроизводим реальный
-//  слышимый писк на 0.1 секунды чтобы iOS
-//  убедился что аудио работает
+//  ШАГ 1: ПЕРЕКЛЮЧАЕМ iOS НА МЕДИА-КАНАЛ
+//  Это самый важный фикс!
+//  iPhone имеет два канала звука:
+//  - Ringer (звонок) — Web Audio идёт сюда по умолчанию
+//  - Media (музыка)  — нужно явно активировать через <audio>
+//  Если переключатель "тихий режим" включён — ringer не слышно!
+//  Воспроизводим тихий mp3 → iOS переключается на медиа-канал
 // ————————————————————————————————————————————
-function unlockAudio(ctx) {
-  // Создаём осциллятор с реальной частотой (не буфер тишины!)
-  const osc  = ctx.createOscillator();
-  const gain = ctx.createGain();
+function switchToMediaChannel() {
+  return new Promise(resolve => {
+    const audio = document.createElement('audio');
+    audio.setAttribute('playsinline', '');
+    audio.setAttribute('webkit-playsinline', '');
+    audio.preload = 'auto';
 
-  osc.frequency.value = 440; // нота Ля — стандартный тест-тон
-  gain.gain.setValueAtTime(0.01, ctx.currentTime); // очень тихо но не ноль!
-  gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.1); // затихает
+    // Минимальный mp3 (0.1 сек тишины) в base64
+    // Нужен только чтобы разбудить медиа-канал iOS
+    audio.src = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//tQZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
 
-  osc.connect(gain);
-  gain.connect(ctx.destination); // напрямую в колонки — минуя всю цепочку
-  osc.start(ctx.currentTime);
-  osc.stop(ctx.currentTime + 0.15);
+    audio.volume = 0.001;
 
-  // Через 0.2 сек — iOS уже разблокирован, обновляем статус
-  setTimeout(updateAudioStatus, 200);
+    const done = () => {
+      audio.pause();
+      audio.remove();
+      resolve();
+    };
+
+    audio.play().then(() => {
+      setTimeout(done, 200);
+    }).catch(() => {
+      resolve(); // не получилось — идём дальше всё равно
+    });
+  });
 }
 
 // ————————————————————————————————————————————
-//  ИНИЦИАЛИЗАЦИЯ АУДИО
-//  Должна вызываться ТОЛЬКО внутри touchend/click
+//  ШАГ 2: РАЗБЛОКИРОВКА Web Audio на iOS
+//  Воспроизводим реальный короткий тихий тон
+//  напрямую в destination — без всей нашей цепочки
+// ————————————————————————————————————————————
+function unlockWebAudio(actx) {
+  const osc  = actx.createOscillator();
+  const gain = actx.createGain();
+
+  osc.frequency.value = 440;
+  gain.gain.setValueAtTime(0.001, actx.currentTime);
+  gain.gain.linearRampToValueAtTime(0, actx.currentTime + 0.1);
+
+  osc.connect(gain);
+  gain.connect(actx.destination);
+
+  osc.start(actx.currentTime);
+  osc.stop(actx.currentTime + 0.15);
+}
+
+// ————————————————————————————————————————————
+//  ГЛАВНАЯ ИНИЦИАЛИЗАЦИЯ АУДИО
+//  Всегда вызывать только внутри обработчика тапа!
 // ————————————————————————————————————————————
 async function initAudio() {
-  // Если уже работает — ничего не делаем
+  // Уже работает — ничего не делаем
   if (audioCtx && audioCtx.state === 'running' && audioReady) {
     return;
   }
 
-  // Создаём контекст если нет
+  statusEl.textContent = '⏳ Активируем звук...';
+
+  // ФИКС 1: Переключаем iOS на медиа-канал через <audio> тег
+  await switchToMediaChannel();
+
+  // ФИКС 2: Создаём AudioContext
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
 
-  // Обязательно resume — на iOS создаётся в suspended
+  // ФИКС 3: Resume (iOS создаёт контекст в "suspended")
   try {
     await audioCtx.resume();
-  } catch(e) {
-    console.error('resume failed:', e);
-  }
+  } catch(e) {}
 
-  // Разблокируем iOS реальным коротким звуком
-  unlockAudio(audioCtx);
+  // ФИКС 4: Воспроизводим реальный тихий тон для разблокировки
+  unlockWebAudio(audioCtx);
 
-  // Ждём чуть-чуть пока разблокируется
-  await new Promise(r => setTimeout(r, 150));
-
-  // Ещё раз resume на всякий случай
+  // ФИКС 5: Ждём 200мс и снова resume
+  await new Promise(r => setTimeout(r, 200));
   if (audioCtx.state === 'suspended') {
     await audioCtx.resume();
   }
 
-  // Создаём граф только один раз
+  // Создаём аудио-граф один раз
   if (!masterGain) {
+    // Анализатор для визуализатора
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 256;
 
+    // Главный регулятор громкости
     masterGain = audioCtx.createGain();
     masterGain.gain.value = parseFloat(volumeSlider.value);
 
+    // Цепочка: осцилляторы → анализатор → громкость → колонки
     analyser.connect(masterGain);
     masterGain.connect(audioCtx.destination);
   }
@@ -488,6 +520,7 @@ async function initAudio() {
 
 // ————————————————————————————————————————————
 //  СОЗДАНИЕ ОСЦИЛЛЯТОРОВ
+//  Осциллятор = генератор тона определённой частоты
 // ————————————————————————————————————————————
 function createOscillators() {
   // Останавливаем старые
@@ -505,12 +538,12 @@ function createOscillators() {
     osc.type            = waveType;
     osc.frequency.value = 200 + i * 30;
 
-    // ВАЖНО: устанавливаем начальное значение через setValueAtTime
-    // на iOS gain.value = 0 иногда игнорируется
+    // Начинаем с полной тишины
     gain.gain.setValueAtTime(0, now);
 
+    // Цепочка этого голоса: осциллятор → громкость → анализатор
     osc.connect(gain);
-    gain.connect(analyser); // → analyser → masterGain → колонки
+    gain.connect(analyser);
 
     osc.start(now);
 
@@ -522,8 +555,7 @@ function createOscillators() {
 }
 
 // ————————————————————————————————————————————
-//  ТЕСТ-ЗВУК — кнопка для проверки что вообще
-//  что-то играет (добавим временно)
+//  ТЕСТ-ТОН — играем при старте чтобы проверить звук
 // ————————————————————————————————————————————
 function playTestTone() {
   if (!audioCtx || !masterGain) return;
@@ -532,23 +564,27 @@ function playTestTone() {
   const gain = audioCtx.createGain();
   const now  = audioCtx.currentTime;
 
-  osc.frequency.value = 880;
-  gain.gain.setValueAtTime(0.3, now);
+  osc.frequency.value = 660;
+  // Нарастание → пик → затухание
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.4, now + 0.05);
+  gain.gain.linearRampToValueAtTime(0.4, now + 0.2);
   gain.gain.linearRampToValueAtTime(0, now + 0.5);
 
   osc.connect(gain);
-  gain.connect(masterGain); // через masterGain — проверяем всю цепочку
+  gain.connect(masterGain); // через нашу цепочку
 
   osc.start(now);
   osc.stop(now + 0.6);
 
-  statusEl.textContent = '🔔 Тест-тон сыграл — если не слышно, проверь громкость телефона';
+  statusEl.textContent = '🔔 Слышишь писк? Если нет — подними громкость на телефоне!';
 }
 
 // ————————————————————————————————————————————
 //  ЗАПУСК КАМЕРЫ
 // ————————————————————————————————————————————
 async function startCamera() {
+  // Останавливаем предыдущий поток если был
   if (video.srcObject) {
     video.srcObject.getTracks().forEach(t => t.stop());
   }
@@ -565,10 +601,12 @@ async function startCamera() {
 
     video.srcObject = stream;
 
-    await new Promise(resolve => { video.onloadedmetadata = resolve; });
+    await new Promise(resolve => {
+      video.onloadedmetadata = resolve;
+    });
     await video.play();
 
-    statusEl.textContent = 'Наведи на узор — линия создаёт звук';
+    statusEl.textContent = 'Наведи на узор — центральная линия создаёт звук';
     isRunning = true;
     scanLoop();
 
@@ -578,11 +616,12 @@ async function startCamera() {
 }
 
 // ————————————————————————————————————————————
-//  ГЛАВНЫЙ ЦИКЛ
+//  ГЛАВНЫЙ ЦИКЛ — ~60 раз в секунду
 // ————————————————————————————————————————————
 function scanLoop() {
   if (!isRunning) return;
 
+  // Проверяем что видео реально загружено и играет
   if (video.readyState >= 2) {
     offCtx.drawImage(video, 0, 0, 640, 480);
     const frame = offCtx.getImageData(0, 0, 640, 480);
@@ -594,25 +633,29 @@ function scanLoop() {
 }
 
 // ————————————————————————————————————————————
-//  ЧБ + СЧИТЫВАНИЕ ПОЛОСЫ
+//  ПЕРЕВОД В ЧБ + СЧИТЫВАНИЕ ЦЕНТРАЛЬНОЙ ПОЛОСЫ
 // ————————————————————————————————————————————
 function drawGrayscaleAndScan(data) {
   const W = 640, H = 480;
   const output     = ctx.createImageData(W, H);
   const out        = output.data;
   const scanX      = Math.floor(W / 2);
-  const scanWidth  = 5;
-  const scanColumn = new Float32Array(H);
+  const scanWidth  = 5; // полупширина полосы в пикселях
+  const scanColumn = new Float32Array(H); // яркости по высоте
 
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
-      const idx  = (y * W + x) * 4;
+      const idx = (y * W + x) * 4;
+
+      // Формула яркости с весами по восприятию глаза
       const gray = 0.299 * data[idx] + 0.587 * data[idx+1] + 0.114 * data[idx+2];
 
+      // Если пиксель в зоне сканера — запоминаем яркость
       if (x >= scanX - scanWidth && x <= scanX + scanWidth) {
-        scanColumn[y] = gray;
+        scanColumn[y] = gray; // 0=чёрный, 255=белый
       }
 
+      // Записываем ЧБ пиксель
       out[idx] = out[idx+1] = out[idx+2] = gray;
       out[idx+3] = 255;
     }
@@ -620,28 +663,27 @@ function drawGrayscaleAndScan(data) {
 
   ctx.putImageData(output, 0, 0);
 
-  // Виньетка
-  const grad = ctx.createRadialGradient(320,240,150,320,240,370);
+  // Виньетка (затемнение краёв) для красоты
+  const grad = ctx.createRadialGradient(320, 240, 150, 320, 240, 370);
   grad.addColorStop(0, 'transparent');
   grad.addColorStop(1, 'rgba(0,0,0,0.5)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
+  // Передаём данные в звуковой движок
   applySound(scanColumn);
 }
 
 // ————————————————————————————————————————————
-//  ПРИМЕНЯЕМ ЗВУК
+//  ПРИМЕНЯЕМ ЗВУК НА ОСНОВЕ ЯРКОСТЕЙ ПОЛОСЫ
 // ————————————————————————————————————————————
 function applySound(scanColumn) {
-  // Проверяем всё что нужно
   if (!audioCtx || !audioReady || isMuted) return;
   if (oscillators.length === 0) return;
 
-  // Если контекст заснул — будим и выходим
-  // (в следующем кадре уже будет running)
+  // Если контекст заснул — будим
   if (audioCtx.state !== 'running') {
-    audioCtx.resume();
+    audioCtx.resume().then(updateAudioStatus);
     return;
   }
 
@@ -649,14 +691,14 @@ function applySound(scanColumn) {
   const count   = oscillators.length;
   const minFreq = parseInt(minFreqSlider.value);
   const maxFreq = parseInt(maxFreqSlider.value);
-  const zoneH   = H / count;
+  const zoneH   = H / count; // высота зоны каждого голоса
+  const now     = audioCtx.currentTime;
 
   // Максимальная громкость одного голоса
-  // Делим на count чтобы сумма всех голосов не превышала 1.0
+  // sqrt(count) — математически правильное деление для параллельных источников
   const volMax = parseFloat(volumeSlider.value) / Math.sqrt(count);
 
   let totalBrightness = 0;
-  const now = audioCtx.currentTime;
 
   for (let i = 0; i < count; i++) {
     const zoneStart = Math.floor(i * zoneH);
@@ -667,42 +709,42 @@ function applySound(scanColumn) {
     for (let y = zoneStart; y < zoneEnd; y++) {
       sum += scanColumn[y];
     }
-    const avgZone    = sum / (zoneEnd - zoneStart);
+    const avgZone = sum / (zoneEnd - zoneStart);
     totalBrightness += avgZone;
 
-    const brightness = avgZone / 255; // 0..1
+    // Нормализуем: 0..255 → 0..1
+    const brightness = avgZone / 255;
 
-    // Частота логарифмически между min и max
+    // Частота: логарифмическая шкала (как музыкальные ноты)
+    // Тёмный (0) → minFreq, Светлый (1) → maxFreq
     const freq = minFreq * Math.pow(maxFreq / minFreq, brightness);
 
-    // Громкость: максимум в середине яркости (0.5), ноль на краях
-    // Это значит и чисто белое и чисто чёрное звучат тихо
-    // а серый — громко. Можно убрать эту логику если хочешь всегда громко
+    // Громкость: sin(π*x) даёт красивую дугу
+    // 0%=тихо, 50%=громко, 100%=тихо
+    // Это значит и чистый чёрный и чистый белый тихие
+    // а серый — самый громкий
     const vol = Math.sin(brightness * Math.PI) * volMax;
 
-    // Устанавливаем частоту
+    // Плавно меняем частоту (без щелчков)
     oscillators[i].frequency.cancelScheduledValues(now);
-    oscillators[i].frequency.setValueAtTime(
-      oscillators[i].frequency.value, now
-    );
+    oscillators[i].frequency.setValueAtTime(oscillators[i].frequency.value, now);
     oscillators[i].frequency.linearRampToValueAtTime(freq, now + 0.05);
 
-    // Устанавливаем громкость
+    // Плавно меняем громкость
     gainNodes[i].gain.cancelScheduledValues(now);
-    gainNodes[i].gain.setValueAtTime(
-      gainNodes[i].gain.value, now
-    );
+    gainNodes[i].gain.setValueAtTime(gainNodes[i].gain.value, now);
     gainNodes[i].gain.linearRampToValueAtTime(
       Math.max(0, Math.min(vol, volMax)),
       now + 0.05
     );
   }
 
+  // Обновляем инфо
   infoAvg.textContent = Math.round(totalBrightness / count);
 }
 
 // ————————————————————————————————————————————
-//  ВИЗУАЛИЗАТОР
+//  ВИЗУАЛИЗАТОР ЧАСТОТ
 // ————————————————————————————————————————————
 function drawVisualizer() {
   if (!analyser) return;
@@ -722,7 +764,7 @@ function drawVisualizer() {
   for (let i = 0; i < bufLen; i++) {
     const v    = data[i];
     const barH = (v / 255) * H * 0.9;
-    vizCtx.fillStyle = `hsl(${160 + (v/255)*40}, 80%, ${20+(v/255)*50}%)`;
+    vizCtx.fillStyle = `hsl(${160 + (v/255)*40}, 80%, ${20 + (v/255)*50}%)`;
     vizCtx.fillRect(x, (H - barH) / 2, bw - 1, barH);
     x += bw + 1;
     if (x > W) break;
@@ -730,26 +772,32 @@ function drawVisualizer() {
 }
 
 // ————————————————————————————————————————————
-//  СТАРТ — тап на оверлей
+//  ТАП НА ОВЕРЛЕЙ — запускаем всё
+//  Аудио ОБЯЗАТЕЛЬНО внутри обработчика тапа —
+//  иначе iOS не разрешит звук
 // ————————————————————————————————————————————
+let startHandled = false; // защита от двойного срабатывания
+
 async function handleStart(e) {
   e.preventDefault();
   e.stopPropagation();
 
-  // Аудио — строго внутри обработчика тапа
+  if (startHandled) return;
+  startHandled = true;
+
+  // Инициализируем аудио строго внутри обработчика
   await initAudio();
 
   // Прячем оверлей
   startOverlay.style.display = 'none';
 
-  // Сразу играем тест-тон — проверяем что звук работает
+  // Играем тест-тон — если слышно значит звук работает
   playTestTone();
 
   // Запускаем камеру
   await startCamera();
 }
 
-// Слушаем и touch и click
 startOverlay.addEventListener('touchend', handleStart, { passive: false });
 startOverlay.addEventListener('click',    handleStart);
 
@@ -757,7 +805,8 @@ startOverlay.addEventListener('click',    handleStart);
 //  КНОПКА MUTE
 // ————————————————————————————————————————————
 muteBtn.addEventListener('click', async () => {
-  if (!audioCtx) await initAudio();
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
 
   isMuted = !isMuted;
   muteBtn.textContent = isMuted ? '🔇 Звук выкл' : '🔊 Звук вкл';
@@ -773,7 +822,7 @@ muteBtn.addEventListener('click', async () => {
 });
 
 // ————————————————————————————————————————————
-//  КНОПКА ПЕРЕКЛЮЧЕНИЯ КАМЕРЫ
+//  ПЕРЕКЛЮЧЕНИЕ КАМЕРЫ
 // ————————————————————————————————————————————
 camBtn.addEventListener('click', async () => {
   useFrontCam = !useFrontCam;
@@ -826,8 +875,10 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 });
 
 // ————————————————————————————————————————————
-//  ФИКС: любой тап возобновляет аудио если заснуло
+//  ФОНОВЫЕ ФИКСЫ iOS
 // ————————————————————————————————————————————
+
+// Любой тап по экрану возобновляет аудио если заснуло
 document.addEventListener('touchstart', async () => {
   if (audioCtx && audioCtx.state === 'suspended') {
     await audioCtx.resume();
@@ -835,6 +886,7 @@ document.addEventListener('touchstart', async () => {
   }
 }, { passive: true });
 
+// Возврат на вкладку после сворачивания
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible' && audioCtx) {
     await audioCtx.resume();
