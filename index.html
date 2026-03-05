@@ -2,13 +2,15 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Visual Scanner — Камера в Звук</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Visual Scanner</title>
   <style>
-    /* ===== ОБЩИЕ СТИЛИ ===== */
+    /* ===== СБРОС И БАЗОВЫЕ СТИЛИ ===== */
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent; /* убираем синюю вспышку при тапе на iOS */
     }
 
     body {
@@ -19,58 +21,62 @@
       flex-direction: column;
       align-items: center;
       min-height: 100vh;
-      padding: 20px;
+      min-height: -webkit-fill-available; /* фикс высоты на iOS Safari */
+      padding: 12px;
+      overflow-x: hidden;
     }
 
     h1 {
-      font-size: 1.4rem;
+      font-size: 1rem;
       letter-spacing: 4px;
       text-transform: uppercase;
       color: #00ffcc;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       text-shadow: 0 0 20px #00ffcc88;
     }
 
     .subtitle {
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       color: #556;
       letter-spacing: 2px;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
     }
 
-    /* ===== ОСНОВНАЯ ОБЛАСТЬ С КАМЕРОЙ ===== */
+    /* ===== ОБЁРТКА КАМЕРЫ — занимает всю доступную ширину ===== */
     .scanner-wrapper {
       position: relative;
+      width: 100%;
+      max-width: 640px;
+      /* Соотношение сторон 4:3 для камеры */
+      aspect-ratio: 4/3;
       border: 1px solid #1a2a2a;
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 0 40px #00ffcc22;
     }
 
-    /* Скрытый видео-элемент — источник картинки */
     #video {
       display: none;
     }
 
-    /* Основной canvas — показываем ЧБ изображение */
+    /* Canvas растягивается на всю обёртку */
     #canvas {
       display: block;
-      width: 640px;
-      height: 480px;
+      width: 100%;
+      height: 100%;
     }
 
-    /* Canvas для анализа (невидимый, нужен для математики) */
     #offscreen {
       display: none;
     }
 
-    /* ===== ПОЛОСА-СКАНЕР поверх canvas ===== */
+    /* ===== ЛИНИЯ СКАНЕРА ===== */
     .scan-line {
       position: absolute;
       top: 0;
       left: 50%;
       transform: translateX(-50%);
-      width: 4px;
+      width: 3px;
       height: 100%;
       background: linear-gradient(to bottom, transparent, #00ffcc, #00ffcc, transparent);
       box-shadow: 0 0 12px #00ffcc, 0 0 30px #00ffcc88;
@@ -78,26 +84,11 @@
       z-index: 10;
     }
 
-    /* Подсветка краёв полосы */
-    .scan-line::before,
-    .scan-line::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 1px;
-      height: 100%;
-      background: rgba(0, 255, 204, 0.3);
-    }
-    .scan-line::before { margin-left: -8px; }
-    .scan-line::after  { margin-left:  8px; }
-
-    /* Метки "SCAN" сверху и снизу */
     .scan-label {
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 0.6rem;
+      font-size: 0.55rem;
       letter-spacing: 3px;
       color: #00ffcc;
       z-index: 11;
@@ -105,31 +96,79 @@
     .scan-label.top { top: 8px; }
     .scan-label.bot { bottom: 8px; }
 
-    /* ===== ВИЗУАЛИЗАТОР ЧАСТОТ (полоски снизу) ===== */
+    /* ===== ОВЕРЛЕЙ "TAP TO START" — поверх камеры ===== */
+    #startOverlay {
+      position: absolute;
+      inset: 0; /* растягиваем на весь родитель */
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      cursor: pointer;
+      border-radius: 12px;
+      gap: 12px;
+    }
+
+    #startOverlay .big-icon {
+      font-size: 3rem;
+    }
+
+    #startOverlay .tap-text {
+      font-size: 1rem;
+      letter-spacing: 3px;
+      color: #00ffcc;
+      text-transform: uppercase;
+    }
+
+    #startOverlay .tap-sub {
+      font-size: 0.7rem;
+      color: #556;
+      letter-spacing: 1px;
+    }
+
+    /* Пульсирующий круг вокруг иконки */
+    #startOverlay .pulse {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 2px solid #00ffcc44;
+      animation: pulse 2s ease-out infinite;
+    }
+
+    @keyframes pulse {
+      0%   { transform: scale(0.8); opacity: 1; }
+      100% { transform: scale(2);   opacity: 0; }
+    }
+
+    /* ===== ВИЗУАЛИЗАТОР ===== */
     #vizCanvas {
-      width: 640px;
-      height: 100px;
+      width: 100%;
+      max-width: 640px;
+      height: 70px;
       border-radius: 0 0 12px 12px;
       background: #05080f;
       display: block;
       border-top: 1px solid #0f2020;
     }
 
-    /* ===== ПАНЕЛЬ УПРАВЛЕНИЯ ===== */
+    /* ===== ПАНЕЛЬ УПРАВЛЕНИЯ — сетка для мобильного ===== */
     .controls {
-      margin-top: 16px;
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
+      margin-top: 12px;
+      width: 100%;
+      max-width: 640px;
+      display: grid;
+      grid-template-columns: 1fr 1fr; /* две колонки */
+      gap: 10px;
     }
 
-    /* Кнопки */
-    button {
-      padding: 10px 24px;
+    /* Большие кнопки — удобно тапать пальцем */
+    .big-btn {
+      padding: 14px;
       border: 1px solid #00ffcc55;
-      border-radius: 8px;
+      border-radius: 10px;
       background: transparent;
       color: #00ffcc;
       font-size: 0.85rem;
@@ -137,34 +176,53 @@
       cursor: pointer;
       transition: all 0.2s;
       text-transform: uppercase;
+      min-height: 52px; /* минимальная высота для пальца */
     }
-    button:hover {
+    .big-btn:active {
       background: #00ffcc22;
-      box-shadow: 0 0 15px #00ffcc44;
+      transform: scale(0.97);
     }
-    button.active {
+    .big-btn.active {
       background: #00ffcc;
       color: #000;
     }
 
-    /* ===== СЛАЙДЕРЫ (громкость, чувствительность) ===== */
+    /* ===== СЛАЙДЕРЫ — на всю ширину ===== */
+    .sliders-grid {
+      margin-top: 10px;
+      width: 100%;
+      max-width: 640px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
     .slider-group {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 4px;
+      gap: 6px;
+      background: #0d1117;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #1a2a2a;
     }
 
     .slider-group label {
-      font-size: 0.65rem;
+      font-size: 0.6rem;
       letter-spacing: 2px;
       color: #556;
       text-transform: uppercase;
     }
 
+    .slider-group .value {
+      font-size: 0.75rem;
+      color: #00ffcc;
+      text-align: right;
+    }
+
     input[type="range"] {
       -webkit-appearance: none;
-      width: 120px;
+      width: 100%;
       height: 4px;
       background: #1a2a2a;
       border-radius: 2px;
@@ -172,55 +230,66 @@
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 14px;
-      height: 14px;
+      width: 20px; /* крупнее для пальца */
+      height: 20px;
       border-radius: 50%;
       background: #00ffcc;
       cursor: pointer;
       box-shadow: 0 0 8px #00ffcc;
     }
 
-    /* ===== ВЫБОР РЕЖИМА ЗВУКА ===== */
-    .mode-buttons {
-      display: flex;
-      gap: 6px;
+    /* ===== РЕЖИМЫ ЗВУКА ===== */
+    .modes-row {
+      margin-top: 10px;
+      width: 100%;
+      max-width: 640px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
     }
 
     .mode-btn {
-      padding: 8px 14px;
-      font-size: 0.7rem;
-      letter-spacing: 1px;
-      border-color: #223;
+      padding: 12px 6px;
+      border: 1px solid #1a2a2a;
+      border-radius: 10px;
+      background: transparent;
       color: #556;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-height: 48px;
     }
+    .mode-btn:active { transform: scale(0.95); }
     .mode-btn.active {
       border-color: #00ffcc55;
       color: #00ffcc;
       background: #00ffcc11;
     }
 
-    /* ===== ИНФОРМАЦИОННЫЕ ПЛАШКИ ===== */
-    .info-row {
-      margin-top: 12px;
-      display: flex;
-      gap: 16px;
-      font-size: 0.7rem;
-      color: #334;
-      letter-spacing: 1px;
-    }
-
-    .info-row span {
-      color: #00ffcc99;
-    }
-
     /* ===== СТАТУС ===== */
     #status {
       margin-top: 10px;
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       color: #556;
-      letter-spacing: 2px;
-      min-height: 20px;
+      letter-spacing: 1px;
+      text-align: center;
+      padding: 0 10px;
+      min-height: 18px;
     }
+
+    /* ===== ИНФО-СТРОКА ===== */
+    .info-row {
+      margin-top: 8px;
+      margin-bottom: 16px;
+      display: flex;
+      gap: 16px;
+      font-size: 0.65rem;
+      color: #334;
+      letter-spacing: 1px;
+    }
+    .info-row span { color: #00ffcc99; }
+
   </style>
 </head>
 <body>
@@ -228,176 +297,159 @@
   <h1>⬛ Visual Scanner</h1>
   <p class="subtitle">camera → grayscale → sound</p>
 
-  <!-- ===== ОБЁРТКА КАМЕРЫ ===== -->
+  <!-- ===== КАМЕРА ===== -->
   <div class="scanner-wrapper">
-
-    <!-- Видео с камеры (скрытое, служит источником) -->
-    <video id="video" autoplay playsinline></video>
-
-    <!-- Главный canvas — здесь рисуем ЧБ картинку -->
+    <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas" width="640" height="480"></canvas>
-
-    <!-- Невидимый canvas для считывания пикселей -->
     <canvas id="offscreen" width="640" height="480"></canvas>
-
-    <!-- Линия-сканер поверх изображения -->
     <div class="scan-line"></div>
     <div class="scan-label top">SCAN</div>
     <div class="scan-label bot">SCAN</div>
 
+    <!-- Оверлей — нажми чтобы начать (нужен для разблокировки звука) -->
+    <div id="startOverlay">
+      <div class="pulse"></div>
+      <div class="big-icon">📷</div>
+      <div class="tap-text">Tap to Start</div>
+      <div class="tap-sub">камера + звук</div>
+    </div>
   </div>
 
   <!-- Визуализатор частот -->
-  <canvas id="vizCanvas" width="640" height="100"></canvas>
+  <canvas id="vizCanvas" width="640" height="70"></canvas>
 
-  <!-- ===== КНОПКИ УПРАВЛЕНИЯ ===== -->
+  <!-- ===== КНОПКИ ===== -->
   <div class="controls">
-    <button id="startBtn">▶ Включить камеру</button>
-    <button id="muteBtn">🔊 Звук вкл</button>
+    <button class="big-btn" id="muteBtn">🔊 Звук вкл</button>
+    <button class="big-btn" id="camBtn">🔄 Фронт. камера</button>
+  </div>
 
-    <!-- Громкость -->
+  <!-- ===== РЕЖИМЫ ЗВУКА ===== -->
+  <div class="modes-row">
+    <button class="mode-btn active" data-mode="sine">SINE</button>
+    <button class="mode-btn" data-mode="triangle">TRI</button>
+    <button class="mode-btn" data-mode="sawtooth">SAW</button>
+    <button class="mode-btn" data-mode="square">SQR</button>
+  </div>
+
+  <!-- ===== СЛАЙДЕРЫ ===== -->
+  <div class="sliders-grid">
+
     <div class="slider-group">
       <label>Громкость</label>
-      <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.6">
+      <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.7">
+      <div class="value" id="volVal">70%</div>
     </div>
 
-    <!-- Количество голосов (сколько пикселей играют) -->
     <div class="slider-group">
       <label>Голоса</label>
       <input type="range" id="voicesSlider" min="1" max="16" step="1" value="8">
+      <div class="value" id="voiceVal">8</div>
     </div>
 
-    <!-- Скорость затухания звука -->
-    <div class="slider-group">
-      <label>Реверб</label>
-      <input type="range" id="reverbSlider" min="0.05" max="2" step="0.05" value="0.3">
-    </div>
-  </div>
-
-  <!-- Режимы звука -->
-  <div class="controls" style="margin-top:10px;">
-    <div class="mode-buttons">
-      <button class="mode-btn active" data-mode="sine">SINE</button>
-      <button class="mode-btn" data-mode="triangle">TRI</button>
-      <button class="mode-btn" data-mode="sawtooth">SAW</button>
-      <button class="mode-btn" data-mode="square">SQR</button>
-    </div>
-
-    <!-- Диапазон частот -->
     <div class="slider-group">
       <label>Мин. Гц</label>
       <input type="range" id="minFreqSlider" min="50" max="500" step="10" value="100">
+      <div class="value" id="minVal">100 Hz</div>
     </div>
+
     <div class="slider-group">
       <label>Макс. Гц</label>
       <input type="range" id="maxFreqSlider" min="500" max="4000" step="50" value="2000">
+      <div class="value" id="maxVal">2000 Hz</div>
     </div>
+
   </div>
 
-  <!-- Инфо-строка -->
+  <!-- Инфо -->
   <div class="info-row">
-    Яркость полосы: <span id="infoAvg">—</span> &nbsp;|&nbsp;
-    Частот активно: <span id="infoVoices">—</span> &nbsp;|&nbsp;
+    Яркость: <span id="infoAvg">—</span> &nbsp;|&nbsp;
     Режим: <span id="infoMode">sine</span>
   </div>
 
-  <div id="status">Нажми «Включить камеру» для старта</div>
+  <div id="status">Нажми на экран камеры для старта</div>
 
-<!-- ===== ВЕСЬ JAVASCRIPT ===== -->
+<!-- ===== JAVASCRIPT ===== -->
 <script>
 // ————————————————————————————————————————————
-//  ПОЛУЧАЕМ ССЫЛКИ НА ЭЛЕМЕНТЫ СТРАНИЦЫ
+//  ЭЛЕМЕНТЫ СТРАНИЦЫ
 // ————————————————————————————————————————————
-const video       = document.getElementById('video');
-const canvas      = document.getElementById('canvas');       // видимый canvas
-const offscreen   = document.getElementById('offscreen');    // невидимый для анализа
-const vizCanvas   = document.getElementById('vizCanvas');    // визуализатор
-const startBtn    = document.getElementById('startBtn');
-const muteBtn     = document.getElementById('muteBtn');
-const statusEl    = document.getElementById('status');
-const infoAvg     = document.getElementById('infoAvg');
-const infoVoices  = document.getElementById('infoVoices');
-const infoMode    = document.getElementById('infoMode');
+const video         = document.getElementById('video');
+const canvas        = document.getElementById('canvas');
+const offscreen     = document.getElementById('offscreen');
+const vizCanvas     = document.getElementById('vizCanvas');
+const startOverlay  = document.getElementById('startOverlay');
+const muteBtn       = document.getElementById('muteBtn');
+const camBtn        = document.getElementById('camBtn');
+const statusEl      = document.getElementById('status');
+const infoAvg       = document.getElementById('infoAvg');
+const infoMode      = document.getElementById('infoMode');
 
 const volumeSlider  = document.getElementById('volumeSlider');
 const voicesSlider  = document.getElementById('voicesSlider');
-const reverbSlider  = document.getElementById('reverbSlider');
 const minFreqSlider = document.getElementById('minFreqSlider');
 const maxFreqSlider = document.getElementById('maxFreqSlider');
 
-// Контексты для рисования
 const ctx    = canvas.getContext('2d');
 const offCtx = offscreen.getContext('2d');
 const vizCtx = vizCanvas.getContext('2d');
 
 // ————————————————————————————————————————————
-//  СОСТОЯНИЕ ПРИЛОЖЕНИЯ
+//  СОСТОЯНИЕ
 // ————————————————————————————————————————————
-let audioCtx    = null;   // Аудио-движок (Web Audio API)
-let masterGain  = null;   // Главный регулятор громкости
-let analyser    = null;   // Анализатор для визуализации
-let oscillators = [];     // Массив звуковых осцилляторов (генераторов тона)
-let gainNodes   = [];     // Массив регуляторов громкости для каждого осциллятора
-let isMuted     = false;  // Флаг: заглушён ли звук
-let isRunning   = false;  // Флаг: запущено ли сканирование
-let waveType    = 'sine'; // Тип волны (форма звука)
-let animId      = null;   // ID анимационного цикла
+let audioCtx    = null;
+let masterGain  = null;
+let analyser    = null;
+let oscillators = [];
+let gainNodes   = [];
+let isMuted     = false;
+let isRunning   = false;
+let waveType    = 'sine';
+let animId      = null;
+let useFrontCam = true; // По умолчанию фронтальная — удобнее на телефоне
 
 // ————————————————————————————————————————————
-//  ИНИЦИАЛИЗАЦИЯ WEB AUDIO API
-//  Web Audio API — это встроенный в браузер синтезатор звука
+//  ИНИЦИАЛИЗАЦИЯ АУДИО
+//  ВАЖНО: вызывается только после тапа пользователя!
+//  Браузер блокирует звук без действия пользователя
 // ————————————————————————————————————————————
 function initAudio() {
-  // Создаём аудио-контекст — это как «звуковая студия» в браузере
+  if (audioCtx) return; // уже создан — не создаём снова
+
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-  // Анализатор — снимает данные о звуке для визуализации
   analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 256; // Разрешение анализа
+  analyser.fftSize = 256;
 
-  // Главный регулятор громкости — всё идёт через него
   masterGain = audioCtx.createGain();
   masterGain.gain.value = parseFloat(volumeSlider.value);
 
-  // Соединяем цепочку: анализатор → громкость → колонки
   analyser.connect(masterGain);
   masterGain.connect(audioCtx.destination);
 
-  // Создаём осцилляторы (генераторы тона)
   createOscillators();
 }
 
 // ————————————————————————————————————————————
-//  СОЗДАНИЕ ОСЦИЛЛЯТОРОВ
-//  Осциллятор — это генератор чистого тона определённой частоты
-//  Похожа на струну: чем туже натянута, тем выше звук
+//  СОЗДАНИЕ ОСЦИЛЛЯТОРОВ (генераторов тона)
 // ————————————————————————————————————————————
 function createOscillators() {
-  const count = parseInt(voicesSlider.value); // Сколько голосов (струн)
+  const count = parseInt(voicesSlider.value);
 
-  // Удаляем старые осцилляторы если есть
-  oscillators.forEach(osc => {
-    try { osc.stop(); } catch(e) {}
-  });
+  oscillators.forEach(osc => { try { osc.stop(); } catch(e) {} });
   oscillators = [];
-  gainNodes = [];
+  gainNodes   = [];
 
-  // Создаём новые
   for (let i = 0; i < count; i++) {
-    // Осциллятор — генератор тона
     const osc  = audioCtx.createOscillator();
-    // Gain — регулятор громкости этого конкретного тона
     const gain = audioCtx.createGain();
 
-    osc.type            = waveType; // Форма волны
-    osc.frequency.value = 200;      // Начальная частота
-    gain.gain.value     = 0;        // Начинаем с тишины
+    osc.type            = waveType;
+    osc.frequency.value = 200;
+    gain.gain.value     = 0;
 
-    // Цепочка: осциллятор → громкость → анализатор
     osc.connect(gain);
     gain.connect(analyser);
-
-    osc.start(); // Запускаем (пока тихо, gain=0)
+    osc.start();
 
     oscillators.push(osc);
     gainNodes.push(gain);
@@ -405,25 +457,29 @@ function createOscillators() {
 }
 
 // ————————————————————————————————————————————
-//  ВКЛЮЧЕНИЕ КАМЕРЫ
+//  ЗАПУСК КАМЕРЫ
 // ————————————————————————————————————————————
 async function startCamera() {
+  // Останавливаем предыдущий поток если был
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(t => t.stop());
+  }
+
   try {
-    // Запрашиваем доступ к камере у браузера
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 640, height: 480, facingMode: 'environment' },
+      video: {
+        facingMode: useFrontCam ? 'user' : 'environment', // user = фронт, environment = тыл
+        width:  { ideal: 1280 },
+        height: { ideal: 960  }
+      },
       audio: false
     });
 
     video.srcObject = stream;
     await video.play();
 
-    statusEl.textContent = 'Камера активна — поднеси штрихкод или узор к центральной линии';
-    startBtn.textContent = '■ Выключить';
-    startBtn.classList.add('active');
+    statusEl.textContent = 'Наведи на штрихкод, узор или вид — центральная линия создаёт звук';
     isRunning = true;
-
-    // Запускаем главный цикл сканирования
     scanLoop();
 
   } catch (err) {
@@ -432,281 +488,243 @@ async function startCamera() {
 }
 
 // ————————————————————————————————————————————
-//  ГЛАВНЫЙ ЦИКЛ — вызывается ~60 раз в секунду
+//  ГЛАВНЫЙ ЦИКЛ СКАНИРОВАНИЯ
 // ————————————————————————————————————————————
 function scanLoop() {
   if (!isRunning) return;
 
-  // === ШАГ 1: Рисуем кадр с камеры на невидимый canvas ===
+  // Рисуем кадр с камеры на невидимый canvas
   offCtx.drawImage(video, 0, 0, 640, 480);
 
-  // === ШАГ 2: Считываем все пиксели ===
+  // Читаем пиксели
   const frame = offCtx.getImageData(0, 0, 640, 480);
-  const data  = frame.data; // Массив: [R,G,B,A, R,G,B,A, ...]
-
-  // === ШАГ 3: Переводим в ЧБ и рисуем на видимый canvas ===
-  // Заодно считываем пиксели центральной полосы (шириной 10px)
-  drawGrayscaleAndScan(data);
-
-  // === ШАГ 4: Обновляем визуализатор частот ===
+  drawGrayscaleAndScan(frame.data);
   drawVisualizer();
 
-  // Следующий кадр
   animId = requestAnimationFrame(scanLoop);
 }
 
 // ————————————————————————————————————————————
-//  ОТРИСОВКА ЧБ ИЗОБРАЖЕНИЯ + СКАНИРОВАНИЕ ПОЛОСЫ
+//  ПЕРЕВОД В ЧБ + СЧИТЫВАНИЕ ПОЛОСЫ
 // ————————————————————————————————————————————
 function drawGrayscaleAndScan(data) {
   const W = 640;
   const H = 480;
 
-  // Создаём новый массив пикселей для ЧБ изображения
   const output = ctx.createImageData(W, H);
   const out    = output.data;
 
-  // Параметры сканирующей полосы (центр экрана ± 5px)
   const scanX     = Math.floor(W / 2);
-  const scanWidth = 5; // полупширина полосы
-
-  // Массив для сбора яркостей вдоль полосы (по высоте)
+  const scanWidth = 5;
   const scanColumn = new Float32Array(H);
 
-  // Проходим по каждому пикселю
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
-      const idx = (y * W + x) * 4; // Позиция пикселя в массиве
-
-      // Читаем RGB
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-
-      // Переводим в яркость по формуле восприятия человеческим глазом
-      // Зелёный мы видим лучше всего, поэтому у него больший вес
+      const idx  = (y * W + x) * 4;
+      const r    = data[idx];
+      const g    = data[idx + 1];
+      const b    = data[idx + 2];
       const gray = 0.299 * r + 0.587 * g + 0.114 * b;
 
-      // Если пиксель в зоне сканирующей полосы — сохраняем яркость
       if (x >= scanX - scanWidth && x <= scanX + scanWidth) {
-        scanColumn[y] = gray; // 0 = чёрный, 255 = белый
+        scanColumn[y] = gray;
       }
 
-      // Записываем ЧБ пиксель в выходной массив
-      out[idx]     = gray; // R
-      out[idx + 1] = gray; // G
-      out[idx + 2] = gray; // B
-      out[idx + 3] = 255;  // A (прозрачность — всегда непрозрачный)
+      out[idx]     = gray;
+      out[idx + 1] = gray;
+      out[idx + 2] = gray;
+      out[idx + 3] = 255;
     }
   }
 
-  // Рисуем ЧБ картинку на видимый canvas
   ctx.putImageData(output, 0, 0);
 
-  // Немного затемняем края (виньетка) для красоты
+  // Виньетка для красоты
   const gradient = ctx.createRadialGradient(320, 240, 150, 320, 240, 370);
   gradient.addColorStop(0, 'transparent');
   gradient.addColorStop(1, 'rgba(0,0,0,0.5)');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, W, H);
 
-  // Передаём данные полосы в звуковой движок
   applySound(scanColumn);
 }
 
 // ————————————————————————————————————————————
-//  ПРИМЕНЕНИЕ ЗВУКА НА ОСНОВЕ ДАННЫХ ПОЛОСЫ
-//  scanColumn — массив яркостей по высоте экрана
+//  ПРИМЕНЕНИЕ ЗВУКА
 // ————————————————————————————————————————————
 function applySound(scanColumn) {
   if (!audioCtx || isMuted) {
-    // Если звук выключен — затихаем
-    gainNodes.forEach(g => g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1));
+    gainNodes.forEach(g => g.gain.setTargetAtTime(0, audioCtx?.currentTime || 0, 0.1));
     return;
   }
 
-  const H        = scanColumn.length;       // Высота в пикселях
-  const count    = oscillators.length;      // Количество голосов
-  const minFreq  = parseInt(minFreqSlider.value);  // Мин. частота (Гц)
-  const maxFreq  = parseInt(maxFreqSlider.value);  // Макс. частота (Гц)
-  const decay    = parseFloat(reverbSlider.value); // Скорость затухания
-  const volScale = 1 / count;               // Чтобы не перегружать при многих голосах
+  // Если AudioContext был приостановлен — возобновляем
+  // Это нужно на iOS где контекст может засыпать
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
 
-  // Делим высоту экрана на зоны по числу голосов
-  // Каждый осциллятор отвечает за свою зону высоты
-  const zoneH = H / count;
+  const H        = scanColumn.length;
+  const count    = oscillators.length;
+  const minFreq  = parseInt(minFreqSlider.value);
+  const maxFreq  = parseInt(maxFreqSlider.value);
+  const volScale = 1 / count;
+  const zoneH    = H / count;
 
-  let avgBrightness = 0; // Для отображения в инфо-строке
+  let avgBrightness = 0;
 
   for (let i = 0; i < count; i++) {
-    // Определяем зону для этого голоса
     const zoneStart = Math.floor(i * zoneH);
     const zoneEnd   = Math.floor((i + 1) * zoneH);
 
-    // Считаем среднюю яркость в зоне
     let sum = 0;
     for (let y = zoneStart; y < zoneEnd; y++) {
       sum += scanColumn[y];
     }
-    const avgZone = sum / (zoneEnd - zoneStart); // 0..255
+    const avgZone  = sum / (zoneEnd - zoneStart);
     avgBrightness += avgZone;
 
-    // Нормализуем 0..255 → 0..1
     const brightness = avgZone / 255;
-
-    // Переводим яркость в частоту
-    // Тёмный (0) → низкая частота, Светлый (1) → высокая частота
-    // Используем логарифмическую шкалу — так звучит музыкальнее
     const freq = minFreq * Math.pow(maxFreq / minFreq, brightness);
 
-    // Устанавливаем частоту плавно (без щелчков)
     oscillators[i].frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.05);
 
-    // Устанавливаем громкость этого голоса
-    // Очень тёмные (почти 0) или очень яркие области — чуть тише
     const vol = brightness * (1 - brightness * 0.3) * volScale * 2;
     gainNodes[i].gain.setTargetAtTime(
-      Math.min(vol, volScale), // Не превышаем лимит
+      Math.min(vol, volScale),
       audioCtx.currentTime,
-      decay
+      0.3
     );
   }
 
-  // Обновляем инфо-строку
-  avgBrightness = avgBrightness / count;
-  infoAvg.textContent     = Math.round(avgBrightness);
-  infoVoices.textContent  = count;
+  infoAvg.textContent = Math.round(avgBrightness / count);
 }
 
 // ————————————————————————————————————————————
-//  ВИЗУАЛИЗАТОР ЧАСТОТ (волновая диаграмма снизу)
+//  ВИЗУАЛИЗАТОР
 // ————————————————————————————————————————————
 function drawVisualizer() {
   if (!analyser) return;
 
-  const W = 640;
-  const H = 100;
+  const W = vizCanvas.width;
+  const H = vizCanvas.height;
 
-  // Получаем данные частот от анализатора
-  const bufferLength = analyser.frequencyBinCount; // Количество частотных бинов
+  const bufferLength = analyser.frequencyBinCount;
   const dataArray    = new Uint8Array(bufferLength);
-  analyser.getByteFrequencyData(dataArray); // Заполняем массив текущими данными
+  analyser.getByteFrequencyData(dataArray);
 
-  // Очищаем canvas тёмным фоном
   vizCtx.fillStyle = '#05080f';
   vizCtx.fillRect(0, 0, W, H);
 
-  // Рисуем горизонтальную линию по центру
-  vizCtx.strokeStyle = '#0f2020';
-  vizCtx.lineWidth = 1;
-  vizCtx.beginPath();
-  vizCtx.moveTo(0, H / 2);
-  vizCtx.lineTo(W, H / 2);
-  vizCtx.stroke();
-
-  // Рисуем полоски частот
   const barWidth = W / bufferLength * 2.5;
   let x = 0;
 
   for (let i = 0; i < bufferLength; i++) {
-    const value   = dataArray[i];               // 0..255
-    const barH    = (value / 255) * H * 0.9;   // Высота полоски
-
-    // Цвет зависит от интенсивности: от синего к бирюзовому
-    const hue = 160 + (value / 255) * 40;
-    const sat = 80 + (value / 255) * 20;
-    vizCtx.fillStyle = `hsl(${hue}, ${sat}%, ${20 + (value / 255) * 50}%)`;
-
-    // Рисуем от центра вверх и вниз (зеркально)
+    const value = dataArray[i];
+    const barH  = (value / 255) * H * 0.9;
+    const hue   = 160 + (value / 255) * 40;
+    vizCtx.fillStyle = `hsl(${hue}, 80%, ${20 + (value / 255) * 50}%)`;
     vizCtx.fillRect(x, (H - barH) / 2, barWidth - 1, barH);
-
     x += barWidth + 1;
     if (x > W) break;
   }
-
-  // Подпись
-  vizCtx.fillStyle = '#223';
-  vizCtx.font = '10px monospace';
-  vizCtx.fillText('FREQUENCY SPECTRUM', 8, H - 6);
 }
 
 // ————————————————————————————————————————————
-//  ОБРАБОТЧИКИ КНОПОК И СЛАЙДЕРОВ
+//  ТАП НА ОВЕРЛЕЙ — запускаем всё
+//  Это КЛЮЧЕВОЙ момент для звука на мобильных:
+//  AudioContext должен создаться внутри обработчика тапа
 // ————————————————————————————————————————————
+startOverlay.addEventListener('click', async () => {
+  // Сначала инициализируем аудио (внутри тапа — браузер разрешит)
+  initAudio();
 
-// Кнопка СТАРТ / СТОП
-startBtn.addEventListener('click', async () => {
-  if (!isRunning) {
-    // Первый запуск — инициализируем аудио и камеру
-    if (!audioCtx) initAudio();
-    // Браузер требует запуска AudioContext после действия пользователя
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    await startCamera();
-  } else {
-    // Останавливаем
-    isRunning = false;
-    cancelAnimationFrame(animId);
-    // Останавливаем поток камеры
-    if (video.srcObject) {
-      video.srcObject.getTracks().forEach(t => t.stop());
-    }
-    // Затихаем
-    gainNodes.forEach(g => g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1));
-    startBtn.textContent = '▶ Включить камеру';
-    startBtn.classList.remove('active');
-    statusEl.textContent = 'Остановлено';
+  // Явно возобновляем AudioContext
+  if (audioCtx.state === 'suspended') {
+    await audioCtx.resume();
   }
+
+  // Прячем оверлей
+  startOverlay.style.display = 'none';
+
+  // Запускаем камеру
+  await startCamera();
 });
 
-// Кнопка ЗВУК ВКЛ/ВЫКЛ
+// ————————————————————————————————————————————
+//  КНОПКА ЗВУК ВКЛ/ВЫКЛ
+// ————————————————————————————————————————————
 muteBtn.addEventListener('click', () => {
+  if (!audioCtx) return;
   isMuted = !isMuted;
   muteBtn.textContent = isMuted ? '🔇 Звук выкл' : '🔊 Звук вкл';
   muteBtn.classList.toggle('active', isMuted);
+  masterGain.gain.setTargetAtTime(
+    isMuted ? 0 : parseFloat(volumeSlider.value),
+    audioCtx.currentTime,
+    0.1
+  );
+});
 
-  if (audioCtx) {
-    // Плавно меняем громкость
-    masterGain.gain.setTargetAtTime(
-      isMuted ? 0 : parseFloat(volumeSlider.value),
-      audioCtx.currentTime,
-      0.1
-    );
+// ————————————————————————————————————————————
+//  КНОПКА ПЕРЕКЛЮЧЕНИЯ КАМЕРЫ (фронт / тыл)
+// ————————————————————————————————————————————
+camBtn.addEventListener('click', async () => {
+  useFrontCam = !useFrontCam;
+  camBtn.textContent = useFrontCam ? '🔄 Фронт. камера' : '🔄 Тыльная камера';
+  if (isRunning) {
+    cancelAnimationFrame(animId);
+    isRunning = false;
+    await startCamera();
   }
 });
 
-// Слайдер ГРОМКОСТЬ
+// ————————————————————————————————————————————
+//  СЛАЙДЕРЫ
+// ————————————————————————————————————————————
 volumeSlider.addEventListener('input', () => {
+  document.getElementById('volVal').textContent = Math.round(volumeSlider.value * 100) + '%';
   if (masterGain && !isMuted) {
-    masterGain.gain.setTargetAtTime(
-      parseFloat(volumeSlider.value),
-      audioCtx.currentTime,
-      0.05
-    );
+    masterGain.gain.setTargetAtTime(parseFloat(volumeSlider.value), audioCtx.currentTime, 0.05);
   }
 });
 
-// Слайдер ГОЛОСА — пересоздаём осцилляторы
+voicesSlider.addEventListener('input', () => {
+  document.getElementById('voiceVal').textContent = voicesSlider.value;
+});
 voicesSlider.addEventListener('change', () => {
   if (audioCtx) createOscillators();
 });
 
-// Кнопки РЕЖИМА ВОЛНЫ
+minFreqSlider.addEventListener('input', () => {
+  document.getElementById('minVal').textContent = minFreqSlider.value + ' Hz';
+});
+maxFreqSlider.addEventListener('input', () => {
+  document.getElementById('maxVal').textContent = maxFreqSlider.value + ' Hz';
+});
+
+// ————————————————————————————————————————————
+//  РЕЖИМЫ ВОЛНЫ
+// ————————————————————————————————————————————
 document.querySelectorAll('.mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     waveType = btn.dataset.mode;
-
-    // Визуально отмечаем активную кнопку
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-
-    // Меняем тип волны у всех осцилляторов
     oscillators.forEach(osc => { osc.type = waveType; });
-
-    // Обновляем инфо
     infoMode.textContent = waveType;
   });
 });
 
+// ————————————————————————————————————————————
+//  ФИКС ДЛЯ iOS: возобновляем звук если страница
+//  была свёрнута и снова открыта
+// ————————————————————————————————————————————
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && audioCtx) {
+    audioCtx.resume();
+  }
+});
 </script>
 </body>
 </html>
