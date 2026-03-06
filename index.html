@@ -186,18 +186,6 @@
     .scale-btn.active { background:var(--orange-faint); color:var(--orange); }
     .scale-btn.active .sc-desc { color:#663300; }
 
-    .poly-row {
-      display: grid; grid-template-columns: 1fr 1fr 1fr;
-      border-bottom: 1px solid #1a1a1a;
-    }
-    .poly-btn {
-      padding: 10px 0; border:none; border-right:1px solid #1a1a1a;
-      background:#000; color:#666; font-family:'Share Tech Mono',monospace;
-      font-size:0.6rem; letter-spacing:2px; cursor:pointer; text-align:center;
-    }
-    .poly-btn:last-child { border-right:none; }
-    .poly-btn.active { background:var(--orange-faint); color:var(--orange); }
-
     .color-row {
       display: grid; grid-template-columns: 1fr 1fr;
       border-bottom: 1px solid #1a1a1a;
@@ -371,15 +359,6 @@
   </div>
 
   <div class="section">
-    <div class="section-head">// polyphony (musical mode)</div>
-    <div class="poly-row">
-      <button class="poly-btn" data-poly="1">1 voice</button>
-      <button class="poly-btn active" data-poly="2">2 voices</button>
-      <button class="poly-btn" data-poly="3">3 voices</button>
-    </div>
-  </div>
-
-  <div class="section">
     <div class="section-head">// color → pitch</div>
     <div class="color-row">
       <button class="color-btn active" data-color="off">
@@ -408,7 +387,7 @@
     <div class="drums-grid">
       <button class="drum-btn" data-drum="kick">
         <span class="d-name">KICK</span>
-        <span class="d-desc">brightness spike → drone</span>
+        <span class="d-desc">brightness spike</span>
       </button>
       <button class="drum-btn" data-drum="snare">
         <span class="d-name">SNARE</span>
@@ -455,8 +434,7 @@
       <button class="ctrl-btn" id="recBtn">[ rec ]</button>
     </div>
   </div>
-
-<script>
+  <script>
 // ════════════════════════════════════════════
 //  ELEMENTS
 // ════════════════════════════════════════════
@@ -535,7 +513,6 @@ let isRunning    = false;
 let waveType     = 'triangle';
 let soundMode    = 'musical';
 let currentScale = 'pentatonic';
-let polyLimit    = 2;
 let colorMode    = false;
 let animId       = null;
 let useFrontCam  = false;
@@ -547,10 +524,12 @@ let reverbAmount = 0.4;
 let sensitivity  = 0.5;
 let bassAmount   = 0.6;
 
-let activeVoices = [];
 let noteHistory  = [];
 let noteTrails   = [];
 
+// ════════════════════════════════════════════
+//  DRUMS STATE
+// ════════════════════════════════════════════
 const drums = { kick: false, snare: false, hihat: false, perc: false };
 let kickCooldown  = 0;
 let snareCooldown = 0;
@@ -558,6 +537,9 @@ let hihatCooldown = 0;
 let percCooldown  = 0;
 let bassCooldown  = 0;
 
+// ════════════════════════════════════════════
+//  MOTION / ZONES
+// ════════════════════════════════════════════
 let prevScanCol    = new Float32Array(480);
 let motionSmoothed = 0;
 const MOTION_THRESHOLD = 2.5;
@@ -572,9 +554,13 @@ let prevTopBright  = 0;
 let hihatFlicker   = 0;
 let prevColorHue   = 128;
 
+// ════════════════════════════════════════════
+//  ЗАПИСЬ
+// ════════════════════════════════════════════
 let mediaRecorder  = null;
 let recordedChunks = [];
 let isRecording    = false;
+let recordDest     = null; // храним dest чтобы отключить после стопа
 
 // ════════════════════════════════════════════
 //  iOS FIX
@@ -738,10 +724,7 @@ function analyzeColor(data, scanX, H, W) {
   }
   rSum /= H; gSum /= H; bSum /= H;
   const warmth = Math.min(255, Math.max(0, 128 + (rSum - bSum)));
-  const r = Math.round(rSum);
-  const g = Math.round(gSum);
-  const b = Math.round(bSum);
-  colorDot.style.background = `rgb(${r},${g},${b})`;
+  colorDot.style.background = `rgb(${Math.round(rSum)},${Math.round(gSum)},${Math.round(bSum)})`;
   return warmth;
 }
 
@@ -768,18 +751,12 @@ function trailColor(warmth) {
   const b = Math.round(200 - t * 170);
   return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
 }
-
 // ════════════════════════════════════════════
-//  STRING NOTE — с полифонией
+//  STRING NOTE
 // ════════════════════════════════════════════
 function playStringNote(freq, noteName, velocity = 0.5, yNorm = 0.5, warmth = 128) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
-
-  // Проверяем лимит голосов
-  activeVoices = activeVoices.filter(v => v > now);
-  if (activeVoices.length >= polyLimit) return;
-
   const vol = parseFloat(volumeSlider.value) * velocity * 0.45;
 
   const osc1  = audioCtx.createOscillator();
@@ -822,9 +799,6 @@ function playStringNote(freq, noteName, velocity = 0.5, yNorm = 0.5, warmth = 12
   osc2.connect(gain2); gain2.connect(analyser);
   osc2.start(now); osc2.stop(now + 2.3);
 
-  // Голос живёт 3 секунды
-  activeVoices.push(now + 3.0);
-
   noteDisplay.textContent = noteName;
   noteDisplay.style.opacity = '1';
   clearTimeout(noteHoldTimer);
@@ -859,151 +833,386 @@ function playBassNote(freq, velocity = 0.5) {
 
 // ════════════════════════════════════════════
 //  KICK
+//  pentatonic — глубокий тёплый удар
+//  japanese   — короткий с металлическим призвуком
+//  wholetone  — размытый, с долгим затуханием
+//  chromatic  — резкий индустриальный
 // ════════════════════════════════════════════
 function playKick(vol) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * bassAmount * 1.4;
 
-  const body = audioCtx.createOscillator();
-  const bg   = audioCtx.createGain();
-  body.type = 'sine';
-  body.frequency.setValueAtTime(60, now);
-  body.frequency.exponentialRampToValueAtTime(18, now + 1.4);
-  bg.gain.setValueAtTime(v, now);
-  bg.gain.exponentialRampToValueAtTime(v * 0.5, now + 0.4);
-  bg.gain.exponentialRampToValueAtTime(0.001,   now + 1.6);
-  body.connect(bg); bg.connect(masterGain);
-  body.start(now); body.stop(now + 1.7);
+  if (currentScale === 'japanese') {
+    // Короткий удар + металлический призвук
+    const body = audioCtx.createOscillator();
+    const bg   = audioCtx.createGain();
+    body.type = 'sine';
+    body.frequency.setValueAtTime(80, now);
+    body.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+    bg.gain.setValueAtTime(v, now);
+    bg.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    body.connect(bg); bg.connect(masterGain);
+    body.start(now); body.stop(now + 0.45);
 
-  const sub = audioCtx.createOscillator();
-  const sg  = audioCtx.createGain();
-  sub.type = 'sine';
-  sub.frequency.setValueAtTime(30, now);
-  sub.frequency.exponentialRampToValueAtTime(10, now + 1.2);
-  sg.gain.setValueAtTime(v * 0.6, now);
-  sg.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
-  sub.connect(sg); sg.connect(masterGain);
-  sub.start(now); sub.stop(now + 1.4);
+    // Металлический призвук — высокий синус
+    const metal = audioCtx.createOscillator();
+    const mg    = audioCtx.createGain();
+    metal.type = 'sine';
+    metal.frequency.setValueAtTime(320, now);
+    metal.frequency.exponentialRampToValueAtTime(180, now + 0.6);
+    mg.gain.setValueAtTime(v * 0.3, now);
+    mg.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+    metal.connect(mg); mg.connect(masterGain);
+    metal.start(now); metal.stop(now + 0.75);
 
-  const mid  = audioCtx.createOscillator();
-  const midG = audioCtx.createGain();
-  mid.type = 'triangle';
-  mid.frequency.setValueAtTime(80, now);
-  mid.frequency.exponentialRampToValueAtTime(35, now + 0.6);
-  midG.gain.setValueAtTime(v * 0.5, now);
-  midG.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
-  mid.connect(midG); midG.connect(masterGain);
-  mid.start(now); mid.stop(now + 0.75);
+  } else if (currentScale === 'wholetone') {
+    // Размытый, долгое затухание
+    const body = audioCtx.createOscillator();
+    const bg   = audioCtx.createGain();
+    body.type = 'sine';
+    body.frequency.setValueAtTime(50, now);
+    body.frequency.exponentialRampToValueAtTime(22, now + 2.2);
+    bg.gain.setValueAtTime(v * 0.8, now);
+    bg.gain.exponentialRampToValueAtTime(v * 0.4, now + 0.8);
+    bg.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+    body.connect(bg); bg.connect(masterGain);
+    body.start(now); body.stop(now + 2.6);
 
-  const lfo  = audioCtx.createOscillator();
-  const lfoG = audioCtx.createGain();
-  lfo.type = 'sine';
-  lfo.frequency.value = 2.5 + Math.random() * 1.5;
-  lfoG.gain.value = 6;
-  lfo.connect(lfoG); lfoG.connect(body.frequency);
-  lfo.start(now); lfo.stop(now + 1.7);
+    // Лёгкий шум для текстуры
+    const nlen = Math.floor(audioCtx.sampleRate * 1.0);
+    const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd   = nbuf.getChannelData(0);
+    for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+    const ns = audioCtx.createBufferSource(); ns.buffer = nbuf;
+    const nf = audioCtx.createBiquadFilter();
+    const ng = audioCtx.createGain();
+    nf.type = 'lowpass'; nf.frequency.value = 80;
+    ng.gain.setValueAtTime(v * 0.2, now);
+    ng.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+    ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
+    ns.start(now);
 
-  const nlen = Math.floor(audioCtx.sampleRate * 0.6);
-  const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
-  const nd   = nbuf.getChannelData(0);
-  for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
-  const ns = audioCtx.createBufferSource(); ns.buffer = nbuf;
-  const nf = audioCtx.createBiquadFilter();
-  const ng = audioCtx.createGain();
-  nf.type = 'lowpass'; nf.frequency.value = 150; nf.Q.value = 2;
-  ng.gain.setValueAtTime(v * 0.5, now);
-  ng.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-  ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
-  ns.start(now);
+  } else if (currentScale === 'chromatic') {
+    // Резкий индустриальный — жёсткая атака, металл
+    const body = audioCtx.createOscillator();
+    const bg   = audioCtx.createGain();
+    body.type = 'square';
+    body.frequency.setValueAtTime(55, now);
+    body.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+    bg.gain.setValueAtTime(v * 1.1, now);
+    bg.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    body.connect(bg); bg.connect(masterGain);
+    body.start(now); body.stop(now + 0.65);
+
+    // Жёсткий шум
+    const nlen = Math.floor(audioCtx.sampleRate * 0.15);
+    const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd   = nbuf.getChannelData(0);
+    for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+    const ns = audioCtx.createBufferSource(); ns.buffer = nbuf;
+    const nf = audioCtx.createBiquadFilter();
+    const ng = audioCtx.createGain();
+    nf.type = 'highpass'; nf.frequency.value = 200;
+    ng.gain.setValueAtTime(v * 0.8, now);
+    ng.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
+    ns.start(now);
+
+  } else {
+    // pentatonic — оригинальный глубокий удар
+    const body = audioCtx.createOscillator();
+    const bg   = audioCtx.createGain();
+    body.type = 'sine';
+    body.frequency.setValueAtTime(60, now);
+    body.frequency.exponentialRampToValueAtTime(18, now + 1.4);
+    bg.gain.setValueAtTime(v, now);
+    bg.gain.exponentialRampToValueAtTime(v * 0.5, now + 0.4);
+    bg.gain.exponentialRampToValueAtTime(0.001,   now + 1.6);
+    body.connect(bg); bg.connect(masterGain);
+    body.start(now); body.stop(now + 1.7);
+
+    const sub = audioCtx.createOscillator();
+    const sg  = audioCtx.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(30, now);
+    sub.frequency.exponentialRampToValueAtTime(10, now + 1.2);
+    sg.gain.setValueAtTime(v * 0.6, now);
+    sg.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
+    sub.connect(sg); sg.connect(masterGain);
+    sub.start(now); sub.stop(now + 1.4);
+
+    const mid  = audioCtx.createOscillator();
+    const midG = audioCtx.createGain();
+    mid.type = 'triangle';
+    mid.frequency.setValueAtTime(80, now);
+    mid.frequency.exponentialRampToValueAtTime(35, now + 0.6);
+    midG.gain.setValueAtTime(v * 0.5, now);
+    midG.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+    mid.connect(midG); midG.connect(masterGain);
+    mid.start(now); mid.stop(now + 0.75);
+
+    const lfo  = audioCtx.createOscillator();
+    const lfoG = audioCtx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.value = 2.5 + Math.random() * 1.5;
+    lfoG.gain.value = 6;
+    lfo.connect(lfoG); lfoG.connect(body.frequency);
+    lfo.start(now); lfo.stop(now + 1.7);
+
+    const nlen = Math.floor(audioCtx.sampleRate * 0.6);
+    const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd   = nbuf.getChannelData(0);
+    for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+    const ns = audioCtx.createBufferSource(); ns.buffer = nbuf;
+    const nf = audioCtx.createBiquadFilter();
+    const ng = audioCtx.createGain();
+    nf.type = 'lowpass'; nf.frequency.value = 150; nf.Q.value = 2;
+    ng.gain.setValueAtTime(v * 0.5, now);
+    ng.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
+    ns.start(now);
+  }
 
   flashDrum('kick');
 }
 
 // ════════════════════════════════════════════
 //  SNARE
+//  pentatonic — классический
+//  japanese   — деревянный короткий
+//  wholetone  — мягкий размытый
+//  chromatic  — металлический жёсткий
 // ════════════════════════════════════════════
 function playSnare(vol) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.65;
 
-  const tone = audioCtx.createOscillator();
-  const tg   = audioCtx.createGain();
-  tone.type = 'sine';
-  tone.frequency.setValueAtTime(120, now);
-  tone.frequency.exponentialRampToValueAtTime(55, now + 0.35);
-  tg.gain.setValueAtTime(v * 0.8, now);
-  tg.gain.exponentialRampToValueAtTime(v * 0.2, now + 0.1);
-  tg.gain.exponentialRampToValueAtTime(0.001,   now + 0.5);
-  tone.connect(tg); tg.connect(masterGain);
-  tone.start(now); tone.stop(now + 0.55);
+  if (currentScale === 'japanese') {
+    // Деревянный блок — короткий тональный удар
+    const tone = audioCtx.createOscillator();
+    const tg   = audioCtx.createGain();
+    tone.type = 'triangle';
+    tone.frequency.setValueAtTime(400, now);
+    tone.frequency.exponentialRampToValueAtTime(200, now + 0.08);
+    tg.gain.setValueAtTime(v * 1.1, now);
+    tg.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    tone.connect(tg); tg.connect(masterGain);
+    tone.start(now); tone.stop(now + 0.15);
 
-  const tone2 = audioCtx.createOscillator();
-  const tg2   = audioCtx.createGain();
-  tone2.type = 'triangle';
-  tone2.frequency.setValueAtTime(200, now);
-  tone2.frequency.exponentialRampToValueAtTime(90, now + 0.2);
-  tg2.gain.setValueAtTime(v * 0.45, now);
-  tg2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-  tone2.connect(tg2); tg2.connect(masterGain);
-  tone2.start(now); tone2.stop(now + 0.3);
+    // Короткий шум
+    const nlen = Math.floor(audioCtx.sampleRate * 0.05);
+    const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd   = nbuf.getChannelData(0);
+    for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource(); src.buffer = nbuf;
+    const bp  = audioCtx.createBiquadFilter();
+    const sg  = audioCtx.createGain();
+    bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 2;
+    sg.gain.setValueAtTime(v * 0.5, now);
+    sg.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    src.connect(bp); bp.connect(sg); sg.connect(masterGain);
+    src.start(now);
 
-  const nlen = Math.floor(audioCtx.sampleRate * 0.3);
-  const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
-  const nd   = nbuf.getChannelData(0);
-  for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
-  const src = audioCtx.createBufferSource(); src.buffer = nbuf;
-  const lp  = audioCtx.createBiquadFilter();
-  const sg  = audioCtx.createGain();
-  lp.type = 'lowpass'; lp.frequency.value = 800; lp.Q.value = 1;
-  sg.gain.setValueAtTime(v * 0.55, now);
-  sg.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-  src.connect(lp); lp.connect(sg); sg.connect(masterGain);
-  src.start(now);
+  } else if (currentScale === 'wholetone') {
+    // Мягкий — больше шума, меньше тона
+    const nlen = Math.floor(audioCtx.sampleRate * 0.5);
+    const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd   = nbuf.getChannelData(0);
+    for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource(); src.buffer = nbuf;
+    const lp  = audioCtx.createBiquadFilter();
+    const sg  = audioCtx.createGain();
+    lp.type = 'lowpass'; lp.frequency.value = 400;
+    sg.gain.setValueAtTime(v * 0.6, now);
+    sg.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    src.connect(lp); lp.connect(sg); sg.connect(masterGain);
+    src.start(now);
+
+    // Тихий тон под шумом
+    const tone = audioCtx.createOscillator();
+    const tg   = audioCtx.createGain();
+    tone.type = 'sine';
+    tone.frequency.value = 180;
+    tg.gain.setValueAtTime(v * 0.2, now);
+    tg.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    tone.connect(tg); tg.connect(masterGain);
+    tone.start(now); tone.stop(now + 0.45);
+
+  } else if (currentScale === 'chromatic') {
+    // Металлический — высокий тон + жёсткий шум
+    const tone = audioCtx.createOscillator();
+    const tg   = audioCtx.createGain();
+    tone.type = 'sawtooth';
+    tone.frequency.setValueAtTime(250, now);
+    tone.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+    tg.gain.setValueAtTime(v * 0.9, now);
+    tg.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    tone.connect(tg); tg.connect(masterGain);
+    tone.start(now); tone.stop(now + 0.3);
+
+    const nlen = Math.floor(audioCtx.sampleRate * 0.2);
+    const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd   = nbuf.getChannelData(0);
+    for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource(); src.buffer = nbuf;
+    const hp  = audioCtx.createBiquadFilter();
+    const sg  = audioCtx.createGain();
+    hp.type = 'highpass'; hp.frequency.value = 1500;
+    sg.gain.setValueAtTime(v * 0.9, now);
+    sg.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    src.connect(hp); hp.connect(sg); sg.connect(masterGain);
+    src.start(now);
+
+  } else {
+    // pentatonic — классический снейр
+    const tone = audioCtx.createOscillator();
+    const tg   = audioCtx.createGain();
+    tone.type = 'sine';
+    tone.frequency.setValueAtTime(120, now);
+    tone.frequency.exponentialRampToValueAtTime(55, now + 0.35);
+    tg.gain.setValueAtTime(v * 0.8, now);
+    tg.gain.exponentialRampToValueAtTime(v * 0.2, now + 0.1);
+    tg.gain.exponentialRampToValueAtTime(0.001,   now + 0.5);
+    tone.connect(tg); tg.connect(masterGain);
+    tone.start(now); tone.stop(now + 0.55);
+
+    const tone2 = audioCtx.createOscillator();
+    const tg2   = audioCtx.createGain();
+    tone2.type = 'triangle';
+    tone2.frequency.setValueAtTime(200, now);
+    tone2.frequency.exponentialRampToValueAtTime(90, now + 0.2);
+    tg2.gain.setValueAtTime(v * 0.45, now);
+    tg2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    tone2.connect(tg2); tg2.connect(masterGain);
+    tone2.start(now); tone2.stop(now + 0.3);
+
+    const nlen = Math.floor(audioCtx.sampleRate * 0.3);
+    const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd   = nbuf.getChannelData(0);
+    for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource(); src.buffer = nbuf;
+    const lp  = audioCtx.createBiquadFilter();
+    const sg  = audioCtx.createGain();
+    lp.type = 'lowpass'; lp.frequency.value = 800; lp.Q.value = 1;
+    sg.gain.setValueAtTime(v * 0.55, now);
+    sg.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    src.connect(lp); lp.connect(sg); sg.connect(masterGain);
+    src.start(now);
+  }
 
   flashDrum('snare');
 }
 
 // ════════════════════════════════════════════
 //  HIHAT
+//  pentatonic — мягкий шелест
+//  japanese   — тонкий металлический
+//  wholetone  — воздушный размытый
+//  chromatic  — жёсткий сухой
 // ════════════════════════════════════════════
 function playHihat(vol) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.32;
 
-  const duration = 0.08 + Math.random() * 0.12;
-  const nlen = Math.floor(audioCtx.sampleRate * duration);
-  const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
-  const nd   = nbuf.getChannelData(0);
-  for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
-
-  const bands = [
-    { f: 2500 + Math.random() * 800,  q: 0.8, g: 0.65 },
-    { f: 5000 + Math.random() * 1500, q: 0.6, g: 0.4  },
-  ];
-  bands.forEach(band => {
+  if (currentScale === 'japanese') {
+    // Тонкий металлический — высокая частота, быстро
+    const duration = 0.04 + Math.random() * 0.06;
+    const nlen = Math.floor(audioCtx.sampleRate * duration);
+    const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd   = nbuf.getChannelData(0);
+    for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
     const src = audioCtx.createBufferSource(); src.buffer = nbuf;
     const bp  = audioCtx.createBiquadFilter();
     const g   = audioCtx.createGain();
-    bp.type = 'bandpass'; bp.frequency.value = band.f; bp.Q.value = band.q;
-    g.gain.setValueAtTime(0, now);
-    g.gain.linearRampToValueAtTime(v * band.g, now + 0.01);
+    bp.type = 'bandpass'; bp.frequency.value = 8000; bp.Q.value = 0.5;
+    g.gain.setValueAtTime(v * 1.2, now);
     g.gain.exponentialRampToValueAtTime(0.001, now + duration);
     src.connect(bp); bp.connect(g); g.connect(masterGain);
     src.start(now);
-  });
 
-  if (Math.random() < 0.4) {
+    // Тональный призвук
     const sing = audioCtx.createOscillator();
     const sg   = audioCtx.createGain();
     sing.type = 'sine';
-    sing.frequency.value = 800 + Math.random() * 1200;
-    sg.gain.setValueAtTime(v * 0.12, now + 0.02);
-    sg.gain.exponentialRampToValueAtTime(0.001, now + duration * 1.5);
+    sing.frequency.value = 3200 + Math.random() * 800;
+    sg.gain.setValueAtTime(v * 0.2, now);
+    sg.gain.exponentialRampToValueAtTime(0.001, now + duration * 2);
     sing.connect(sg); sg.connect(masterGain);
-    sing.start(now + 0.02); sing.stop(now + duration * 1.5);
+    sing.start(now); sing.stop(now + duration * 2);
+
+  } else if (currentScale === 'wholetone') {
+    // Воздушный — широкий, долгий
+    const duration = 0.2 + Math.random() * 0.15;
+    const nlen = Math.floor(audioCtx.sampleRate * duration);
+    const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd   = nbuf.getChannelData(0);
+    for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+
+    [2000, 4000, 7000].forEach(freq => {
+      const src = audioCtx.createBufferSource(); src.buffer = nbuf;
+      const bp  = audioCtx.createBiquadFilter();
+      const g   = audioCtx.createGain();
+      bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 0.4;
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(v * 0.3, now + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      src.connect(bp); bp.connect(g); g.connect(masterGain);
+      src.start(now);
+    });
+
+  } else if (currentScale === 'chromatic') {
+    // Жёсткий сухой — очень короткий, резкий
+    const duration = 0.03 + Math.random() * 0.03;
+    const nlen = Math.floor(audioCtx.sampleRate * duration);
+    const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd   = nbuf.getChannelData(0);
+    for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource(); src.buffer = nbuf;
+    const hp  = audioCtx.createBiquadFilter();
+    const g   = audioCtx.createGain();
+    hp.type = 'highpass'; hp.frequency.value = 5000;
+    g.gain.setValueAtTime(v * 1.4, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    src.connect(hp); hp.connect(g); g.connect(masterGain);
+    src.start(now);
+
+  } else {
+    // pentatonic — оригинальный мягкий шелест
+    const duration = 0.08 + Math.random() * 0.12;
+    const nlen = Math.floor(audioCtx.sampleRate * duration);
+    const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd   = nbuf.getChannelData(0);
+    for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+
+    const bands = [
+      { f: 2500 + Math.random() * 800,  q: 0.8, g: 0.65 },
+      { f: 5000 + Math.random() * 1500, q: 0.6, g: 0.4  },
+    ];
+    bands.forEach(band => {
+      const src = audioCtx.createBufferSource(); src.buffer = nbuf;
+      const bp  = audioCtx.createBiquadFilter();
+      const g   = audioCtx.createGain();
+      bp.type = 'bandpass'; bp.frequency.value = band.f; bp.Q.value = band.q;
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(v * band.g, now + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      src.connect(bp); bp.connect(g); g.connect(masterGain);
+      src.start(now);
+    });
+
+    if (Math.random() < 0.4) {
+      const sing = audioCtx.createOscillator();
+      const sg   = audioCtx.createGain();
+      sing.type = 'sine';
+      sing.frequency.value = 800 + Math.random() * 1200;
+      sg.gain.setValueAtTime(v * 0.12, now + 0.02);
+      sg.gain.exponentialRampToValueAtTime(0.001, now + duration * 1.5);
+      sing.connect(sg); sg.connect(masterGain);
+      sing.start(now + 0.02); sing.stop(now + duration * 1.5);
+    }
   }
 
   flashDrum('hihat');
@@ -1011,79 +1220,158 @@ function playHihat(vol) {
 
 // ════════════════════════════════════════════
 //  PERC
+//  pentatonic — случайный характер как раньше
+//  japanese   — тональный резонатор
+//  wholetone  — долгий колокол
+//  chromatic  — индустриальный металл
 // ════════════════════════════════════════════
 function playPerc(vol, pitchNorm = 0.5) {
   if (!audioCtx || isMuted) return;
   const now      = audioCtx.currentTime;
   const v        = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.55;
   const baseFreq = 80 + pitchNorm * 340;
-  const char_    = Math.random();
 
-  if (char_ < 0.4) {
+  if (currentScale === 'japanese') {
+    // Тональный резонатор — долгий звенящий тон
+    const freq = 200 + pitchNorm * 600;
     const o1 = audioCtx.createOscillator();
     const g1 = audioCtx.createGain();
     const f1 = audioCtx.createBiquadFilter();
-    o1.type = 'triangle';
-    o1.frequency.setValueAtTime(baseFreq * 2.1, now);
-    o1.frequency.exponentialRampToValueAtTime(baseFreq, now + 0.04);
-    f1.type = 'bandpass'; f1.frequency.value = baseFreq * 1.5; f1.Q.value = 5;
+    o1.type = 'sine';
+    o1.frequency.setValueAtTime(freq, now);
+    f1.type = 'bandpass'; f1.frequency.value = freq; f1.Q.value = 12;
     g1.gain.setValueAtTime(v, now);
-    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+    g1.gain.exponentialRampToValueAtTime(v * 0.3, now + 0.1);
+    g1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
     o1.connect(f1); f1.connect(g1); g1.connect(masterGain);
-    o1.start(now); o1.stop(now + 0.3);
+    o1.start(now); o1.stop(now + 1.3);
 
-  } else if (char_ < 0.7) {
-    const beatFreq = baseFreq * (1.03 + Math.random() * 0.04);
-    [baseFreq, beatFreq].forEach(f => {
+    // Второй тон — квинта
+    const o2 = audioCtx.createOscillator();
+    const g2 = audioCtx.createGain();
+    o2.type = 'sine';
+    o2.frequency.value = freq * 1.5;
+    g2.gain.setValueAtTime(v * 0.3, now);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    o2.connect(g2); g2.connect(masterGain);
+    o2.start(now); o2.stop(now + 0.85);
+
+  } else if (currentScale === 'wholetone') {
+    // Колокол — долгий, с биениями
+    const freq = 300 + pitchNorm * 500;
+    const beatFreq = freq * 1.007;
+    [freq, beatFreq].forEach(f => {
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       o.type = 'sine';
-      o.frequency.setValueAtTime(f, now);
-      o.frequency.linearRampToValueAtTime(f * 0.88, now + 0.5);
-      g.gain.setValueAtTime(v * 0.6, now);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      o.frequency.value = f;
+      g.gain.setValueAtTime(v * 0.7, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
       o.connect(g); g.connect(masterGain);
-      o.start(now); o.stop(now + 0.6);
+      o.start(now); o.stop(now + 2.1);
     });
 
-  } else {
+    // Атака
+    const clen = Math.floor(audioCtx.sampleRate * 0.008);
+    const cbuf = audioCtx.createBuffer(1, clen, audioCtx.sampleRate);
+    const cd   = cbuf.getChannelData(0);
+    for (let i = 0; i < clen; i++) cd[i] = (1 - i / clen) * (Math.random() * 2 - 1);
+    const cs = audioCtx.createBufferSource(); cs.buffer = cbuf;
+    const cg = audioCtx.createGain();
+    cg.gain.setValueAtTime(v * 0.6, now);
+    cs.connect(cg); cg.connect(masterGain);
+    cs.start(now);
+
+  } else if (currentScale === 'chromatic') {
+    // Индустриальный — шум + резкий тон
     const o1 = audioCtx.createOscillator();
     const g1 = audioCtx.createGain();
-    o1.type = 'sine';
-    o1.frequency.setValueAtTime(baseFreq * 1.6, now);
-    o1.frequency.exponentialRampToValueAtTime(baseFreq * 0.7, now + 0.12);
-    g1.gain.setValueAtTime(v * 0.8, now);
-    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    o1.type = 'sawtooth';
+    o1.frequency.setValueAtTime(baseFreq * 2, now);
+    o1.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, now + 0.08);
+    g1.gain.setValueAtTime(v * 1.1, now);
+    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
     o1.connect(g1); g1.connect(masterGain);
-    o1.start(now); o1.stop(now + 0.38);
+    o1.start(now); o1.stop(now + 0.18);
 
-   // ════════════════════════════════════════════
-//  PERC — продолжение (конец функции)
-// ════════════════════════════════════════════
-    const nlen = Math.floor(audioCtx.sampleRate * 0.15);
+    const nlen = Math.floor(audioCtx.sampleRate * 0.12);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
-    const ndd  = nbuf.getChannelData(0);
-    for (let i = 0; i < nlen; i++) ndd[i] = Math.random() * 2 - 1;
-    const ns  = audioCtx.createBufferSource(); ns.buffer = nbuf;
-    const nf  = audioCtx.createBiquadFilter();
-    const ngg = audioCtx.createGain();
-    nf.type = 'bandpass'; nf.frequency.value = baseFreq * 1.8; nf.Q.value = 3;
-    ngg.gain.setValueAtTime(v * 0.4, now);
-    ngg.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-    ns.connect(nf); nf.connect(ngg); ngg.connect(masterGain);
+    const nd   = nbuf.getChannelData(0);
+    for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+    const ns = audioCtx.createBufferSource(); ns.buffer = nbuf;
+    const nf = audioCtx.createBiquadFilter();
+    const ng = audioCtx.createGain();
+    nf.type = 'bandpass'; nf.frequency.value = baseFreq * 3; nf.Q.value = 2;
+    ng.gain.setValueAtTime(v * 0.7, now);
+    ng.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
     ns.start(now);
-  }
 
-  // Короткий щелчок в начале — атака
-  const clen = Math.floor(audioCtx.sampleRate * 0.006);
-  const cbuf = audioCtx.createBuffer(1, clen, audioCtx.sampleRate);
-  const cd   = cbuf.getChannelData(0);
-  for (let i = 0; i < clen; i++) cd[i] = (1 - i / clen) * (Math.random() * 2 - 1);
-  const cs = audioCtx.createBufferSource(); cs.buffer = cbuf;
-  const cg = audioCtx.createGain();
-  cg.gain.setValueAtTime(v * 0.5, now);
-  cs.connect(cg); cg.connect(masterGain);
-  cs.start(now);
+  } else {
+    // pentatonic — оригинальный случайный характер
+    const char_ = Math.random();
+    if (char_ < 0.4) {
+      const o1 = audioCtx.createOscillator();
+      const g1 = audioCtx.createGain();
+      const f1 = audioCtx.createBiquadFilter();
+      o1.type = 'triangle';
+      o1.frequency.setValueAtTime(baseFreq * 2.1, now);
+      o1.frequency.exponentialRampToValueAtTime(baseFreq, now + 0.04);
+      f1.type = 'bandpass'; f1.frequency.value = baseFreq * 1.5; f1.Q.value = 5;
+      g1.gain.setValueAtTime(v, now);
+      g1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      o1.connect(f1); f1.connect(g1); g1.connect(masterGain);
+      o1.start(now); o1.stop(now + 0.3);
+
+    } else if (char_ < 0.7) {
+      const beatFreq = baseFreq * (1.03 + Math.random() * 0.04);
+      [baseFreq, beatFreq].forEach(f => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(f, now);
+        o.frequency.linearRampToValueAtTime(f * 0.88, now + 0.5);
+        g.gain.setValueAtTime(v * 0.6, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+        o.connect(g); g.connect(masterGain);
+        o.start(now); o.stop(now + 0.6);
+      });
+
+    } else {
+      const o1 = audioCtx.createOscillator();
+      const g1 = audioCtx.createGain();
+      o1.type = 'sine';
+      o1.frequency.setValueAtTime(baseFreq * 1.6, now);
+      o1.frequency.exponentialRampToValueAtTime(baseFreq * 0.7, now + 0.12);
+      g1.gain.setValueAtTime(v * 0.8, now);
+      g1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      o1.connect(g1); g1.connect(masterGain);
+      o1.start(now); o1.stop(now + 0.38);
+
+      const nlen = Math.floor(audioCtx.sampleRate * 0.15);
+      const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+      const ndd  = nbuf.getChannelData(0);
+      for (let i = 0; i < nlen; i++) ndd[i] = Math.random() * 2 - 1;
+      const ns  = audioCtx.createBufferSource(); ns.buffer = nbuf;
+      const nf  = audioCtx.createBiquadFilter();
+      const ngg = audioCtx.createGain();
+      nf.type = 'bandpass'; nf.frequency.value = baseFreq * 1.8; nf.Q.value = 3;
+      ngg.gain.setValueAtTime(v * 0.4, now);
+      ngg.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      ns.connect(nf); nf.connect(ngg); ngg.connect(masterGain);
+      ns.start(now);
+    }
+
+    const clen = Math.floor(audioCtx.sampleRate * 0.006);
+    const cbuf = audioCtx.createBuffer(1, clen, audioCtx.sampleRate);
+    const cd   = cbuf.getChannelData(0);
+    for (let i = 0; i < clen; i++) cd[i] = (1 - i / clen) * (Math.random() * 2 - 1);
+    const cs = audioCtx.createBufferSource(); cs.buffer = cbuf;
+    const cg = audioCtx.createGain();
+    cg.gain.setValueAtTime(v * 0.5, now);
+    cs.connect(cg); cg.connect(masterGain);
+    cs.start(now);
+  }
 
   flashDrum('perc');
 }
@@ -1096,6 +1384,90 @@ function flashDrum(name) {
   if (!btn || !btn.classList.contains('active')) return;
   btn.classList.add('hit');
   setTimeout(() => btn.classList.remove('hit'), 75);
+}
+// ════════════════════════════════════════════
+//  AUDIO STATUS
+// ════════════════════════════════════════════
+function updateAudioStatus() {
+  if (!audioCtx) { audioStatus.textContent = 'audio: —'; return; }
+  audioStatus.textContent = `audio: ${audioCtx.state}`;
+  audioStatus.style.color = audioCtx.state === 'running'
+    ? 'rgba(255,255,255,0.25)' : '#f44';
+}
+
+// ════════════════════════════════════════════
+//  ЗАПИСЬ АУДИО
+//  Пробуем mp4, если не поддерживается — webm
+// ════════════════════════════════════════════
+function getMimeType() {
+  const types = [
+    'audio/mp4',
+    'audio/mp4;codecs=mp4a.40.2',
+    'audio/webm;codecs=opus',
+    'audio/webm',
+  ];
+  for (const t of types) {
+    if (MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return '';
+}
+
+function getFileExtension(mimeType) {
+  if (mimeType.startsWith('audio/mp4')) return 'mp4';
+  return 'webm';
+}
+
+function startRecording() {
+  if (!audioCtx || !masterGain) return;
+
+  // Виртуальный выход — поток из аудиографа
+  recordDest = audioCtx.createMediaStreamDestination();
+  masterGain.connect(recordDest);
+
+  const mimeType = getMimeType();
+  const options  = mimeType ? { mimeType } : {};
+
+  try {
+    mediaRecorder  = new MediaRecorder(recordDest.stream, options);
+  } catch(e) {
+    // Если с опциями не вышло — пробуем без
+    mediaRecorder = new MediaRecorder(recordDest.stream);
+  }
+
+  recordedChunks = [];
+
+  mediaRecorder.ondataavailable = e => {
+    if (e.data.size > 0) recordedChunks.push(e.data);
+  };
+
+  mediaRecorder.onstop = () => {
+    const finalMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
+    const ext       = getFileExtension(finalMime);
+    const blob      = new Blob(recordedChunks, { type: finalMime });
+    const url       = URL.createObjectURL(blob);
+    const a         = document.createElement('a');
+    const ts        = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    a.href          = url;
+    a.download      = `writing-sound-${ts}.${ext}`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // Отключаем виртуальный выход
+    try { masterGain.disconnect(recordDest); } catch(e) {}
+    recordDest = null;
+  };
+
+  mediaRecorder.start(100);
+  isRecording = true;
+  recBtn.textContent = '[ ● rec ]';
+  recBtn.classList.add('recording');
+}
+
+function stopRecording() {
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+  mediaRecorder.stop();
+  isRecording = false;
+  recBtn.textContent = '[ rec ]';
+  recBtn.classList.remove('recording');
 }
 
 // ════════════════════════════════════════════
@@ -1191,7 +1563,7 @@ function processFrame(data) {
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }
 
-  // Цветовой анализ сканирующей линии
+  // Цветовой анализ
   const colorWarmth = colorMode
     ? analyzeColor(data, scanX, H, W)
     : 128;
@@ -1443,56 +1815,6 @@ function drawVisualizer() {
     vizCtx.stroke();
   }
 }
-
-// ════════════════════════════════════════════
-//  AUDIO STATUS
-// ════════════════════════════════════════════
-function updateAudioStatus() {
-  if (!audioCtx) { audioStatus.textContent = 'audio: —'; return; }
-  audioStatus.textContent = `audio: ${audioCtx.state}`;
-  audioStatus.style.color = audioCtx.state === 'running'
-    ? 'rgba(255,255,255,0.25)' : '#f44';
-}
-
-// ════════════════════════════════════════════
-//  ЗАПИСЬ АУДИО
-// ════════════════════════════════════════════
-function startRecording() {
-  if (!audioCtx || !masterGain) return;
-  const dest     = audioCtx.createMediaStreamDestination();
-  masterGain.connect(dest);
-  const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-    ? 'audio/webm;codecs=opus' : 'audio/webm';
-  mediaRecorder  = new MediaRecorder(dest.stream, { mimeType });
-  recordedChunks = [];
-  mediaRecorder.ondataavailable = e => {
-    if (e.data.size > 0) recordedChunks.push(e.data);
-  };
-  mediaRecorder.onstop = () => {
-    const blob = new Blob(recordedChunks, { type: mimeType });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    const ts   = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-    a.href     = url;
-    a.download = `writing-sound-${ts}.webm`;
-    a.click();
-    URL.revokeObjectURL(url);
-    masterGain.disconnect(dest);
-  };
-  mediaRecorder.start(100);
-  isRecording = true;
-  recBtn.textContent = '[ ● rec ]';
-  recBtn.classList.add('recording');
-}
-
-function stopRecording() {
-  if (!mediaRecorder) return;
-  mediaRecorder.stop();
-  isRecording = false;
-  recBtn.textContent = '[ rec ]';
-  recBtn.classList.remove('recording');
-}
-
 // ════════════════════════════════════════════
 //  START
 // ════════════════════════════════════════════
@@ -1527,20 +1849,14 @@ document.querySelectorAll('.scale-btn').forEach(btn => {
     currentScale = btn.dataset.scale;
     document.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    noteHistory  = [];
-    activeVoices = [];
-  });
-});
-
-// ════════════════════════════════════════════
-//  POLYPHONY BUTTONS
-// ════════════════════════════════════════════
-document.querySelectorAll('.poly-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    polyLimit = parseInt(btn.dataset.poly);
-    document.querySelectorAll('.poly-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeVoices = [];
+    // Сбрасываем историю при смене гаммы
+    noteHistory = [];
+    // Сбрасываем все cooldown чтобы ударные сразу
+    // отреагировали в новом характере
+    kickCooldown  = 0;
+    snareCooldown = 0;
+    hihatCooldown = 0;
+    percCooldown  = 0;
   });
 });
 
@@ -1569,6 +1885,7 @@ document.querySelectorAll('.drum-btn').forEach(btn => {
       if (name === 'snare') snareCooldown = 0;
       if (name === 'hihat') { hihatCooldown = 0; hihatFlicker = 0; }
       if (name === 'perc')  percCooldown  = 0;
+      // Превью звука при включении
       if (!audioCtx || !audioReady) return;
       if (name === 'kick')  playKick(0.7);
       if (name === 'snare') playSnare(0.7);
@@ -1595,7 +1912,6 @@ document.querySelectorAll('.smode-btn').forEach(btn => {
     prevBright     = 0;
     prevContrast   = 0;
     hihatFlicker   = 0;
-    activeVoices   = [];
     if (soundMode === 'raw' && audioCtx && audioReady) createRawOscillators();
   });
 });
@@ -1628,7 +1944,8 @@ volumeSlider.addEventListener('input', () => {
 slider2.addEventListener('input', () => {
   if (soundMode === 'musical') {
     reverbAmount = parseFloat(slider2.value);
-    document.getElementById('s2Val').textContent = Math.round(reverbAmount * 100) + '%';
+    document.getElementById('s2Val').textContent =
+      Math.round(reverbAmount * 100) + '%';
   } else {
     const count = parseInt(slider2.value);
     document.getElementById('s2Val').textContent = count;
@@ -1662,7 +1979,8 @@ slider3.addEventListener('input', () => {
 slider4.addEventListener('input', () => {
   if (soundMode === 'musical') {
     bassAmount = parseFloat(slider4.value);
-    document.getElementById('s4Val').textContent = Math.round(bassAmount * 100) + '%';
+    document.getElementById('s4Val').textContent =
+      Math.round(bassAmount * 100) + '%';
   } else {
     document.getElementById('s4Val').textContent = slider4.value + ' hz';
   }
@@ -1720,6 +2038,9 @@ document.addEventListener('visibilitychange', async () => {
   }
 });
 
+// ════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════
 updateSliderLabels();
 </script>
 </body>
