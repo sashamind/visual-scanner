@@ -86,9 +86,41 @@
 
     #colorDot {
       position: absolute; top: 10px; right: 10px;
-      width: 6px; height: 6px; border-radius: 50%;
+      width: 8px; height: 8px; border-radius: 50%;
       background: #333; z-index: 15;
       transition: background 0.3s;
+      box-shadow: 0 0 0 0 rgba(255,106,0,0);
+    }
+    /* Пульсация точки в color-режиме */
+    #colorDot.color-active {
+      animation: dotPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes dotPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(255,106,0,0.6); }
+      70%  { box-shadow: 0 0 0 6px rgba(255,106,0,0); }
+      100% { box-shadow: 0 0 0 0 rgba(255,106,0,0); }
+    }
+
+    /* Лейбл видеофайла */
+    #videoFileLabel {
+      position: absolute; top: 10px; left: 10px;
+      font-size: 0.38rem; color: var(--orange);
+      letter-spacing: 2px; z-index: 15;
+      opacity: 0; transition: opacity 0.3s;
+      max-width: 50%; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+      text-shadow: 0 0 8px var(--orange-dim);
+    }
+    #videoFileLabel.visible { opacity: 1; }
+
+    /* Прогресс-бар видеофайла */
+    #videoProgress {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 2px; background: #111; z-index: 15; display: none;
+    }
+    #videoProgressFill {
+      height: 100%; background: var(--orange);
+      width: 0%; opacity: 0.6;
     }
 
     #startOverlay {
@@ -254,16 +286,20 @@
       border-radius:0; background:var(--orange); cursor:pointer;
     }
 
-    .bottom-btns { display:grid; grid-template-columns:1fr 1fr 1fr; border-bottom:1px solid #1a1a1a; margin-bottom:24px; }
+    .bottom-btns {
+      display:grid; grid-template-columns:1fr 1fr 1fr 1fr;
+      border-bottom:1px solid #1a1a1a; margin-bottom:24px;
+    }
     .ctrl-btn {
-      padding:12px; border:none; border-right:1px solid #1a1a1a;
+      padding:12px 6px; border:none; border-right:1px solid #1a1a1a;
       background:#000; color:#666; font-family:'Share Tech Mono',monospace;
-      font-size:0.55rem; letter-spacing:2px; cursor:pointer;
+      font-size:0.48rem; letter-spacing:1px; cursor:pointer; text-align:center;
     }
     .ctrl-btn:last-child { border-right:none; }
     .ctrl-btn.active { color:#fff; }
     .ctrl-btn:active  { background:#111; }
     .ctrl-btn.recording { color: #f44; animation: blink 1s step-end infinite; }
+    .ctrl-btn.file-active { color: var(--orange); }
   </style>
 </head>
 <body>
@@ -275,6 +311,7 @@
 
   <div class="scanner-wrapper">
     <video id="video" autoplay playsinline muted></video>
+    <input type="file" id="videoFileInput" accept="video/*" style="display:none">
     <canvas id="canvas" width="640" height="480"></canvas>
     <canvas id="offscreen" width="640" height="480"></canvas>
     <canvas id="trailCanvas" width="640" height="480"></canvas>
@@ -284,6 +321,8 @@
     <div id="motionBar"></div>
     <div id="noteDisplay"></div>
     <div id="colorDot"></div>
+    <div id="videoFileLabel"></div>
+    <div id="videoProgress"><div id="videoProgressFill"></div></div>
     <div id="audioStatus">audio: —</div>
     <div class="live-data">
       <div id="liveLum">lum. —</div>
@@ -340,20 +379,16 @@
     <div class="section-head">// scale (musical mode)</div>
     <div class="scale-modes">
       <button class="scale-btn active" data-scale="pentatonic">
-        <span class="sc-name">PENTA</span>
-        <span class="sc-desc">minor</span>
+        <span class="sc-name">PENTA</span><span class="sc-desc">minor</span>
       </button>
       <button class="scale-btn" data-scale="japanese">
-        <span class="sc-name">JAPAN</span>
-        <span class="sc-desc">cinematic</span>
+        <span class="sc-name">JAPAN</span><span class="sc-desc">cinematic</span>
       </button>
       <button class="scale-btn" data-scale="wholetone">
-        <span class="sc-name">WHOLE</span>
-        <span class="sc-desc">dreamlike</span>
+        <span class="sc-name">WHOLE</span><span class="sc-desc">dreamlike</span>
       </button>
       <button class="scale-btn" data-scale="chromatic">
-        <span class="sc-name">CHROM</span>
-        <span class="sc-desc">chaos</span>
+        <span class="sc-name">CHROM</span><span class="sc-desc">chaos</span>
       </button>
     </div>
   </div>
@@ -386,20 +421,16 @@
     <div class="section-head">// percussion (musical mode)</div>
     <div class="drums-grid">
       <button class="drum-btn" data-drum="kick">
-        <span class="d-name">KICK</span>
-        <span class="d-desc">brightness spike</span>
+        <span class="d-name">KICK</span><span class="d-desc">brightness spike</span>
       </button>
       <button class="drum-btn" data-drum="snare">
-        <span class="d-name">SNARE</span>
-        <span class="d-desc">contrast → impact</span>
+        <span class="d-name">SNARE</span><span class="d-desc">contrast → impact</span>
       </button>
       <button class="drum-btn" data-drum="hihat">
-        <span class="d-name">HIHAT</span>
-        <span class="d-desc">flicker → whisper</span>
+        <span class="d-name">HIHAT</span><span class="d-desc">flicker → whisper</span>
       </button>
       <button class="drum-btn" data-drum="perc">
-        <span class="d-name">PERC</span>
-        <span class="d-desc">midzone → resonance</span>
+        <span class="d-name">PERC</span><span class="d-desc">midzone → resonance</span>
       </button>
     </div>
   </div>
@@ -430,7 +461,8 @@
     <div class="section-head">// controls</div>
     <div class="bottom-btns">
       <button class="ctrl-btn active" id="muteBtn">[ sound: on ]</button>
-      <button class="ctrl-btn" id="camBtn">[ camera: rear ]</button>
+      <button class="ctrl-btn" id="camBtn">[ cam: rear ]</button>
+      <button class="ctrl-btn" id="fileBtn">[ video file ]</button>
       <button class="ctrl-btn" id="recBtn">[ rec ]</button>
     </div>
   </div>
@@ -438,23 +470,28 @@
 // ════════════════════════════════════════════
 //  ELEMENTS
 // ════════════════════════════════════════════
-const video        = document.getElementById('video');
-const canvas       = document.getElementById('canvas');
-const offscreen    = document.getElementById('offscreen');
-const trailCanvas  = document.getElementById('trailCanvas');
-const vizCanvas    = document.getElementById('vizCanvas');
-const startOverlay = document.getElementById('startOverlay');
-const muteBtn      = document.getElementById('muteBtn');
-const camBtn       = document.getElementById('camBtn');
-const recBtn       = document.getElementById('recBtn');
-const audioStatus  = document.getElementById('audioStatus');
-const noteDisplay  = document.getElementById('noteDisplay');
-const motionBar    = document.getElementById('motionBar');
-const colorDot     = document.getElementById('colorDot');
-const volumeSlider = document.getElementById('volumeSlider');
-const slider2      = document.getElementById('slider2');
-const slider3      = document.getElementById('slider3');
-const slider4      = document.getElementById('slider4');
+const video           = document.getElementById('video');
+const videoFileInput  = document.getElementById('videoFileInput');
+const canvas          = document.getElementById('canvas');
+const offscreen       = document.getElementById('offscreen');
+const trailCanvas     = document.getElementById('trailCanvas');
+const vizCanvas       = document.getElementById('vizCanvas');
+const startOverlay    = document.getElementById('startOverlay');
+const muteBtn         = document.getElementById('muteBtn');
+const camBtn          = document.getElementById('camBtn');
+const fileBtn         = document.getElementById('fileBtn');
+const recBtn          = document.getElementById('recBtn');
+const audioStatus     = document.getElementById('audioStatus');
+const noteDisplay     = document.getElementById('noteDisplay');
+const motionBar       = document.getElementById('motionBar');
+const colorDot        = document.getElementById('colorDot');
+const videoFileLabel  = document.getElementById('videoFileLabel');
+const videoProgress   = document.getElementById('videoProgress');
+const videoProgressFill = document.getElementById('videoProgressFill');
+const volumeSlider    = document.getElementById('volumeSlider');
+const slider2         = document.getElementById('slider2');
+const slider3         = document.getElementById('slider3');
+const slider4         = document.getElementById('slider4');
 
 const ctx      = canvas.getContext('2d');
 const offCtx   = offscreen.getContext('2d');
@@ -500,32 +537,35 @@ const BASS_FREQS = [65.41, 77.78, 87.31, 98.00, 116.54];
 // ════════════════════════════════════════════
 //  STATE
 // ════════════════════════════════════════════
-let audioCtx     = null;
-let masterGain   = null;
-let analyser     = null;
-let reverbNode   = null;
-let dryGain      = null;
-let wetGain      = null;
-let oscillators  = [];
-let gainNodes    = [];
-let isMuted      = false;
-let isRunning    = false;
-let waveType     = 'triangle';
-let soundMode    = 'musical';
-let currentScale = 'pentatonic';
-let colorMode    = false;
-let animId       = null;
-let useFrontCam  = false;
-let audioReady   = false;
-let startHandled = false;
-let frameCount   = 0;
+let audioCtx      = null;
+let masterGain    = null;
+let analyser      = null;
+let reverbNode    = null;
+let dryGain       = null;
+let wetGain       = null;
+let oscillators   = [];
+let gainNodes     = [];
+let isMuted       = false;
+let isRunning     = false;
+let waveType      = 'triangle';
+let soundMode     = 'musical';
+let currentScale  = 'pentatonic';
+let colorMode     = false;
+let animId        = null;
+let useFrontCam   = false;
+let audioReady    = false;
+let startHandled  = false;
+let frameCount    = 0;
 
-let reverbAmount = 0.4;
-let sensitivity  = 0.5;
-let bassAmount   = 0.6;
+// Источник видео: 'camera' или 'file'
+let videoSource   = 'camera';
 
-let noteHistory  = [];
-let noteTrails   = [];
+let reverbAmount  = 0.4;
+let sensitivity   = 0.5;
+let bassAmount    = 0.6;
+
+let noteHistory   = [];
+let noteTrails    = [];
 
 // ════════════════════════════════════════════
 //  DRUMS STATE
@@ -557,10 +597,10 @@ let prevColorHue   = 128;
 // ════════════════════════════════════════════
 //  ЗАПИСЬ
 // ════════════════════════════════════════════
-let mediaRecorder  = null;
-let recordedChunks = [];
-let isRecording    = false;
-let recordDest     = null; // храним dest чтобы отключить после стопа
+let mediaRecorder   = null;
+let recordedChunks  = [];
+let isRecording     = false;
+let recordDest      = null;
 
 // ════════════════════════════════════════════
 //  iOS FIX
@@ -622,7 +662,7 @@ async function initAudio() {
   await new Promise(r => setTimeout(r, 200));
   if (audioCtx.state === 'suspended') await audioCtx.resume();
   if (!masterGain) {
-    analyser = audioCtx.createAnalyser();
+    analyser   = audioCtx.createAnalyser();
     analyser.fftSize = 512;
     masterGain = audioCtx.createGain();
     masterGain.gain.value = parseFloat(volumeSlider.value);
@@ -674,11 +714,19 @@ function pushNoteHistory(noteName) {
 }
 
 // ════════════════════════════════════════════
-//  СЛЕДЫ НОТ
+//  СЛЕДЫ НОТ — усиленная визуализация
+//  Теперь каждый след хранит velocity для
+//  определения размера и яркости точки
 // ════════════════════════════════════════════
-function addTrail(yNorm, color) {
-  noteTrails.push({ y: yNorm, alpha: 1.0, color: color || '#ff6a00' });
-  if (noteTrails.length > 12) noteTrails.shift();
+function addTrail(yNorm, color, velocity) {
+  noteTrails.push({
+    y:        yNorm,
+    alpha:    1.0,
+    color:    color || '#ff6a00',
+    size:     4 + (velocity || 0.5) * 10, // размер от velocity
+    velocity: velocity || 0.5,
+  });
+  if (noteTrails.length > 20) noteTrails.shift();
 }
 
 function hexToRgba(hex, alpha) {
@@ -694,20 +742,52 @@ function hexToRgba(hex, alpha) {
 function drawTrails() {
   trailCtx.clearRect(0, 0, 640, 480);
   const cx = 320;
-  noteTrails = noteTrails.filter(t => t.alpha > 0.02);
+  noteTrails = noteTrails.filter(t => t.alpha > 0.015);
+
   noteTrails.forEach(t => {
-    const y = t.y * 480;
+    const y    = t.y * 480;
+    const size = t.size * t.alpha; // точка уменьшается при затухании
+
+    // Внешнее свечение — большой мягкий круг
+    const glowSize = size * 3.5;
+    const grd = trailCtx.createRadialGradient(cx, y, 0, cx, y, glowSize);
+    grd.addColorStop(0,   hexToRgba(t.color, t.alpha * 0.35));
+    grd.addColorStop(0.4, hexToRgba(t.color, t.alpha * 0.12));
+    grd.addColorStop(1,   hexToRgba(t.color, 0));
     trailCtx.beginPath();
-    trailCtx.arc(cx, y, 3, 0, Math.PI * 2);
-    trailCtx.fillStyle = hexToRgba(t.color, t.alpha);
+    trailCtx.arc(cx, y, glowSize, 0, Math.PI * 2);
+    trailCtx.fillStyle = grd;
     trailCtx.fill();
+
+    // Основная точка — яркое ядро
     trailCtx.beginPath();
-    trailCtx.moveTo(cx - 12, y);
-    trailCtx.lineTo(cx + 12, y);
-    trailCtx.strokeStyle = hexToRgba(t.color, t.alpha * 0.4);
-    trailCtx.lineWidth = 1;
+    trailCtx.arc(cx, y, size, 0, Math.PI * 2);
+    trailCtx.fillStyle = hexToRgba(t.color, t.alpha * 0.9);
+    trailCtx.fill();
+
+    // Белый центр — самый яркий момент
+    if (t.alpha > 0.6) {
+      trailCtx.beginPath();
+      trailCtx.arc(cx, y, size * 0.35, 0, Math.PI * 2);
+      trailCtx.fillStyle = `rgba(255,255,255,${(t.alpha - 0.6) * 2.5})`;
+      trailCtx.fill();
+    }
+
+    // Горизонтальная линия — шире и ярче
+    const lineWidth = size * 4;
+    const lineGrd   = trailCtx.createLinearGradient(cx - lineWidth, y, cx + lineWidth, y);
+    lineGrd.addColorStop(0,   hexToRgba(t.color, 0));
+    lineGrd.addColorStop(0.5, hexToRgba(t.color, t.alpha * 0.5));
+    lineGrd.addColorStop(1,   hexToRgba(t.color, 0));
+    trailCtx.beginPath();
+    trailCtx.moveTo(cx - lineWidth, y);
+    trailCtx.lineTo(cx + lineWidth, y);
+    trailCtx.strokeStyle = lineGrd;
+    trailCtx.lineWidth   = 1.5;
     trailCtx.stroke();
-    t.alpha *= 0.88;
+
+    // Затухание
+    t.alpha *= 0.91;
   });
 }
 
@@ -724,7 +804,8 @@ function analyzeColor(data, scanX, H, W) {
   }
   rSum /= H; gSum /= H; bSum /= H;
   const warmth = Math.min(255, Math.max(0, 128 + (rSum - bSum)));
-  colorDot.style.background = `rgb(${Math.round(rSum)},${Math.round(gSum)},${Math.round(bSum)})`;
+  colorDot.style.background =
+    `rgb(${Math.round(rSum)},${Math.round(gSum)},${Math.round(bSum)})`;
   return warmth;
 }
 
@@ -741,7 +822,9 @@ function pickNote(brightness, colorWarmth) {
 }
 
 // ════════════════════════════════════════════
-//  ЦВЕТ СЛЕДА
+//  ЦВЕТ СЛЕДА — в color-режиме зависит от
+//  теплоты (warmth): тёплый = красный,
+//  холодный = синий
 // ════════════════════════════════════════════
 function trailColor(warmth) {
   if (!colorMode) return '#ff6a00';
@@ -749,7 +832,103 @@ function trailColor(warmth) {
   const r = Math.round(50  + t * 205);
   const g = Math.round(106 - t * 80);
   const b = Math.round(200 - t * 170);
-  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+  return `#${r.toString(16).padStart(2,'0')}` +
+         `${g.toString(16).padStart(2,'0')}` +
+         `${b.toString(16).padStart(2,'0')}`;
+}
+
+// ════════════════════════════════════════════
+//  AUDIO STATUS
+// ════════════════════════════════════════════
+function updateAudioStatus() {
+  if (!audioCtx) { audioStatus.textContent = 'audio: —'; return; }
+  audioStatus.textContent = `audio: ${audioCtx.state}`;
+  audioStatus.style.color = audioCtx.state === 'running'
+    ? 'rgba(255,255,255,0.25)' : '#f44';
+}
+
+// ════════════════════════════════════════════
+//  ЗАПИСЬ
+// ════════════════════════════════════════════
+function getMimeType() {
+  const types = [
+    'audio/mp4', 'audio/mp4;codecs=mp4a.40.2',
+    'audio/webm;codecs=opus', 'audio/webm',
+  ];
+  for (const t of types) {
+    if (MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return '';
+}
+
+function getFileExtension(mimeType) {
+  if (mimeType.startsWith('audio/mp4')) return 'mp4';
+  return 'webm';
+}
+
+function startRecording() {
+  if (!audioCtx || !masterGain) return;
+  recordDest = audioCtx.createMediaStreamDestination();
+  masterGain.connect(recordDest);
+  const mimeType = getMimeType();
+  const options  = mimeType ? { mimeType } : {};
+  try {
+    mediaRecorder = new MediaRecorder(recordDest.stream, options);
+  } catch(e) {
+    mediaRecorder = new MediaRecorder(recordDest.stream);
+  }
+  recordedChunks = [];
+  mediaRecorder.ondataavailable = e => {
+    if (e.data.size > 0) recordedChunks.push(e.data);
+  };
+  mediaRecorder.onstop = () => {
+    const finalMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
+    const ext  = getFileExtension(finalMime);
+    const blob = new Blob(recordedChunks, { type: finalMime });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const ts   = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    a.href = url; a.download = `writing-sound-${ts}.${ext}`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    try { masterGain.disconnect(recordDest); } catch(e) {}
+    recordDest = null;
+  };
+  mediaRecorder.start(100);
+  isRecording = true;
+  recBtn.textContent = '[ ● rec ]';
+  recBtn.classList.add('recording');
+}
+
+function stopRecording() {
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+  mediaRecorder.stop();
+  isRecording = false;
+  recBtn.textContent = '[ rec ]';
+  recBtn.classList.remove('recording');
+}
+
+// ════════════════════════════════════════════
+//  SLIDER LABELS
+// ════════════════════════════════════════════
+function updateSliderLabels() {
+  if (soundMode === 'musical') {
+    document.getElementById('s2label').firstChild.textContent = 'reverb ';
+    document.getElementById('s3label').firstChild.textContent = 'sensitivity ';
+    document.getElementById('s4label').firstChild.textContent = 'bass ';
+    slider2.min = 0; slider2.max = 1; slider2.step = 0.01;
+    slider3.min = 0; slider3.max = 1; slider3.step = 0.01;
+    slider4.min = 0; slider4.max = 1; slider4.step = 0.01;
+  } else {
+    document.getElementById('s2label').firstChild.textContent = 'voices ';
+    document.getElementById('s3label').firstChild.textContent = 'min hz ';
+    document.getElementById('s4label').firstChild.textContent = 'max hz ';
+    slider2.min = 1;   slider2.max = 16;   slider2.step = 1;  slider2.value = 8;
+    slider3.min = 50;  slider3.max = 500;  slider3.step = 10; slider3.value = 100;
+    slider4.min = 500; slider4.max = 4000; slider4.step = 50; slider4.value = 2000;
+    document.getElementById('s2Val').textContent = '8';
+    document.getElementById('s3Val').textContent = '100 hz';
+    document.getElementById('s4Val').textContent = '2000 hz';
+  }
 }
 // ════════════════════════════════════════════
 //  STRING NOTE
@@ -807,7 +986,8 @@ function playStringNote(freq, noteName, velocity = 0.5, yNorm = 0.5, warmth = 12
   document.getElementById('liveNote').textContent = noteName;
 
   pushNoteHistory(noteName);
-  addTrail(yNorm, trailColor(warmth));
+  // Передаём velocity в addTrail для размера точки
+  addTrail(yNorm, trailColor(warmth), velocity);
 }
 
 // ════════════════════════════════════════════
@@ -833,10 +1013,6 @@ function playBassNote(freq, velocity = 0.5) {
 
 // ════════════════════════════════════════════
 //  KICK
-//  pentatonic — глубокий тёплый удар
-//  japanese   — короткий с металлическим призвуком
-//  wholetone  — размытый, с долгим затуханием
-//  chromatic  — резкий индустриальный
 // ════════════════════════════════════════════
 function playKick(vol) {
   if (!audioCtx || isMuted) return;
@@ -844,7 +1020,6 @@ function playKick(vol) {
   const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * bassAmount * 1.4;
 
   if (currentScale === 'japanese') {
-    // Короткий удар + металлический призвук
     const body = audioCtx.createOscillator();
     const bg   = audioCtx.createGain();
     body.type = 'sine';
@@ -855,7 +1030,6 @@ function playKick(vol) {
     body.connect(bg); bg.connect(masterGain);
     body.start(now); body.stop(now + 0.45);
 
-    // Металлический призвук — высокий синус
     const metal = audioCtx.createOscillator();
     const mg    = audioCtx.createGain();
     metal.type = 'sine';
@@ -867,7 +1041,6 @@ function playKick(vol) {
     metal.start(now); metal.stop(now + 0.75);
 
   } else if (currentScale === 'wholetone') {
-    // Размытый, долгое затухание
     const body = audioCtx.createOscillator();
     const bg   = audioCtx.createGain();
     body.type = 'sine';
@@ -879,7 +1052,6 @@ function playKick(vol) {
     body.connect(bg); bg.connect(masterGain);
     body.start(now); body.stop(now + 2.6);
 
-    // Лёгкий шум для текстуры
     const nlen = Math.floor(audioCtx.sampleRate * 1.0);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -894,7 +1066,6 @@ function playKick(vol) {
     ns.start(now);
 
   } else if (currentScale === 'chromatic') {
-    // Резкий индустриальный — жёсткая атака, металл
     const body = audioCtx.createOscillator();
     const bg   = audioCtx.createGain();
     body.type = 'square';
@@ -905,7 +1076,6 @@ function playKick(vol) {
     body.connect(bg); bg.connect(masterGain);
     body.start(now); body.stop(now + 0.65);
 
-    // Жёсткий шум
     const nlen = Math.floor(audioCtx.sampleRate * 0.15);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -920,7 +1090,6 @@ function playKick(vol) {
     ns.start(now);
 
   } else {
-    // pentatonic — оригинальный глубокий удар
     const body = audioCtx.createOscillator();
     const bg   = audioCtx.createGain();
     body.type = 'sine';
@@ -973,16 +1142,11 @@ function playKick(vol) {
     ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
     ns.start(now);
   }
-
   flashDrum('kick');
 }
 
 // ════════════════════════════════════════════
 //  SNARE
-//  pentatonic — классический
-//  japanese   — деревянный короткий
-//  wholetone  — мягкий размытый
-//  chromatic  — металлический жёсткий
 // ════════════════════════════════════════════
 function playSnare(vol) {
   if (!audioCtx || isMuted) return;
@@ -990,7 +1154,6 @@ function playSnare(vol) {
   const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.65;
 
   if (currentScale === 'japanese') {
-    // Деревянный блок — короткий тональный удар
     const tone = audioCtx.createOscillator();
     const tg   = audioCtx.createGain();
     tone.type = 'triangle';
@@ -1001,7 +1164,6 @@ function playSnare(vol) {
     tone.connect(tg); tg.connect(masterGain);
     tone.start(now); tone.stop(now + 0.15);
 
-    // Короткий шум
     const nlen = Math.floor(audioCtx.sampleRate * 0.05);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1016,7 +1178,6 @@ function playSnare(vol) {
     src.start(now);
 
   } else if (currentScale === 'wholetone') {
-    // Мягкий — больше шума, меньше тона
     const nlen = Math.floor(audioCtx.sampleRate * 0.5);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1030,18 +1191,15 @@ function playSnare(vol) {
     src.connect(lp); lp.connect(sg); sg.connect(masterGain);
     src.start(now);
 
-    // Тихий тон под шумом
     const tone = audioCtx.createOscillator();
     const tg   = audioCtx.createGain();
-    tone.type = 'sine';
-    tone.frequency.value = 180;
+    tone.type = 'sine'; tone.frequency.value = 180;
     tg.gain.setValueAtTime(v * 0.2, now);
     tg.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
     tone.connect(tg); tg.connect(masterGain);
     tone.start(now); tone.stop(now + 0.45);
 
   } else if (currentScale === 'chromatic') {
-    // Металлический — высокий тон + жёсткий шум
     const tone = audioCtx.createOscillator();
     const tg   = audioCtx.createGain();
     tone.type = 'sawtooth';
@@ -1066,7 +1224,6 @@ function playSnare(vol) {
     src.start(now);
 
   } else {
-    // pentatonic — классический снейр
     const tone = audioCtx.createOscillator();
     const tg   = audioCtx.createGain();
     tone.type = 'sine';
@@ -1101,16 +1258,11 @@ function playSnare(vol) {
     src.connect(lp); lp.connect(sg); sg.connect(masterGain);
     src.start(now);
   }
-
   flashDrum('snare');
 }
 
 // ════════════════════════════════════════════
 //  HIHAT
-//  pentatonic — мягкий шелест
-//  japanese   — тонкий металлический
-//  wholetone  — воздушный размытый
-//  chromatic  — жёсткий сухой
 // ════════════════════════════════════════════
 function playHihat(vol) {
   if (!audioCtx || isMuted) return;
@@ -1118,7 +1270,6 @@ function playHihat(vol) {
   const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.32;
 
   if (currentScale === 'japanese') {
-    // Тонкий металлический — высокая частота, быстро
     const duration = 0.04 + Math.random() * 0.06;
     const nlen = Math.floor(audioCtx.sampleRate * duration);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
@@ -1133,7 +1284,6 @@ function playHihat(vol) {
     src.connect(bp); bp.connect(g); g.connect(masterGain);
     src.start(now);
 
-    // Тональный призвук
     const sing = audioCtx.createOscillator();
     const sg   = audioCtx.createGain();
     sing.type = 'sine';
@@ -1144,13 +1294,11 @@ function playHihat(vol) {
     sing.start(now); sing.stop(now + duration * 2);
 
   } else if (currentScale === 'wholetone') {
-    // Воздушный — широкий, долгий
     const duration = 0.2 + Math.random() * 0.15;
     const nlen = Math.floor(audioCtx.sampleRate * duration);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
     for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
-
     [2000, 4000, 7000].forEach(freq => {
       const src = audioCtx.createBufferSource(); src.buffer = nbuf;
       const bp  = audioCtx.createBiquadFilter();
@@ -1164,7 +1312,6 @@ function playHihat(vol) {
     });
 
   } else if (currentScale === 'chromatic') {
-    // Жёсткий сухой — очень короткий, резкий
     const duration = 0.03 + Math.random() * 0.03;
     const nlen = Math.floor(audioCtx.sampleRate * duration);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
@@ -1180,13 +1327,11 @@ function playHihat(vol) {
     src.start(now);
 
   } else {
-    // pentatonic — оригинальный мягкий шелест
     const duration = 0.08 + Math.random() * 0.12;
     const nlen = Math.floor(audioCtx.sampleRate * duration);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
     for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
-
     const bands = [
       { f: 2500 + Math.random() * 800,  q: 0.8, g: 0.65 },
       { f: 5000 + Math.random() * 1500, q: 0.6, g: 0.4  },
@@ -1202,7 +1347,6 @@ function playHihat(vol) {
       src.connect(bp); bp.connect(g); g.connect(masterGain);
       src.start(now);
     });
-
     if (Math.random() < 0.4) {
       const sing = audioCtx.createOscillator();
       const sg   = audioCtx.createGain();
@@ -1214,16 +1358,11 @@ function playHihat(vol) {
       sing.start(now + 0.02); sing.stop(now + duration * 1.5);
     }
   }
-
   flashDrum('hihat');
 }
 
 // ════════════════════════════════════════════
 //  PERC
-//  pentatonic — случайный характер как раньше
-//  japanese   — тональный резонатор
-//  wholetone  — долгий колокол
-//  chromatic  — индустриальный металл
 // ════════════════════════════════════════════
 function playPerc(vol, pitchNorm = 0.5) {
   if (!audioCtx || isMuted) return;
@@ -1232,7 +1371,6 @@ function playPerc(vol, pitchNorm = 0.5) {
   const baseFreq = 80 + pitchNorm * 340;
 
   if (currentScale === 'japanese') {
-    // Тональный резонатор — долгий звенящий тон
     const freq = 200 + pitchNorm * 600;
     const o1 = audioCtx.createOscillator();
     const g1 = audioCtx.createGain();
@@ -1246,44 +1384,36 @@ function playPerc(vol, pitchNorm = 0.5) {
     o1.connect(f1); f1.connect(g1); g1.connect(masterGain);
     o1.start(now); o1.stop(now + 1.3);
 
-    // Второй тон — квинта
     const o2 = audioCtx.createOscillator();
     const g2 = audioCtx.createGain();
-    o2.type = 'sine';
-    o2.frequency.value = freq * 1.5;
+    o2.type = 'sine'; o2.frequency.value = freq * 1.5;
     g2.gain.setValueAtTime(v * 0.3, now);
     g2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
     o2.connect(g2); g2.connect(masterGain);
     o2.start(now); o2.stop(now + 0.85);
 
   } else if (currentScale === 'wholetone') {
-    // Колокол — долгий, с биениями
     const freq = 300 + pitchNorm * 500;
     const beatFreq = freq * 1.007;
     [freq, beatFreq].forEach(f => {
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
-      o.type = 'sine';
-      o.frequency.value = f;
+      o.type = 'sine'; o.frequency.value = f;
       g.gain.setValueAtTime(v * 0.7, now);
       g.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
       o.connect(g); g.connect(masterGain);
       o.start(now); o.stop(now + 2.1);
     });
-
-    // Атака
     const clen = Math.floor(audioCtx.sampleRate * 0.008);
     const cbuf = audioCtx.createBuffer(1, clen, audioCtx.sampleRate);
     const cd   = cbuf.getChannelData(0);
-    for (let i = 0; i < clen; i++) cd[i] = (1 - i / clen) * (Math.random() * 2 - 1);
+    for (let i = 0; i < clen; i++) cd[i] = (1 - i/clen) * (Math.random()*2-1);
     const cs = audioCtx.createBufferSource(); cs.buffer = cbuf;
     const cg = audioCtx.createGain();
     cg.gain.setValueAtTime(v * 0.6, now);
-    cs.connect(cg); cg.connect(masterGain);
-    cs.start(now);
+    cs.connect(cg); cg.connect(masterGain); cs.start(now);
 
   } else if (currentScale === 'chromatic') {
-    // Индустриальный — шум + резкий тон
     const o1 = audioCtx.createOscillator();
     const g1 = audioCtx.createGain();
     o1.type = 'sawtooth';
@@ -1308,7 +1438,6 @@ function playPerc(vol, pitchNorm = 0.5) {
     ns.start(now);
 
   } else {
-    // pentatonic — оригинальный случайный характер
     const char_ = Math.random();
     if (char_ < 0.4) {
       const o1 = audioCtx.createOscillator();
@@ -1322,7 +1451,6 @@ function playPerc(vol, pitchNorm = 0.5) {
       g1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
       o1.connect(f1); f1.connect(g1); g1.connect(masterGain);
       o1.start(now); o1.stop(now + 0.3);
-
     } else if (char_ < 0.7) {
       const beatFreq = baseFreq * (1.03 + Math.random() * 0.04);
       [baseFreq, beatFreq].forEach(f => {
@@ -1336,7 +1464,6 @@ function playPerc(vol, pitchNorm = 0.5) {
         o.connect(g); g.connect(masterGain);
         o.start(now); o.stop(now + 0.6);
       });
-
     } else {
       const o1 = audioCtx.createOscillator();
       const g1 = audioCtx.createGain();
@@ -1361,18 +1488,15 @@ function playPerc(vol, pitchNorm = 0.5) {
       ns.connect(nf); nf.connect(ngg); ngg.connect(masterGain);
       ns.start(now);
     }
-
     const clen = Math.floor(audioCtx.sampleRate * 0.006);
     const cbuf = audioCtx.createBuffer(1, clen, audioCtx.sampleRate);
     const cd   = cbuf.getChannelData(0);
-    for (let i = 0; i < clen; i++) cd[i] = (1 - i / clen) * (Math.random() * 2 - 1);
+    for (let i = 0; i < clen; i++) cd[i] = (1-i/clen)*(Math.random()*2-1);
     const cs = audioCtx.createBufferSource(); cs.buffer = cbuf;
     const cg = audioCtx.createGain();
     cg.gain.setValueAtTime(v * 0.5, now);
-    cs.connect(cg); cg.connect(masterGain);
-    cs.start(now);
+    cs.connect(cg); cg.connect(masterGain); cs.start(now);
   }
-
   flashDrum('perc');
 }
 
@@ -1386,119 +1510,24 @@ function flashDrum(name) {
   setTimeout(() => btn.classList.remove('hit'), 75);
 }
 // ════════════════════════════════════════════
-//  AUDIO STATUS
-// ════════════════════════════════════════════
-function updateAudioStatus() {
-  if (!audioCtx) { audioStatus.textContent = 'audio: —'; return; }
-  audioStatus.textContent = `audio: ${audioCtx.state}`;
-  audioStatus.style.color = audioCtx.state === 'running'
-    ? 'rgba(255,255,255,0.25)' : '#f44';
-}
-
-// ════════════════════════════════════════════
-//  ЗАПИСЬ АУДИО
-//  Пробуем mp4, если не поддерживается — webm
-// ════════════════════════════════════════════
-function getMimeType() {
-  const types = [
-    'audio/mp4',
-    'audio/mp4;codecs=mp4a.40.2',
-    'audio/webm;codecs=opus',
-    'audio/webm',
-  ];
-  for (const t of types) {
-    if (MediaRecorder.isTypeSupported(t)) return t;
-  }
-  return '';
-}
-
-function getFileExtension(mimeType) {
-  if (mimeType.startsWith('audio/mp4')) return 'mp4';
-  return 'webm';
-}
-
-function startRecording() {
-  if (!audioCtx || !masterGain) return;
-
-  // Виртуальный выход — поток из аудиографа
-  recordDest = audioCtx.createMediaStreamDestination();
-  masterGain.connect(recordDest);
-
-  const mimeType = getMimeType();
-  const options  = mimeType ? { mimeType } : {};
-
-  try {
-    mediaRecorder  = new MediaRecorder(recordDest.stream, options);
-  } catch(e) {
-    // Если с опциями не вышло — пробуем без
-    mediaRecorder = new MediaRecorder(recordDest.stream);
-  }
-
-  recordedChunks = [];
-
-  mediaRecorder.ondataavailable = e => {
-    if (e.data.size > 0) recordedChunks.push(e.data);
-  };
-
-  mediaRecorder.onstop = () => {
-    const finalMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
-    const ext       = getFileExtension(finalMime);
-    const blob      = new Blob(recordedChunks, { type: finalMime });
-    const url       = URL.createObjectURL(blob);
-    const a         = document.createElement('a');
-    const ts        = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-    a.href          = url;
-    a.download      = `writing-sound-${ts}.${ext}`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    // Отключаем виртуальный выход
-    try { masterGain.disconnect(recordDest); } catch(e) {}
-    recordDest = null;
-  };
-
-  mediaRecorder.start(100);
-  isRecording = true;
-  recBtn.textContent = '[ ● rec ]';
-  recBtn.classList.add('recording');
-}
-
-function stopRecording() {
-  if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
-  mediaRecorder.stop();
-  isRecording = false;
-  recBtn.textContent = '[ rec ]';
-  recBtn.classList.remove('recording');
-}
-
-// ════════════════════════════════════════════
-//  SLIDER LABELS
-// ════════════════════════════════════════════
-function updateSliderLabels() {
-  if (soundMode === 'musical') {
-    document.getElementById('s2label').firstChild.textContent = 'reverb ';
-    document.getElementById('s3label').firstChild.textContent = 'sensitivity ';
-    document.getElementById('s4label').firstChild.textContent = 'bass ';
-    slider2.min = 0; slider2.max = 1; slider2.step = 0.01;
-    slider3.min = 0; slider3.max = 1; slider3.step = 0.01;
-    slider4.min = 0; slider4.max = 1; slider4.step = 0.01;
-  } else {
-    document.getElementById('s2label').firstChild.textContent = 'voices ';
-    document.getElementById('s3label').firstChild.textContent = 'min hz ';
-    document.getElementById('s4label').firstChild.textContent = 'max hz ';
-    slider2.min = 1;   slider2.max = 16;   slider2.step = 1;  slider2.value = 8;
-    slider3.min = 50;  slider3.max = 500;  slider3.step = 10; slider3.value = 100;
-    slider4.min = 500; slider4.max = 4000; slider4.step = 50; slider4.value = 2000;
-    document.getElementById('s2Val').textContent = '8';
-    document.getElementById('s3Val').textContent = '100 hz';
-    document.getElementById('s4Val').textContent = '2000 hz';
-  }
-}
-
-// ════════════════════════════════════════════
 //  CAMERA
 // ════════════════════════════════════════════
 async function startCamera() {
-  if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+  // Останавливаем всё что было до этого
+  cancelAnimationFrame(animId);
+  isRunning = false;
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+  }
+
+  // Сбрасываем состояние видеофайла
+  videoSource = 'camera';
+  videoFileLabel.classList.remove('visible');
+  videoProgress.style.display = 'none';
+  fileBtn.classList.remove('file-active');
+  camBtn.textContent = useFrontCam ? '[ cam: front ]' : '[ cam: rear ]';
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
@@ -1508,11 +1537,111 @@ async function startCamera() {
       audio: false
     });
     video.srcObject = stream;
+    video.muted = true;
     await new Promise(r => { video.onloadedmetadata = r; });
     await video.play();
     isRunning = true;
+    resetMotionState();
     scanLoop();
-  } catch(e) { audioStatus.textContent = 'camera: ' + e.message; }
+  } catch(e) {
+    audioStatus.textContent = 'camera: ' + e.message;
+  }
+}
+
+// ════════════════════════════════════════════
+//  VIDEO FILE
+//  Загружаем файл через URL.createObjectURL
+//  и запускаем как src для того же <video>
+// ════════════════════════════════════════════
+function startVideoFile(file) {
+  // Останавливаем камеру если была
+  cancelAnimationFrame(animId);
+  isRunning = false;
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+  }
+
+  videoSource = 'file';
+  fileBtn.classList.add('file-active');
+  fileBtn.textContent = '[ ■ stop ]';
+
+  // Показываем имя файла (обрезаем если длинное)
+  const name = file.name.length > 20
+    ? file.name.slice(0, 18) + '…'
+    : file.name;
+  videoFileLabel.textContent = '▶ ' + name;
+  videoFileLabel.classList.add('visible');
+  videoProgress.style.display = 'block';
+
+  // Освобождаем старый URL если был
+  if (video._fileUrl) URL.revokeObjectURL(video._fileUrl);
+  video._fileUrl = URL.createObjectURL(file);
+
+  // Настраиваем видео
+  video.src      = video._fileUrl;
+  video.srcObject = null;
+  video.muted    = true;   // своя музыка — звук видео не нужен
+  video.loop     = true;
+  video.playbackRate = 1.0;
+
+  video.onloadedmetadata = async () => {
+    await video.play();
+    isRunning = true;
+    resetMotionState();
+    scanLoop();
+  };
+
+  // Прогресс-бар
+  video.ontimeupdate = () => {
+    if (video.duration && videoSource === 'file') {
+      const pct = (video.currentTime / video.duration) * 100;
+      videoProgressFill.style.width = pct + '%';
+    }
+  };
+
+  video.onended = () => {
+    // loop=true значит не дойдёт сюда, но на всякий случай
+    videoProgressFill.style.width = '0%';
+  };
+}
+
+function stopVideoFile() {
+  cancelAnimationFrame(animId);
+  isRunning = false;
+  video.pause();
+  video.src = '';
+  if (video._fileUrl) {
+    URL.revokeObjectURL(video._fileUrl);
+    video._fileUrl = null;
+  }
+  videoFileLabel.classList.remove('visible');
+  videoProgress.style.display = 'none';
+  videoProgressFill.style.width = '0%';
+  fileBtn.classList.remove('file-active');
+  fileBtn.textContent = '[ video file ]';
+  videoSource = 'camera';
+  // Возвращаемся к камере автоматически
+  startCamera();
+}
+
+// ════════════════════════════════════════════
+//  СБРОС СОСТОЯНИЯ ДВИЖЕНИЯ
+//  Вызываем при смене источника чтобы не было
+//  ложных триггеров от старых данных
+// ════════════════════════════════════════════
+function resetMotionState() {
+  prevScanCol.fill(0);
+  prevZoneBright.fill(0);
+  zoneCooldowns.fill(0);
+  hardCooldown   = 0;
+  motionSmoothed = 0;
+  prevBright     = 0;
+  prevContrast   = 0;
+  prevTopBright  = 0;
+  hihatFlicker   = 0;
+  noteTrails     = [];
+  trailCtx.clearRect(0, 0, 640, 480);
 }
 
 // ════════════════════════════════════════════
@@ -1520,6 +1649,7 @@ async function startCamera() {
 // ════════════════════════════════════════════
 function scanLoop() {
   if (!isRunning) return;
+
   if (video.readyState >= 2) {
     const vw = video.videoWidth  || 640;
     const vh = video.videoHeight || 480;
@@ -1527,60 +1657,111 @@ function scanLoop() {
     let sx = 0, sy = 0, sw = vw, sh = vh;
     if (va > ta) { sw = Math.round(vh * ta); sx = Math.round((vw - sw) / 2); }
     else         { sh = Math.round(vw / ta); sy = Math.round((vh - sh) / 2); }
+
+    // Рисуем кадр в offscreen для анализа пикселей
     offCtx.drawImage(video, sx, sy, sw, sh, 0, 0, 640, 480);
     const frame = offCtx.getImageData(0, 0, 640, 480);
+
     processFrame(frame.data);
     drawVisualizer();
     drawTrails();
   }
+
   animId = requestAnimationFrame(scanLoop);
   frameCount++;
 }
 
 // ════════════════════════════════════════════
 //  FRAME PROCESSING
+//  Ключевое изменение: в colorMode рисуем
+//  оригинальный цветной кадр, в grayscale —
+//  чёрно-белый как раньше
 // ════════════════════════════════════════════
 function processFrame(data) {
   const W = 640, H = 480;
-  const out  = ctx.createImageData(W, H);
-  const outD = out.data;
-  const scanX = W / 2, scanW = 5;
+  const scanX = W / 2;
+  const scanW = 5;
   const scanCol = new Float32Array(H);
 
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const i    = (y * W + x) * 4;
-      const gray = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
-      if (x >= scanX - scanW && x <= scanX + scanW) scanCol[y] = gray;
-      outD[i] = outD[i+1] = outD[i+2] = gray;
-      outD[i+3] = 255;
+  if (colorMode) {
+    // ── ЦВЕТНОЙ РЕЖИМ ──
+    // Рисуем оригинальный кадр как есть
+    // Поверх накладываем лёгкий оверлей для стиля
+    const out  = ctx.createImageData(W, H);
+    const outD = out.data;
+
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4;
+        // Оригинальные цвета с лёгким контрастом
+        outD[i]   = Math.min(255, data[i]   * 1.05);
+        outD[i+1] = Math.min(255, data[i+1] * 1.05);
+        outD[i+2] = Math.min(255, data[i+2] * 1.05);
+        outD[i+3] = 255;
+        // Собираем яркость для анализа
+        if (x >= scanX - scanW && x <= scanX + scanW) {
+          scanCol[y] = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+        }
+      }
+    }
+    ctx.putImageData(out, 0, 0);
+
+    // Сетка поверх цветного изображения — чуть темнее
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 1;
+    for (let y = 0; y < H; y += 40) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+
+    // Подсветка сканирующей полосы в цвете
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fillRect(scanX - scanW, 0, scanW * 2, H);
+
+  } else {
+    // ── GRAYSCALE РЕЖИМ ──
+    const out  = ctx.createImageData(W, H);
+    const outD = out.data;
+
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i    = (y * W + x) * 4;
+        const gray = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+        if (x >= scanX - scanW && x <= scanX + scanW) scanCol[y] = gray;
+        outD[i] = outD[i+1] = outD[i+2] = gray;
+        outD[i+3] = 255;
+      }
+    }
+    ctx.putImageData(out, 0, 0);
+
+    // Сетка
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.lineWidth = 1;
+    for (let y = 0; y < H; y += 40) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
     }
   }
-  ctx.putImageData(out, 0, 0);
-  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-  ctx.lineWidth = 1;
-  for (let y = 0; y < H; y += 40) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
 
-  // Цветовой анализ
+  // ── ОБЩИЙ АНАЛИЗ ──
   const colorWarmth = colorMode
     ? analyzeColor(data, scanX, H, W)
     : 128;
   prevColorHue = colorWarmth;
 
+  // Средняя яркость по сканирующей полосе
   let sum = 0;
   for (let i = 0; i < H; i++) sum += scanCol[i];
   const avgBright = sum / H;
 
+  // Движение — разница с предыдущим кадром
   let motionSum = 0;
   for (let y = 0; y < H; y++) motionSum += Math.abs(scanCol[y] - prevScanCol[y]);
   const motionRaw = motionSum / H;
   motionSmoothed = motionRaw > motionSmoothed
-    ? motionSmoothed * 0.6 + motionRaw * 0.4
+    ? motionSmoothed * 0.6  + motionRaw * 0.4
     : motionSmoothed * 0.92 + motionRaw * 0.08;
   prevScanCol.set(scanCol);
 
+  // Обновляем UI
   document.getElementById('infoLum').textContent    = Math.round(avgBright);
   document.getElementById('liveLum').textContent    = `lum. ${Math.round(avgBright)}`;
   document.getElementById('infoMotion').textContent = Math.round(motionSmoothed * 10) / 10;
@@ -1606,7 +1787,7 @@ function applySoundRaw(scanCol, avgBright) {
   const now     = audioCtx.currentTime;
   const volMax  = parseFloat(volumeSlider.value) / Math.sqrt(count);
   for (let i = 0; i < count; i++) {
-    const s = Math.floor(i * zoneH), e = Math.floor((i+1)*zoneH);
+    const s = Math.floor(i * zoneH), e = Math.floor((i+1) * zoneH);
     let sm = 0;
     for (let y = s; y < e; y++) sm += scanCol[y];
     const b    = (sm / (e - s)) / 255;
@@ -1617,7 +1798,9 @@ function applySoundRaw(scanCol, avgBright) {
     oscillators[i].frequency.linearRampToValueAtTime(freq, now + 0.04);
     gainNodes[i].gain.cancelScheduledValues(now);
     gainNodes[i].gain.setValueAtTime(gainNodes[i].gain.value, now);
-    gainNodes[i].gain.linearRampToValueAtTime(Math.max(0, Math.min(vol, volMax)), now + 0.04);
+    gainNodes[i].gain.linearRampToValueAtTime(
+      Math.max(0, Math.min(vol, volMax)), now + 0.04
+    );
   }
   document.getElementById('infoMode').textContent = 'raw';
   document.getElementById('infoNote').textContent = '—';
@@ -1646,7 +1829,7 @@ function applySoundMusical(scanCol, avgBright, motion, colorWarmth) {
   }
 
   if (dryGain) dryGain.gain.setTargetAtTime(1 - reverbAmount, now, 0.5);
-  if (wetGain) wetGain.gain.setTargetAtTime(reverbAmount, now, 0.5);
+  if (wetGain) wetGain.gain.setTargetAtTime(reverbAmount,     now, 0.5);
 
   const H     = scanCol.length;
   const zoneH = H / ZONE_COUNT;
@@ -1669,7 +1852,7 @@ function applySoundMusical(scanCol, avgBright, motion, colorWarmth) {
   const triggerThreshold = 30 - sensitivity * 24;
   const minHardCooldown  = Math.floor(4 + (1 - sensitivity) * 10);
 
-  // Зона с максимальным изменением
+  // Ищем зону с максимальным изменением
   let maxDelta = 0, triggerZone = -1;
   for (let z = 0; z < ZONE_COUNT; z++) {
     const delta = Math.abs(zoneBright[z] - prevZoneBright[z]);
@@ -1701,7 +1884,9 @@ function applySoundMusical(scanCol, avgBright, motion, colorWarmth) {
   const bottomDelta  = Math.abs(bottomBright - prevZoneBright[ZONE_COUNT - 1]);
   if (bottomDelta > triggerThreshold * 0.8 && bassCooldown === 0 && bottomBright > 15) {
     const bassNorm = bottomBright / 255;
-    const bIdx = Math.min(Math.floor(bassNorm * BASS_FREQS.length), BASS_FREQS.length - 1);
+    const bIdx = Math.min(
+      Math.floor(bassNorm * BASS_FREQS.length), BASS_FREQS.length - 1
+    );
     playBassNote(BASS_FREQS[bIdx], 0.4 + bassNorm * 0.4);
     bassCooldown = 25;
   }
@@ -1788,7 +1973,8 @@ function drawVisualizer() {
       if (v < 0.015) continue;
       const x = (i / buf) * W;
       const h = v * H;
-      vizCtx.fillStyle = `rgba(255,${Math.floor(80 + 26 * v)},0,${0.3 + v * 0.7})`;
+      vizCtx.fillStyle =
+        `rgba(255,${Math.floor(80 + 26 * v)},0,${0.3 + v * 0.7})`;
       vizCtx.fillRect(x, H - h, 1.5, h);
     }
   } else {
@@ -1797,7 +1983,8 @@ function drawVisualizer() {
     analyser.getByteTimeDomainData(dat);
     const isQuiet = motionSmoothed < MOTION_THRESHOLD;
     vizCtx.beginPath();
-    vizCtx.strokeStyle = isQuiet ? 'rgba(255,106,0,0.12)' : 'rgba(255,106,0,0.85)';
+    vizCtx.strokeStyle = isQuiet
+      ? 'rgba(255,106,0,0.12)' : 'rgba(255,106,0,0.85)';
     vizCtx.lineWidth   = isQuiet ? 1 : 1.5;
     vizCtx.shadowColor = 'rgba(255,106,0,0.35)';
     vizCtx.shadowBlur  = isQuiet ? 0 : 6;
@@ -1849,26 +2036,37 @@ document.querySelectorAll('.scale-btn').forEach(btn => {
     currentScale = btn.dataset.scale;
     document.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    // Сбрасываем историю при смене гаммы
     noteHistory = [];
-    // Сбрасываем все cooldown чтобы ударные сразу
-    // отреагировали в новом характере
-    kickCooldown  = 0;
-    snareCooldown = 0;
-    hihatCooldown = 0;
-    percCooldown  = 0;
+    kickCooldown = 0; snareCooldown = 0;
+    hihatCooldown = 0; percCooldown = 0;
   });
 });
 
 // ════════════════════════════════════════════
 //  COLOR MODE BUTTONS
+//  Переключаем colorMode и меняем класс
+//  colorDot для пульсации в color-режиме
 // ════════════════════════════════════════════
 document.querySelectorAll('.color-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     colorMode = btn.dataset.color === 'on';
     document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    if (!colorMode) colorDot.style.background = '#333';
+
+    if (colorMode) {
+      // Цветной режим — точка пульсирует
+      colorDot.classList.add('color-active');
+    } else {
+      // Grayscale — точка гаснет
+      colorDot.classList.remove('color-active');
+      colorDot.style.background = '#333';
+    }
+
+    // Сбрасываем prev-данные чтобы не было
+    // ложных триггеров при переключении
+    prevScanCol.fill(0);
+    prevZoneBright.fill(0);
+    hardCooldown = 0;
   });
 });
 
@@ -1904,14 +2102,7 @@ document.querySelectorAll('.smode-btn').forEach(btn => {
     document.querySelectorAll('.smode-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     updateSliderLabels();
-    prevZoneBright.fill(0);
-    zoneCooldowns.fill(0);
-    hardCooldown   = 0;
-    motionSmoothed = 0;
-    prevScanCol.fill(0);
-    prevBright     = 0;
-    prevContrast   = 0;
-    hihatFlicker   = 0;
+    resetMotionState();
     if (soundMode === 'raw' && audioCtx && audioReady) createRawOscillators();
   });
 });
@@ -1937,7 +2128,9 @@ volumeSlider.addEventListener('input', () => {
   if (masterGain && !isMuted) {
     const now = audioCtx.currentTime;
     masterGain.gain.setValueAtTime(masterGain.gain.value, now);
-    masterGain.gain.linearRampToValueAtTime(parseFloat(volumeSlider.value), now + 0.05);
+    masterGain.gain.linearRampToValueAtTime(
+      parseFloat(volumeSlider.value), now + 0.05
+    );
   }
 });
 
@@ -2005,14 +2198,54 @@ muteBtn.addEventListener('click', async () => {
 
 // ════════════════════════════════════════════
 //  CAMERA SWITCH
+//  Переключает front/rear и всегда
+//  возвращает к камере из любого источника
 // ════════════════════════════════════════════
 camBtn.addEventListener('click', async () => {
-  useFrontCam = !useFrontCam;
-  camBtn.textContent = useFrontCam ? '[ camera: front ]' : '[ camera: rear ]';
-  if (isRunning) {
-    cancelAnimationFrame(animId); isRunning = false;
-    await startCamera();
+  // Если сейчас видеофайл — просто возвращаемся к камере
+  if (videoSource === 'file') {
+    video.pause();
+    video.src = '';
+    if (video._fileUrl) {
+      URL.revokeObjectURL(video._fileUrl);
+      video._fileUrl = null;
+    }
+    fileBtn.textContent = '[ video file ]';
+    fileBtn.classList.remove('file-active');
+    videoFileLabel.classList.remove('visible');
+    videoProgress.style.display = 'none';
+    videoProgressFill.style.width = '0%';
+  } else {
+    // Переключаем front/rear
+    useFrontCam = !useFrontCam;
   }
+  camBtn.textContent = useFrontCam ? '[ cam: front ]' : '[ cam: rear ]';
+  await startCamera();
+});
+
+// ════════════════════════════════════════════
+//  FILE BUTTON
+//  Если сейчас играет файл — останавливаем
+//  и возвращаемся к камере.
+//  Если нет — открываем выбор файла.
+// ════════════════════════════════════════════
+fileBtn.addEventListener('click', () => {
+  if (videoSource === 'file') {
+    // Стоп — назад к камере
+    stopVideoFile();
+  } else {
+    // Открываем диалог выбора файла
+    videoFileInput.click();
+  }
+});
+
+// Когда пользователь выбрал файл
+videoFileInput.addEventListener('change', () => {
+  const file = videoFileInput.files[0];
+  if (!file) return;
+  // Сбрасываем input чтобы можно было выбрать тот же файл снова
+  videoFileInput.value = '';
+  startVideoFile(file);
 });
 
 // ════════════════════════════════════════════
@@ -2028,13 +2261,15 @@ recBtn.addEventListener('click', () => {
 // ════════════════════════════════════════════
 document.addEventListener('touchstart', async () => {
   if (audioCtx && audioCtx.state === 'suspended') {
-    await audioCtx.resume(); updateAudioStatus();
+    await audioCtx.resume();
+    updateAudioStatus();
   }
 }, { passive: true });
 
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible' && audioCtx) {
-    await audioCtx.resume(); updateAudioStatus();
+    await audioCtx.resume();
+    updateAudioStatus();
   }
 });
 
