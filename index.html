@@ -57,6 +57,12 @@
     }
     .tick.t { top: 0; } .tick.b { bottom: 0; }
 
+    /* ── Следы нот на сканирующей линии ── */
+    #trailCanvas {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 12;
+    }
+
     #audioStatus {
       position: absolute; bottom: 8px; left: 10px;
       font-size: 0.42rem; color: #555; letter-spacing: 2px; z-index: 15;
@@ -77,6 +83,14 @@
       position: absolute; top: 0; left: 0;
       height: 2px; background: var(--orange);
       width: 0%; z-index: 15; transition: width 0.1s; opacity: 0.6;
+    }
+
+    /* ── Индикатор цвета ── */
+    #colorDot {
+      position: absolute; top: 10px; right: 10px;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #333; z-index: 15;
+      transition: background 0.3s;
     }
 
     #startOverlay {
@@ -105,9 +119,35 @@
     }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
+    /* ── Визуализатор ── */
     #vizCanvas {
       width: 100%; max-width: 640px; height: 52px;
       display: block; background: #000; border-top: 1px solid #1a1a1a;
+    }
+
+    /* ── История нот ── */
+    .note-history {
+      width: 100%; max-width: 640px;
+      height: 28px; background: #000;
+      border-top: 1px solid #111;
+      display: flex; align-items: center;
+      padding: 0 10px; gap: 6px; overflow: hidden;
+    }
+    .note-history-label {
+      font-size: 0.32rem; color: #333; letter-spacing: 2px;
+      white-space: nowrap; margin-right: 4px;
+    }
+    .note-pip {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 2px; opacity: 0; transition: opacity 0.3s;
+    }
+    .note-pip.visible { opacity: 1; }
+    .note-pip-dot {
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--orange);
+    }
+    .note-pip-name {
+      font-size: 0.28rem; color: #555; letter-spacing: 1px;
     }
 
     .data-row {
@@ -126,6 +166,7 @@
       padding: 10px 10px 0; text-transform: uppercase; border-top: 1px solid #111;
     }
 
+    /* ── Sound modes ── */
     .sound-modes { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; }
     .smode-btn {
       padding: 12px 10px; border:none; border-right:1px solid #1a1a1a;
@@ -139,6 +180,51 @@
     .smode-btn.active { background:var(--orange-faint); color:var(--orange); border-bottom:1px solid var(--orange); }
     .smode-btn.active .smode-desc { color:#663300; }
 
+    /* ── Scales ── */
+    .scale-modes { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid #1a1a1a; }
+    .scale-btn {
+      padding: 10px 4px; border:none; border-right:1px solid #1a1a1a;
+      background:#000; color:#666; font-family:'Share Tech Mono',monospace;
+      font-size:0.42rem; letter-spacing:1px; cursor:pointer; text-align:center;
+      line-height: 1.8;
+    }
+    .scale-btn:last-child { border-right:none; }
+    .scale-btn .sc-name { display:block; font-size:0.5rem; }
+    .scale-btn .sc-desc { display:block; font-size:0.32rem; color:#444; }
+    .scale-btn.active { background:var(--orange-faint); color:var(--orange); }
+    .scale-btn.active .sc-desc { color:#663300; }
+
+    /* ── Polyphony ── */
+    .poly-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .poly-btn {
+      padding: 10px 0; border:none; border-right:1px solid #1a1a1a;
+      background:#000; color:#666; font-family:'Share Tech Mono',monospace;
+      font-size:0.6rem; letter-spacing:2px; cursor:pointer; text-align:center;
+    }
+    .poly-btn:last-child { border-right:none; }
+    .poly-btn.active { background:var(--orange-faint); color:var(--orange); }
+
+    /* ── Color mode ── */
+    .color-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .color-btn {
+      padding: 11px 10px; border:none; border-right:1px solid #1a1a1a;
+      background:#000; color:#666; font-family:'Share Tech Mono',monospace;
+      font-size:0.52rem; letter-spacing:2px; cursor:pointer; text-align:left;
+      line-height: 1.8;
+    }
+    .color-btn:last-child { border-right:none; }
+    .color-btn .cb-name { display:block; }
+    .color-btn .cb-desc { font-size:0.36rem; color:#444; letter-spacing:1px; display:block; }
+    .color-btn.active { background:var(--orange-faint); color:var(--orange); }
+    .color-btn.active .cb-desc { color:#663300; }
+
+    /* ── Wave modes ── */
     .wave-modes { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid #1a1a1a; }
     .wave-btn {
       padding:10px 0; border:none; border-right:1px solid #1a1a1a;
@@ -148,6 +234,7 @@
     .wave-btn:last-child { border-right:none; }
     .wave-btn.active { background:var(--orange-faint); color:var(--orange); }
 
+    /* ── Drums ── */
     .drums-grid {
       display: grid; grid-template-columns: 1fr 1fr;
       border-bottom: 1px solid #1a1a1a;
@@ -176,6 +263,7 @@
     .drum-btn.hit { background: rgba(255,106,0,0.22) !important; }
     .drum-btn.hit::after { background: #fff !important; }
 
+    /* ── Sliders ── */
     .sliders { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; }
     .slider-cell { padding:10px 12px; border-right:1px solid #1a1a1a; }
     .slider-cell:nth-child(even) { border-right:none; }
@@ -191,15 +279,17 @@
       border-radius:0; background:var(--orange); cursor:pointer;
     }
 
-    .bottom-btns { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #1a1a1a; margin-bottom:24px; }
+    /* ── Controls ── */
+    .bottom-btns { display:grid; grid-template-columns:1fr 1fr 1fr; border-bottom:1px solid #1a1a1a; margin-bottom:24px; }
     .ctrl-btn {
       padding:12px; border:none; border-right:1px solid #1a1a1a;
       background:#000; color:#666; font-family:'Share Tech Mono',monospace;
-      font-size:0.6rem; letter-spacing:2px; cursor:pointer;
+      font-size:0.55rem; letter-spacing:2px; cursor:pointer;
     }
     .ctrl-btn:last-child { border-right:none; }
     .ctrl-btn.active { color:#fff; }
     .ctrl-btn:active  { background:#111; }
+    .ctrl-btn.recording { color: #f44; animation: blink 1s step-end infinite; }
   </style>
 </head>
 <body>
@@ -213,11 +303,13 @@
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas" width="640" height="480"></canvas>
     <canvas id="offscreen" width="640" height="480"></canvas>
+    <canvas id="trailCanvas" width="640" height="480"></canvas>
     <div class="scan-line"></div>
     <div class="tick t"></div>
     <div class="tick b"></div>
     <div id="motionBar"></div>
     <div id="noteDisplay"></div>
+    <div id="colorDot"></div>
     <div id="audioStatus">audio: —</div>
     <div class="live-data">
       <div id="liveLum">lum. —</div>
@@ -236,6 +328,19 @@
   </div>
 
   <canvas id="vizCanvas" width="640" height="52"></canvas>
+
+  <!-- История нот — 8 точек -->
+  <div class="note-history">
+    <div class="note-history-label">history</div>
+    <div class="note-pip" id="pip0"><div class="note-pip-dot"></div><div class="note-pip-name">—</div></div>
+    <div class="note-pip" id="pip1"><div class="note-pip-dot"></div><div class="note-pip-name">—</div></div>
+    <div class="note-pip" id="pip2"><div class="note-pip-dot"></div><div class="note-pip-name">—</div></div>
+    <div class="note-pip" id="pip3"><div class="note-pip-dot"></div><div class="note-pip-name">—</div></div>
+    <div class="note-pip" id="pip4"><div class="note-pip-dot"></div><div class="note-pip-name">—</div></div>
+    <div class="note-pip" id="pip5"><div class="note-pip-dot"></div><div class="note-pip-name">—</div></div>
+    <div class="note-pip" id="pip6"><div class="note-pip-dot"></div><div class="note-pip-name">—</div></div>
+    <div class="note-pip" id="pip7"><div class="note-pip-dot"></div><div class="note-pip-name">—</div></div>
+  </div>
 
   <div class="data-row">
     <div class="data-cell"><div class="dc-label">brightness</div><div class="dc-val" id="infoLum">—</div></div>
@@ -258,90 +363,37 @@
     </div>
   </div>
 
+  <!-- Выбор гаммы -->
   <div class="section">
-    <div class="section-head">// timbre (mus.) / wave (raw)</div>
-    <div class="wave-modes">
-      <button class="wave-btn" data-mode="sine">SINE</button>
-      <button class="wave-btn active" data-mode="triangle">TRIANGLE</button>
-      <button class="wave-btn" data-mode="sawtooth">SAW</button>
-      <button class="wave-btn" data-mode="square">SQUARE</button>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-head">// percussion (musical mode)</div>
-    <div class="drums-grid">
-      <button class="drum-btn" data-drum="kick">
-        <span class="d-name">KICK</span>
-        <span class="d-desc">brightness spike → drone</span>
+    <div class="section-head">// scale (musical mode)</div>
+    <div class="scale-modes">
+      <button class="scale-btn active" data-scale="pentatonic">
+        <span class="sc-name">PENTA</span>
+        <span class="sc-desc">minor</span>
       </button>
-      <button class="drum-btn" data-drum="snare">
-        <span class="d-name">SNARE</span>
-        <span class="d-desc">contrast → impact</span>
+      <button class="scale-btn" data-scale="japanese">
+        <span class="sc-name">JAPAN</span>
+        <span class="sc-desc">cinematic</span>
       </button>
-      <button class="drum-btn" data-drum="hihat">
-        <span class="d-name">HIHAT</span>
-        <span class="d-desc">flicker → whisper</span>
+      <button class="scale-btn" data-scale="wholetone">
+        <span class="sc-name">WHOLE</span>
+        <span class="sc-desc">dreamlike</span>
       </button>
-      <button class="drum-btn" data-drum="perc">
-        <span class="d-name">PERC</span>
-        <span class="d-desc">midzone → resonance</span>
-      </button>
-    </div>
-  </div>
+      <button class="scale-btn" data-scale="chromatic">
+        <span class="sc-name">CHROM</span>
+        <span class="sc-desc">chaos', freq:293.66},{name:'E4', freq:329.63},
+  ],
+  chromatic: [
+    // Хроматическая: все 12 полутонов — максимальный хаос
+    {name:'C3', freq:130.81},{name:'C#3',freq:138.59},{name:'D3', freq:146.83},
+    {name:'D#3',freq:155.56},{name:'E3', freq:164.81},{name:'F3', freq:174.61},
+    {name:'F#3',freq:185.00},{name:'G3', freq:196.00},{name:'G#3',freq:207.65},
+    {name:'A3', freq:220.00},{name:'A#3',freq:233.08},{name:'B3', freq:246.94},
+    {name:'C4', freq:261.63},{name:'C#4',freq:277.18},{name:'D4', freq:293.66},
+  ],
+};
 
-  <div class="section">
-    <div class="section-head">// parameters</div>
-    <div class="sliders">
-      <div class="slider-cell">
-        <div class="sl-label">volume <span id="volVal">80%</span></div>
-        <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.8">
-      </div>
-      <div class="slider-cell">
-        <div class="sl-label" id="s2label">reverb <span id="s2Val">40%</span></div>
-        <input type="range" id="slider2" min="0" max="1" step="0.01" value="0.4">
-      </div>
-      <div class="slider-cell">
-        <div class="sl-label" id="s3label">sensitivity <span id="s3Val">mid</span></div>
-        <input type="range" id="slider3" min="0" max="1" step="0.01" value="0.5">
-      </div>
-      <div class="slider-cell">
-        <div class="sl-label" id="s4label">bass <span id="s4Val">60%</span></div>
-        <input type="range" id="slider4" min="0" max="1" step="0.01" value="0.6">
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-head">// controls</div>
-    <div class="bottom-btns">
-      <button class="ctrl-btn active" id="muteBtn">[ sound: on ]</button>
-      <button class="ctrl-btn" id="camBtn">[ camera: rear ]</button>
-    </div>
-  </div>
-
-<script>
-// ════════════════════════════════════════════
-//  ELEMENTS
-// ════════════════════════════════════════════
-const video        = document.getElementById('video');
-const canvas       = document.getElementById('canvas');
-const offscreen    = document.getElementById('offscreen');
-const vizCanvas    = document.getElementById('vizCanvas');
-const startOverlay = document.getElementById('startOverlay');
-const muteBtn      = document.getElementById('muteBtn');
-const camBtn       = document.getElementById('camBtn');
-const audioStatus  = document.getElementById('audioStatus');
-const noteDisplay  = document.getElementById('noteDisplay');
-const motionBar    = document.getElementById('motionBar');
-const volumeSlider = document.getElementById('volumeSlider');
-const slider2      = document.getElementById('slider2');
-const slider3      = document.getElementById('slider3');
-const slider4      = document.getElementById('slider4');
-
-const ctx    = canvas.getContext('2d');
-const offCtx = offscreen.getContext('2d');
-const vizCtx = vizCanvas.getContext('2d');
+const BASS_FREQS = [65.41, 77.78, 87.31, 98.00, 116.54];
 
 // ════════════════════════════════════════════
 //  STATE
@@ -358,6 +410,9 @@ let isMuted      = false;
 let isRunning    = false;
 let waveType     = 'triangle';
 let soundMode    = 'musical';
+let currentScale = 'pentatonic';  // активная гамма
+let polyLimit    = 2;             // максимум голосов одновременно
+let colorMode    = false;         // цвет → тональность
 let animId       = null;
 let useFrontCam  = false;
 let audioReady   = false;
@@ -369,10 +424,26 @@ let sensitivity  = 0.5;
 let bassAmount   = 0.6;
 
 // ════════════════════════════════════════════
+//  ПОЛИФОНИЯ — очередь активных голосов
+//  Каждый голос: { stopTime } — когда заглохнет
+// ════════════════════════════════════════════
+let activeVoices = []; // массив времён остановки
+
+// ════════════════════════════════════════════
+//  ИСТОРИЯ НОТ — последние 8
+// ════════════════════════════════════════════
+let noteHistory = []; // массив строк с именами нот
+
+// ════════════════════════════════════════════
+//  СЛЕДЫ НОТ НА CANVAS
+//  Каждый след: { y, alpha } — позиция и прозрачность
+// ════════════════════════════════════════════
+let noteTrails = []; // { y, alpha, color }
+
+// ════════════════════════════════════════════
 //  DRUMS STATE
 // ════════════════════════════════════════════
 const drums = { kick: false, snare: false, hihat: false, perc: false };
-
 let kickCooldown  = 0;
 let snareCooldown = 0;
 let hihatCooldown = 0;
@@ -380,45 +451,30 @@ let percCooldown  = 0;
 let bassCooldown  = 0;
 
 // ════════════════════════════════════════════
-//  MOTION DETECTOR
+//  MOTION / ZONES
 // ════════════════════════════════════════════
 let prevScanCol    = new Float32Array(480);
 let motionSmoothed = 0;
 const MOTION_THRESHOLD = 2.5;
-
 const ZONE_COUNT   = 8;
 let prevZoneBright = new Float32Array(ZONE_COUNT);
 let zoneCooldowns  = new Int32Array(ZONE_COUNT);
 let hardCooldown   = 0;
-let brightHistory  = new Float32Array(30).fill(128);
-let historyIdx     = 0;
 let noteHoldTimer  = null;
 let prevBright     = 0;
 let prevContrast   = 0;
 let prevTopBright  = 0;
 let hihatFlicker   = 0;
 
+// Для цветового режима — храним предыдущий доминантный цвет
+let prevColorHue   = 128; // 0-255 условная "теплота" цвета
+
 // ════════════════════════════════════════════
-//  PENTATONIC SCALE
+//  ЗАПИСЬ АУДИО
 // ════════════════════════════════════════════
-const NOTES = [
-  { name: 'C2',  freq: 65.41  },
-  { name: 'Eb2', freq: 77.78  },
-  { name: 'F2',  freq: 87.31  },
-  { name: 'G2',  freq: 98.00  },
-  { name: 'Bb2', freq: 116.54 },
-  { name: 'C3',  freq: 130.81 },
-  { name: 'Eb3', freq: 155.56 },
-  { name: 'F3',  freq: 174.61 },
-  { name: 'G3',  freq: 196.00 },
-  { name: 'Bb3', freq: 233.08 },
-  { name: 'C4',  freq: 261.63 },
-  { name: 'Eb4', freq: 311.13 },
-  { name: 'F4',  freq: 349.23 },
-  { name: 'G4',  freq: 392.00 },
-  { name: 'Bb4', freq: 466.16 },
-];
-const BASS_FREQS = [65.41, 77.78, 87.31, 98.00, 116.54];
+let mediaRecorder  = null;
+let recordedChunks = [];
+let isRecording    = false;
 
 // ════════════════════════════════════════════
 //  iOS FIX
@@ -453,9 +509,8 @@ function createReverb() {
   const buf  = audioCtx.createBuffer(2, len, audioCtx.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
     const d = buf.getChannelData(ch);
-    for (let i = 0; i < len; i++) {
+    for (let i = 0; i < len; i++)
       d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.0);
-    }
   }
   reverbNode.buffer = buf;
   dryGain = audioCtx.createGain();
@@ -476,96 +531,22 @@ async function initAudio() {
   if (audioCtx && audioCtx.state === 'running' && audioReady) return;
   await switchToMediaChannel();
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  try { await audioCtx.resume(); } catch(e) {}
-  unlockWebAudio(audioCtx);
-  await new Promise(r => setTimeout(r, 200));
-  if (audioCtx.state === 'suspended') await audioCtx.resume();
-  if (!masterGain) {
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 512;
-    masterGain = audioCtx.createGain();
-    masterGain.gain.value = parseFloat(volumeSlider.value);
-    createReverb();
-    masterGain.connect(audioCtx.destination);
-  }
-  createRawOscillators();
-  audioReady = true;
-  updateAudioStatus();
-}
+  tryёт 3 секунды
+  activeVoices.push(now + 3.0);
 
-// ════════════════════════════════════════════
-//  RAW OSCILLATORS
-// ════════════════════════════════════════════
-function createRawOscillators() {
-  oscillators.forEach(o => { try { o.stop(); } catch(e) {} });
-  oscillators = []; gainNodes = [];
-  const count = 8, now = audioCtx.currentTime;
-  for (let i = 0; i < count; i++) {
-    const osc  = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = waveType;
-    osc.frequency.value = 150 + i * 40;
-    gain.gain.setValueAtTime(0, now);
-    osc.connect(gain); gain.connect(analyser);
-    osc.start(now);
-    oscillators.push(osc); gainNodes.push(gain);
-  }
-}
-
-// ════════════════════════════════════════════
-//  STRING NOTE
-// ════════════════════════════════════════════
-function playStringNote(freq, noteName, velocity = 0.5) {
-  if (!audioCtx || isMuted) return;
-  const now = audioCtx.currentTime;
-  const vol = parseFloat(volumeSlider.value) * velocity * 0.45;
-
-  const osc1  = audioCtx.createOscillator();
-  const filt  = audioCtx.createBiquadFilter();
-  const gain1 = audioCtx.createGain();
-  osc1.type = waveType;
-  osc1.frequency.setValueAtTime(freq, now);
-
-  const lfo  = audioCtx.createOscillator();
-  const lfoG = audioCtx.createGain();
-  lfo.type = 'sine';
-  lfo.frequency.value = 4.5 + Math.random() * 1.5;
-  lfoG.gain.value = freq * 0.007;
-  lfo.connect(lfoG); lfoG.connect(osc1.frequency);
-  lfo.start(now + 0.25);
-
-  filt.type = 'lowpass';
-  filt.frequency.value = waveType === 'sawtooth' ? 1100 :
-                         waveType === 'square'   ? 700  :
-                         waveType === 'triangle' ? 2500 : 3500;
-  filt.Q.value = 1.5;
-
-  const atk = waveType === 'sine' ? 0.04 : 0.12;
-  gain1.gain.setValueAtTime(0, now);
-  gain1.gain.linearRampToValueAtTime(vol, now + atk);
-  gain1.gain.exponentialRampToValueAtTime(vol * 0.65, now + 0.7);
-  gain1.gain.exponentialRampToValueAtTime(0.001, now + 2.8);
-
-  osc1.connect(filt); filt.connect(gain1); gain1.connect(analyser);
-  osc1.start(now); osc1.stop(now + 3.0);
-  lfo.stop(now + 3.0);
-
-  const osc2  = audioCtx.createOscillator();
-  const gain2 = audioCtx.createGain();
-  osc2.type = 'sine';
-  osc2.frequency.value = freq * 0.5;
-  gain2.gain.setValueAtTime(0, now);
-  gain2.gain.linearRampToValueAtTime(vol * 0.18, now + 0.18);
-  gain2.gain.exponentialRampToValueAtTime(0.001, now + 2.2);
-  osc2.connect(gain2); gain2.connect(analyser);
-  osc2.start(now); osc2.stop(now + 2.3);
-
+  // Обновляем UI
   noteDisplay.textContent = noteName;
   noteDisplay.style.opacity = '1';
   clearTimeout(noteHoldTimer);
   noteHoldTimer = setTimeout(() => { noteDisplay.style.opacity = '0'; }, 2000);
   document.getElementById('infoNote').textContent = noteName;
   document.getElementById('liveNote').textContent = noteName;
+
+  // История нот
+  pushNoteHistory(noteName);
+
+  // След на сканирующей линии
+  addTrail(yNorm, trailColor(warmth));
 }
 
 // ════════════════════════════════════════════
@@ -887,6 +868,7 @@ function scanLoop() {
     const frame = offCtx.getImageData(0, 0, 640, 480);
     processFrame(frame.data);
     drawVisualizer();
+    drawTrails(); // рисуем следы нот
   }
   animId = requestAnimationFrame(scanLoop);
   frameCount++;
@@ -918,6 +900,12 @@ function processFrame(data) {
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }
 
+  // Анализируем цвет сканирующей линии (если colorMode включён)
+  const colorWarmth = colorMode
+    ? analyzeColor(data, scanX, H, W)
+    : 128;
+  prevColorHue = colorWarmth;
+
   let sum = 0;
   for (let i = 0; i < H; i++) sum += scanCol[i];
   const avgBright = sum / H;
@@ -930,9 +918,6 @@ function processFrame(data) {
     : motionSmoothed * 0.92 + motionRaw * 0.08;
   prevScanCol.set(scanCol);
 
-  brightHistory[historyIdx % 30] = avgBright;
-  historyIdx++;
-
   document.getElementById('infoLum').textContent    = Math.round(avgBright);
   document.getElementById('liveLum').textContent    = `lum. ${Math.round(avgBright)}`;
   document.getElementById('infoMotion').textContent = Math.round(motionSmoothed * 10) / 10;
@@ -940,7 +925,7 @@ function processFrame(data) {
 
   soundMode === 'raw'
     ? applySoundRaw(scanCol, avgBright)
-    : applySoundMusical(scanCol, avgBright, motionSmoothed);
+    : applySoundMusical(scanCol, avgBright, motionSmoothed, colorWarmth);
 }
 
 // ════════════════════════════════════════════
@@ -978,7 +963,7 @@ function applySoundRaw(scanCol, avgBright) {
 // ════════════════════════════════════════════
 //  MUSICAL MODE
 // ════════════════════════════════════════════
-function applySoundMusical(scanCol, avgBright, motion) {
+function applySoundMusical(scanCol, avgBright, motion, colorWarmth) {
   if (!audioCtx || !audioReady || isMuted) return;
   if (audioCtx.state !== 'running') { audioCtx.resume(); return; }
 
@@ -1008,7 +993,7 @@ function applySoundMusical(scanCol, avgBright, motion) {
     if (zoneCooldowns[z] > 0) zoneCooldowns[z]--;
   }
 
-  // Zone brightness
+  // Яркость по зонам
   const zoneBright = new Float32Array(ZONE_COUNT);
   for (let z = 0; z < ZONE_COUNT; z++) {
     const s = Math.floor(z * zoneH);
@@ -1021,7 +1006,7 @@ function applySoundMusical(scanCol, avgBright, motion) {
   const triggerThreshold = 30 - sensitivity * 24;
   const minHardCooldown  = Math.floor(4 + (1 - sensitivity) * 10);
 
-  // Note — zone with max delta
+  // Зона с максимальным изменением яркости
   let maxDelta = 0, triggerZone = -1;
   for (let z = 0; z < ZONE_COUNT; z++) {
     const delta = Math.abs(zoneBright[z] - prevZoneBright[z]);
@@ -1031,19 +1016,25 @@ function applySoundMusical(scanCol, avgBright, motion) {
   }
 
   if (triggerZone >= 0 && hardCooldown === 0) {
-    const zNorm    = zoneBright[triggerZone] / 255;
-    const noteIdx  = Math.min(Math.floor(zNorm * NOTES.length), NOTES.length - 1);
+    // Выбираем ноту с учётом гаммы и цветового режима
+    const note     = pickNote(zoneBright[triggerZone], colorWarmth);
     const velocity = Math.min(maxDelta / 80, 1.0) * 0.5 +
-                     zNorm * 0.3 + Math.min(motion / 20, 0.2);
-    playStringNote(NOTES[noteIdx].freq, NOTES[noteIdx].name,
-                   Math.max(0.15, Math.min(velocity, 0.85)));
+                     (zoneBright[triggerZone] / 255) * 0.3 +
+                     Math.min(motion / 20, 0.2);
+    // yNorm — нормализованная позиция зоны для следа
+    const yNorm = (triggerZone + 0.5) / ZONE_COUNT;
+    playStringNote(
+      note.freq, note.name,
+      Math.max(0.15, Math.min(velocity, 0.85)),
+      yNorm, colorWarmth
+    );
     zoneCooldowns[triggerZone] = 12;
     hardCooldown = minHardCooldown;
   }
 
   prevZoneBright.set(zoneBright);
 
-  // Bass note from bottom zone
+  // Бас из нижней зоны
   if (bassCooldown > 0) bassCooldown--;
   const bottomBright = zoneBright[ZONE_COUNT - 1];
   const bottomDelta  = Math.abs(bottomBright - prevZoneBright[ZONE_COUNT - 1]);
@@ -1065,7 +1056,7 @@ function applySoundMusical(scanCol, avgBright, motion) {
     }
   }
 
-    // ── SNARE ──
+  // ── SNARE ──
   if (snareCooldown > 0) snareCooldown--;
   if (drums.snare) {
     let topSum = 0, botSum = 0;
@@ -1175,20 +1166,66 @@ function updateAudioStatus() {
 }
 
 // ════════════════════════════════════════════
-//  START — fixed: один обработчик для mobile/desktop
+//  ЗАПИСЬ АУДИО
+//  Захватываем destination audioCtx через MediaStreamDestination
+//  Пишем в webm/opus, скачиваем по окончании
+// ════════════════════════════════════════════
+function startRecording() {
+  if (!audioCtx || !masterGain) return;
+
+  // Создаём виртуальный выход — поток из аудиографа
+  const dest   = audioCtx.createMediaStreamDestination();
+  masterGain.connect(dest);
+
+  const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    ? 'audio/webm;codecs=opus' : 'audio/webm';
+
+  mediaRecorder  = new MediaRecorder(dest.stream, { mimeType });
+  recordedChunks = [];
+
+  mediaRecorder.ondataavailable = e => {
+    if (e.data.size > 0) recordedChunks.push(e.data);
+  };
+
+  mediaRecorder.onstop = () => {
+    // Собираем blob и скачиваем
+    const blob = new Blob(recordedChunks, { type: mimeType });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const ts   = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    a.href     = url;
+    a.download = `writing-sound-${ts}.webm`;
+    a.click();
+    URL.revokeObjectURL(url);
+    masterGain.disconnect(dest);
+  };
+
+  mediaRecorder.start(100); // чанки каждые 100мс
+  isRecording = true;
+  recBtn.textContent = '[ ● rec ]';
+  recBtn.classList.add('recording');
+}
+
+function stopRecording() {
+  if (!mediaRecorder) return;
+  mediaRecorder.stop();
+  isRecording = false;
+  recBtn.textContent = '[ rec ]';
+  recBtn.classList.remove('recording');
+}
+
+// ════════════════════════════════════════════
+//  START
 // ════════════════════════════════════════════
 async function handleStart(e) {
   e.preventDefault();
   e.stopPropagation();
   if (startHandled) return;
   startHandled = true;
-
-  // Скрываем сразу — визуальный отклик
   startOverlay.style.display = 'none';
-
   try {
     await initAudio();
-    if (audioCtx && masterGain) playStringNote(261.63, 'C4', 0.35);
+    if (audioCtx && masterGain) playStringNote(261.63, 'C4', 0.35, 0.5, 128);
     await startCamera();
   } catch(err) {
     console.error('Start error:', err);
@@ -1197,8 +1234,6 @@ async function handleStart(e) {
   }
 }
 
-// На мобиле — только touchend, на десктопе — только click
-// Если вешать оба, на мобиле срабатывают оба подряд
 if ('ontouchstart' in window) {
   startOverlay.addEventListener('touchend', handleStart, { passive: false });
 } else {
@@ -1206,7 +1241,46 @@ if ('ontouchstart' in window) {
 }
 
 // ════════════════════════════════════════════
-//  DRUM BUTTONS — preview on enable
+//  SCALE BUTTONS
+// ════════════════════════════════════════════
+document.querySelectorAll('.scale-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentScale = btn.dataset.scale;
+    document.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // Сбрасываем историю при смене гаммы
+    noteHistory = [];
+    activeVoices = [];
+  });
+});
+
+// ════════════════════════════════════════════
+//  POLYPHONY BUTTONS
+// ════════════════════════════════════════════
+document.querySelectorAll('.poly-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    polyLimit = parseInt(btn.dataset.poly);
+    document.querySelectorAll('.poly-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeVoices = []; // сбрасываем голоса при смене лимита
+  });
+});
+
+// ════════════════════════════════════════════
+//  COLOR MODE BUTTONS
+// ════════════════════════════════════════════
+document.querySelectorAll('.color-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    colorMode = btn.dataset.color === 'on';
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // Если цвет выключен — убираем цветную точку
+    if (!colorMode) colorDot.style.background = '#333';
+  });
+});
+
+// ════════════════════════════════════════════
+//  DRUM BUTTONS
 // ════════════════════════════════════════════
 document.querySelectorAll('.drum-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1244,6 +1318,7 @@ document.querySelectorAll('.smode-btn').forEach(btn => {
     prevBright     = 0;
     prevContrast   = 0;
     hihatFlicker   = 0;
+    activeVoices   = [];
     if (soundMode === 'raw' && audioCtx && audioReady) createRawOscillators();
   });
 });
@@ -1343,6 +1418,14 @@ camBtn.addEventListener('click', async () => {
     cancelAnimationFrame(animId); isRunning = false;
     await startCamera();
   }
+});
+
+// ════════════════════════════════════════════
+//  REC BUTTON
+// ════════════════════════════════════════════
+recBtn.addEventListener('click', () => {
+  if (!audioCtx || !audioReady) return;
+  isRecording ? stopRecording() : startRecording();
 });
 
 // ════════════════════════════════════════════
