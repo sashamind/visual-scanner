@@ -423,7 +423,113 @@ const BASS_FREQS = [65.41, 77.78, 87.31, 98.00, 116.54];
 // ════════════════════════════════════════════
 //  iOS FIX
 // ════════════════════════════════════════════
-function switchToMedia = 4.5 + Math.random() * 1.5;
+function switchToMediaChannel() {
+  return new Promise(resolve => {
+    const a = document.createElement('audio');
+    a.setAttribute('playsinline', '');
+    a.src = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//tQZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+    a.volume = 0.001;
+    a.play()
+      .then(() => { setTimeout(() => { a.pause(); a.remove(); resolve(); }, 200); })
+      .catch(() => resolve());
+  });
+}
+
+function unlockWebAudio(actx) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.frequency.value = 440;
+  g.gain.setValueAtTime(0.001, actx.currentTime);
+  g.gain.linearRampToValueAtTime(0, actx.currentTime + 0.1);
+  o.connect(g); g.connect(actx.destination);
+  o.start(actx.currentTime); o.stop(actx.currentTime + 0.15);
+}
+
+// ════════════════════════════════════════════
+//  REVERB
+// ════════════════════════════════════════════
+function createReverb() {
+  reverbNode = audioCtx.createConvolver();
+  const len  = audioCtx.sampleRate * 3.5;
+  const buf  = audioCtx.createBuffer(2, len, audioCtx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.0);
+    }
+  }
+  reverbNode.buffer = buf;
+  dryGain = audioCtx.createGain();
+  wetGain = audioCtx.createGain();
+  dryGain.gain.value = 1 - reverbAmount;
+  wetGain.gain.value = reverbAmount;
+  analyser.connect(dryGain);
+  analyser.connect(reverbNode);
+  reverbNode.connect(wetGain);
+  dryGain.connect(masterGain);
+  wetGain.connect(masterGain);
+}
+
+// ════════════════════════════════════════════
+//  INIT AUDIO
+// ════════════════════════════════════════════
+async function initAudio() {
+  if (audioCtx && audioCtx.state === 'running' && audioReady) return;
+  await switchToMediaChannel();
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  try { await audioCtx.resume(); } catch(e) {}
+  unlockWebAudio(audioCtx);
+  await new Promise(r => setTimeout(r, 200));
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+  if (!masterGain) {
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = parseFloat(volumeSlider.value);
+    createReverb();
+    masterGain.connect(audioCtx.destination);
+  }
+  createRawOscillators();
+  audioReady = true;
+  updateAudioStatus();
+}
+
+// ════════════════════════════════════════════
+//  RAW OSCILLATORS
+// ════════════════════════════════════════════
+function createRawOscillators() {
+  oscillators.forEach(o => { try { o.stop(); } catch(e) {} });
+  oscillators = []; gainNodes = [];
+  const count = 8, now = audioCtx.currentTime;
+  for (let i = 0; i < count; i++) {
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = waveType;
+    osc.frequency.value = 150 + i * 40;
+    gain.gain.setValueAtTime(0, now);
+    osc.connect(gain); gain.connect(analyser);
+    osc.start(now);
+    oscillators.push(osc); gainNodes.push(gain);
+  }
+}
+
+// ════════════════════════════════════════════
+//  STRING NOTE
+// ════════════════════════════════════════════
+function playStringNote(freq, noteName, velocity = 0.5) {
+  if (!audioCtx || isMuted) return;
+  const now = audioCtx.currentTime;
+  const vol = parseFloat(volumeSlider.value) * velocity * 0.45;
+
+  const osc1  = audioCtx.createOscillator();
+  const filt  = audioCtx.createBiquadFilter();
+  const gain1 = audioCtx.createGain();
+  osc1.type = waveType;
+  osc1.frequency.setValueAtTime(freq, now);
+
+  const lfo  = audioCtx.createOscillator();
+  const lfoG = audioCtx.createGain();
+  lfo.type = 'sine';
+  lfo.frequency.value = 4.5 + Math.random() * 1.5;
   lfoG.gain.value = freq * 0.007;
   lfo.connect(lfoG); lfoG.connect(osc1.frequency);
   lfo.start(now + 0.25);
@@ -484,15 +590,13 @@ function playBassNote(freq, velocity = 0.5) {
 }
 
 // ════════════════════════════════════════════
-//  KICK — deep ambient drone
-//  Three sine layers + LFO + noise tail
+//  KICK
 // ════════════════════════════════════════════
 function playKick(vol) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * bassAmount * 1.4;
 
-  // Main drone 60→18 Hz
   const body = audioCtx.createOscillator();
   const bg   = audioCtx.createGain();
   body.type = 'sine';
@@ -504,7 +608,6 @@ function playKick(vol) {
   body.connect(bg); bg.connect(masterGain);
   body.start(now); body.stop(now + 1.7);
 
-  // Sub 30→10 Hz — physical pressure
   const sub = audioCtx.createOscillator();
   const sg  = audioCtx.createGain();
   sub.type = 'sine';
@@ -515,7 +618,6 @@ function playKick(vol) {
   sub.connect(sg); sg.connect(masterGain);
   sub.start(now); sub.stop(now + 1.4);
 
-  // Mid body triangle 80→35 Hz
   const mid  = audioCtx.createOscillator();
   const midG = audioCtx.createGain();
   mid.type = 'triangle';
@@ -526,7 +628,6 @@ function playKick(vol) {
   mid.connect(midG); midG.connect(masterGain);
   mid.start(now); mid.stop(now + 0.75);
 
-  // LFO — drone breathes
   const lfo  = audioCtx.createOscillator();
   const lfoG = audioCtx.createGain();
   lfo.type = 'sine';
@@ -535,7 +636,6 @@ function playKick(vol) {
   lfo.connect(lfoG); lfoG.connect(body.frequency);
   lfo.start(now); lfo.stop(now + 1.7);
 
-  // Noise tail — room resonance
   const nlen = Math.floor(audioCtx.sampleRate * 0.6);
   const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
   const nd   = nbuf.getChannelData(0);
@@ -553,15 +653,13 @@ function playKick(vol) {
 }
 
 // ════════════════════════════════════════════
-//  SNARE — deep wooden impact
-//  Low tonal resonance + soft noise body
+//  SNARE
 // ════════════════════════════════════════════
 function playSnare(vol) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.65;
 
-  // Tonal impact 120→55 Hz — body resonance
   const tone = audioCtx.createOscillator();
   const tg   = audioCtx.createGain();
   tone.type = 'sine';
@@ -573,7 +671,6 @@ function playSnare(vol) {
   tone.connect(tg); tg.connect(masterGain);
   tone.start(now); tone.stop(now + 0.55);
 
-  // Second tone 200→90 Hz — wooden character
   const tone2 = audioCtx.createOscillator();
   const tg2   = audioCtx.createGain();
   tone2.type = 'triangle';
@@ -584,7 +681,6 @@ function playSnare(vol) {
   tone2.connect(tg2); tg2.connect(masterGain);
   tone2.start(now); tone2.stop(now + 0.3);
 
-  // Low noise through lowpass 800 Hz — body
   const nlen = Math.floor(audioCtx.sampleRate * 0.3);
   const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
   const nd   = nbuf.getChannelData(0);
@@ -602,22 +698,19 @@ function playSnare(vol) {
 }
 
 // ════════════════════════════════════════════
-//  HIHAT — airy whisper
-//  Soft noise 2.5-6kHz + singing bowl ghost
+//  HIHAT
 // ════════════════════════════════════════════
 function playHihat(vol) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.32;
 
-  // Random length — breath-like
   const duration = 0.08 + Math.random() * 0.12;
   const nlen = Math.floor(audioCtx.sampleRate * duration);
   const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
   const nd   = nbuf.getChannelData(0);
   for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
 
-  // Two soft bandpass bands
   const bands = [
     { f: 2500 + Math.random() * 800,  q: 0.8, g: 0.65 },
     { f: 5000 + Math.random() * 1500, q: 0.6, g: 0.4  },
@@ -634,7 +727,6 @@ function playHihat(vol) {
     src.start(now);
   });
 
-  // 40% chance — tonal singing bowl ghost
   if (Math.random() < 0.4) {
     const sing = audioCtx.createOscillator();
     const sg   = audioCtx.createGain();
@@ -650,9 +742,7 @@ function playHihat(vol) {
 }
 
 // ════════════════════════════════════════════
-//  PERC — three random characters
-//  40% wood / 30% metal / 30% membrane
-//  Pitch = zone brightness
+//  PERC
 // ════════════════════════════════════════════
 function playPerc(vol, pitchNorm = 0.5) {
   if (!audioCtx || isMuted) return;
@@ -662,7 +752,6 @@ function playPerc(vol, pitchNorm = 0.5) {
   const char_    = Math.random();
 
   if (char_ < 0.4) {
-    // ── WOOD — fast pitch-down ──
     const o1 = audioCtx.createOscillator();
     const g1 = audioCtx.createGain();
     const f1 = audioCtx.createBiquadFilter();
@@ -676,7 +765,6 @@ function playPerc(vol, pitchNorm = 0.5) {
     o1.start(now); o1.stop(now + 0.3);
 
   } else if (char_ < 0.7) {
-    // ── METAL — two tones beating ──
     const beatFreq = baseFreq * (1.03 + Math.random() * 0.04);
     [baseFreq, beatFreq].forEach(f => {
       const o = audioCtx.createOscillator();
@@ -691,7 +779,6 @@ function playPerc(vol, pitchNorm = 0.5) {
     });
 
   } else {
-    // ── MEMBRANE — pitch-down + noise ──
     const o1 = audioCtx.createOscillator();
     const g1 = audioCtx.createGain();
     o1.type = 'sine';
@@ -716,7 +803,6 @@ function playPerc(vol, pitchNorm = 0.5) {
     ns.start(now);
   }
 
-  // Attack click — common for all types
   const clen = Math.floor(audioCtx.sampleRate * 0.006);
   const cbuf = audioCtx.createBuffer(1, clen, audioCtx.sampleRate);
   const cd   = cbuf.getChannelData(0);
@@ -957,7 +1043,7 @@ function applySoundMusical(scanCol, avgBright, motion) {
 
   prevZoneBright.set(zoneBright);
 
-    // Bass note from bottom zone
+  // Bass note from bottom zone
   if (bassCooldown > 0) bassCooldown--;
   const bottomBright = zoneBright[ZONE_COUNT - 1];
   const bottomDelta  = Math.abs(bottomBright - prevZoneBright[ZONE_COUNT - 1]);
@@ -968,7 +1054,7 @@ function applySoundMusical(scanCol, avgBright, motion) {
     bassCooldown = 25;
   }
 
-  // ── KICK: global brightness spike ──
+  // ── KICK ──
   if (kickCooldown > 0) kickCooldown--;
   if (drums.kick) {
     const globalDelta = Math.abs(avgBright - prevBright);
@@ -979,7 +1065,7 @@ function applySoundMusical(scanCol, avgBright, motion) {
     }
   }
 
-  // ── SNARE: top/bottom contrast ──
+    // ── SNARE ──
   if (snareCooldown > 0) snareCooldown--;
   if (drums.snare) {
     let topSum = 0, botSum = 0;
@@ -995,7 +1081,7 @@ function applySoundMusical(scanCol, avgBright, motion) {
     }
   }
 
-  // ── HIHAT: accumulated flicker in top zone ──
+  // ── HIHAT ──
   if (hihatCooldown > 0) hihatCooldown--;
   if (drums.hihat) {
     const topBright = zoneBright[0];
@@ -1010,7 +1096,7 @@ function applySoundMusical(scanCol, avgBright, motion) {
     }
   }
 
-  // ── PERC: mid zones 2-5 ──
+  // ── PERC ──
   if (percCooldown > 0) percCooldown--;
   if (drums.perc) {
     let midSum = 0, midDeltaSum = 0;
@@ -1089,19 +1175,35 @@ function updateAudioStatus() {
 }
 
 // ════════════════════════════════════════════
-//  START
+//  START — fixed: один обработчик для mobile/desktop
 // ════════════════════════════════════════════
 async function handleStart(e) {
-  e.preventDefault(); e.stopPropagation();
+  e.preventDefault();
+  e.stopPropagation();
   if (startHandled) return;
   startHandled = true;
-  await initAudio();
+
+  // Скрываем сразу — визуальный отклик
   startOverlay.style.display = 'none';
-  if (audioCtx && masterGain) playStringNote(261.63, 'C4', 0.35);
-  await startCamera();
+
+  try {
+    await initAudio();
+    if (audioCtx && masterGain) playStringNote(261.63, 'C4', 0.35);
+    await startCamera();
+  } catch(err) {
+    console.error('Start error:', err);
+    startOverlay.style.display = 'flex';
+    startHandled = false;
+  }
 }
-startOverlay.addEventListener('touchend', handleStart, { passive: false });
-startOverlay.addEventListener('click',    handleStart);
+
+// На мобиле — только touchend, на десктопе — только click
+// Если вешать оба, на мобиле срабатывают оба подряд
+if ('ontouchstart' in window) {
+  startOverlay.addEventListener('touchend', handleStart, { passive: false });
+} else {
+  startOverlay.addEventListener('click', handleStart);
+}
 
 // ════════════════════════════════════════════
 //  DRUM BUTTONS — preview on enable
