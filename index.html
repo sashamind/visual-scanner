@@ -46,16 +46,32 @@
     #canvas { display: block; width: 100%; height: 100%; }
 
     .scan-line {
-      position: absolute; top: 0; bottom: 0; left: 50%;
-      transform: translateX(-50%);
-      width: 1px; background: #fff; opacity: 0.6;
-      pointer-events: none; z-index: 10;
-    }
-    .tick {
-      position: absolute; left: 50%; transform: translateX(-50%);
-      width: 7px; height: 1px; background: #fff; z-index: 11;
-    }
-    .tick.t { top: 0; } .tick.b { bottom: 0; }
+  position: absolute; top: 0; bottom: 0;
+  left: 50%; /* начальная позиция, потом JS перезапишет */
+  transform: translateX(-50%);
+  width: 1px; background: #fff; opacity: 0.6;
+  pointer-events: none; z-index: 10;
+  transition: none; /* без анимации — прямое следование за пальцем */
+}
+/* Зона захвата линии — шире чем сама линия, удобнее тапать */
+.scan-grab {
+  position: absolute; top: 0; bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px; /* невидимая зона захвата 32px */
+  cursor: ew-resize; /* курсор ←→ */
+  z-index: 13;
+  touch-action: none; /* отключаем скролл при перетаскивании */
+}
+/* Тики тоже двигаются вместе с линией */
+.tick {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7px; height: 1px; background: #fff; z-index: 11;
+  pointer-events: none;
+}
+.tick.t { top: 0; } .tick.b { bottom: 0; }
 
     #trailCanvas {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -315,9 +331,10 @@
     <canvas id="canvas" width="640" height="480"></canvas>
     <canvas id="offscreen" width="640" height="480"></canvas>
     <canvas id="trailCanvas" width="640" height="480"></canvas>
-    <div class="scan-line"></div>
-    <div class="tick t"></div>
-    <div class="tick b"></div>
+    <div class="scan-grab" id="scanGrab"></div>
+<div class="scan-line" id="scanLine"></div>
+<div class="tick t" id="tickTop"></div>
+<div class="tick b" id="tickBot"></div>
     <div id="motionBar"></div>
     <div id="noteDisplay"></div>
     <div id="colorDot"></div>
@@ -741,7 +758,7 @@ function hexToRgba(hex, alpha) {
 
 function drawTrails() {
   trailCtx.clearRect(0, 0, 640, 480);
-  const cx = 320;
+  const cx = Math.round(scanXPos);
   noteTrails = noteTrails.filter(t => t.alpha > 0.015);
 
   noteTrails.forEach(t => {
@@ -910,6 +927,79 @@ function stopRecording() {
 // ════════════════════════════════════════════
 //  SLIDER LABELS
 // ════════════════════════════════════════════
+// ════════════════════════════════════════════
+//  DRAGGABLE SCAN LINE
+//  scanX теперь не константа а переменная
+//  которую двигает палец / мышь
+// ════════════════════════════════════════════
+
+// Начальная позиция — центр (320 из 640)
+let scanXPos     = 320;
+let isDragging   = false;
+
+const scanLine   = document.getElementById('scanLine');
+const scanGrab   = document.getElementById('scanGrab');
+const tickTop    = document.getElementById('tickTop');
+const tickBot    = document.getElementById('tickBot');
+const scanWrapper = document.querySelector('.scanner-wrapper');
+
+// Обновляем позицию линии и зоны захвата
+function updateScanLine(clientX) {
+  const rect   = scanWrapper.getBoundingClientRect();
+  // Переводим экранные координаты в координаты внутри wrapper
+  const relX   = clientX - rect.left;
+  // Клампируем — не выходим за края (отступ 2px)
+  const clamped = Math.max(2, Math.min(rect.width - 2, relX));
+  // Нормализуем в 0..640 (внутренняя система координат canvas)
+  scanXPos = (clamped / rect.width) * 640;
+
+  // Двигаем все элементы линии
+  const pct = (clamped / rect.width) * 100 + '%';
+  scanLine.style.left  = pct;
+  scanGrab.style.left  = pct;
+  tickTop.style.left   = pct;
+  tickBot.style.left   = pct;
+}
+
+// ── TOUCH ──
+scanGrab.addEventListener('touchstart', e => {
+  e.preventDefault();
+  isDragging = true;
+  updateScanLine(e.touches[0].clientX);
+}, { passive: false });
+
+document.addEventListener('touchmove', e => {
+  if (!isDragging) return;
+  e.preventDefault();
+  updateScanLine(e.touches[0].clientX);
+}, { passive: false });
+
+document.addEventListener('touchend', () => {
+  isDragging = false;
+});
+
+// ── MOUSE (для десктопа) ──
+scanGrab.addEventListener('mousedown', e => {
+  e.preventDefault();
+  isDragging = true;
+  updateScanLine(e.clientX);
+});
+
+document.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  updateScanLine(e.clientX);
+});
+
+document.addEventListener('mouseup', () => {
+  isDragging = false;
+});
+
+// Клик по самому wrapper тоже перемещает линию
+scanWrapper.addEventListener('click', e => {
+  // Не реагируем если кликнули на оверлей
+  if (startOverlay.style.display !== 'none') return;
+  updateScanLine(e.clientX);
+});
 function updateSliderLabels() {
   if (soundMode === 'musical') {
     document.getElementById('s2label').firstChild.textContent = 'reverb ';
@@ -1679,7 +1769,8 @@ function scanLoop() {
 // ════════════════════════════════════════════
 function processFrame(data) {
   const W = 640, H = 480;
-  const scanX = W / 2;
+  // Используем глобальную позицию вместо фиксированного центра
+const scanX = Math.round(scanXPos);
   const scanW = 5;
   const scanCol = new Float32Array(H);
 
