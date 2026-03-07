@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Writing Sound</title>
+  <title>Sound Vision</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600&family=Share+Tech+Mono&display=swap');
 
@@ -23,6 +23,7 @@
       overflow-x: hidden;
     }
 
+    /* ── ШАПКА ── */
     .header {
       width: 100%; max-width: 640px;
       padding: 10px 12px 8px;
@@ -37,6 +38,46 @@
     }
     .header-sub { font-size: 0.45rem; color: #555; letter-spacing: 2px; }
 
+    /* ── ПРЕДУПРЕЖДЕНИЕ О БЕЗЗВУЧНОМ РЕЖИМЕ ──
+       Полоса между шапкой и controls.
+       Видна всегда пока пользователь не нажмёт dismiss.
+       Мигает красным чтобы точно заметили. */
+    #silentWarning {
+      width: 100%; max-width: 640px;
+      background: #0a0000;
+      border-bottom: 1px solid #3a0000;
+      padding: 8px 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px;
+    }
+    #silentWarning .sw-text {
+      font-size: 0.4rem; letter-spacing: 1.5px; line-height: 1.9;
+      color: #ff3333;
+      animation: warnBlink 2s ease-in-out infinite;
+    }
+    #silentWarning .sw-text span { color: #ff6a00; }
+    #silentWarning .sw-dismiss {
+      font-size: 0.38rem; letter-spacing: 2px; color: #555;
+      background: none; border: 1px solid #333; padding: 4px 8px;
+      cursor: pointer; font-family: 'Share Tech Mono', monospace;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    #silentWarning .sw-dismiss:active { background: #111; }
+    @keyframes warnBlink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.5; }
+    }
+    /* Когда скрыто — убираем совсем */
+    #silentWarning.hidden { display: none; }
+
+    /* ── CONTROLS (перенесены наверх, под шапку) ── */
+    .top-controls {
+      width: 100%; max-width: 640px;
+      display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    /* ── SCANNER ── */
     .scanner-wrapper {
       position: relative; width: 100%; max-width: 640px;
       aspect-ratio: 4/3; background: #000; overflow: hidden;
@@ -46,32 +87,30 @@
     #canvas { display: block; width: 100%; height: 100%; }
 
     .scan-line {
-  position: absolute; top: 0; bottom: 0;
-  left: 50%; /* начальная позиция, потом JS перезапишет */
-  transform: translateX(-50%);
-  width: 1px; background: #fff; opacity: 0.6;
-  pointer-events: none; z-index: 10;
-  transition: none; /* без анимации — прямое следование за пальцем */
-}
-/* Зона захвата линии — шире чем сама линия, удобнее тапать */
-.scan-grab {
-  position: absolute; top: 0; bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 32px; /* невидимая зона захвата 32px */
-  cursor: ew-resize; /* курсор ←→ */
-  z-index: 13;
-  touch-action: none; /* отключаем скролл при перетаскивании */
-}
-/* Тики тоже двигаются вместе с линией */
-.tick {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 7px; height: 1px; background: #fff; z-index: 11;
-  pointer-events: none;
-}
-.tick.t { top: 0; } .tick.b { bottom: 0; }
+      position: absolute; top: 0; bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1px; background: #fff; opacity: 0.6;
+      pointer-events: none; z-index: 10;
+      transition: none;
+    }
+    .scan-grab {
+      position: absolute; top: 0; bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 32px;
+      cursor: ew-resize;
+      z-index: 13;
+      touch-action: none;
+    }
+    .tick {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 7px; height: 1px; background: #fff; z-index: 11;
+      pointer-events: none;
+    }
+    .tick.t { top: 0; } .tick.b { bottom: 0; }
 
     #trailCanvas {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -107,7 +146,6 @@
       transition: background 0.3s;
       box-shadow: 0 0 0 0 rgba(255,106,0,0);
     }
-    /* Пульсация точки в color-режиме */
     #colorDot.color-active {
       animation: dotPulse 1.5s ease-in-out infinite;
     }
@@ -117,7 +155,6 @@
       100% { box-shadow: 0 0 0 0 rgba(255,106,0,0); }
     }
 
-    /* Лейбл видеофайла */
     #videoFileLabel {
       position: absolute; top: 10px; left: 10px;
       font-size: 0.38rem; color: var(--orange);
@@ -129,7 +166,6 @@
     }
     #videoFileLabel.visible { opacity: 1; }
 
-    /* Прогресс-бар видеофайла */
     #videoProgress {
       position: absolute; bottom: 0; left: 0; right: 0;
       height: 2px; background: #111; z-index: 15; display: none;
@@ -302,10 +338,7 @@
       border-radius:0; background:var(--orange); cursor:pointer;
     }
 
-    .bottom-btns {
-      display:grid; grid-template-columns:1fr 1fr 1fr 1fr;
-      border-bottom:1px solid #1a1a1a; margin-bottom:24px;
-    }
+    /* ── КНОПКИ CONTROLS (стиль тот же, класс другой) ── */
     .ctrl-btn {
       padding:12px 6px; border:none; border-right:1px solid #1a1a1a;
       background:#000; color:#666; font-family:'Share Tech Mono',monospace;
@@ -316,15 +349,37 @@
     .ctrl-btn:active  { background:#111; }
     .ctrl-btn.recording { color: #f44; animation: blink 1s step-end infinite; }
     .ctrl-btn.file-active { color: var(--orange); }
+
+    /* Нижний отступ */
+    .bottom-spacer { height: 24px; }
   </style>
 </head>
 <body>
 
+  <!-- ШАПКА -->
   <div class="header">
-    <div class="header-title">Writing Sound</div>
+    <div class="header-title">Sound Vision</div>
     <div class="header-sub">visual → audio</div>
   </div>
 
+  <!-- ПРЕДУПРЕЖДЕНИЕ О БЕЗЗВУЧНОМ РЕЖИМЕ
+       Показывается сразу, скрывается кнопкой [ ok ] -->
+  <div id="silentWarning">
+    <div class="sw-text">
+      ⚠ check: <span>silent mode off</span> · media volume up
+    </div>
+    <button class="sw-dismiss" id="swDismiss">[ ok ]</button>
+  </div>
+
+  <!-- CONTROLS — перенесены сюда, между шапкой и видео -->
+  <div class="top-controls">
+    <button class="ctrl-btn active" id="muteBtn">[ sound: on ]</button>
+    <button class="ctrl-btn" id="camBtn">[ cam: rear ]</button>
+    <button class="ctrl-btn" id="fileBtn">[ video file ]</button>
+    <button class="ctrl-btn" id="recBtn">[ rec ]</button>
+  </div>
+
+  <!-- ВИДЕО / СКАНЕР -->
   <div class="scanner-wrapper">
     <video id="video" autoplay playsinline muted></video>
     <input type="file" id="videoFileInput" accept="video/*" style="display:none">
@@ -332,9 +387,9 @@
     <canvas id="offscreen" width="640" height="480"></canvas>
     <canvas id="trailCanvas" width="640" height="480"></canvas>
     <div class="scan-grab" id="scanGrab"></div>
-<div class="scan-line" id="scanLine"></div>
-<div class="tick t" id="tickTop"></div>
-<div class="tick b" id="tickBot"></div>
+    <div class="scan-line" id="scanLine"></div>
+    <div class="tick t" id="tickTop"></div>
+    <div class="tick b" id="tickBot"></div>
     <div id="motionBar"></div>
     <div id="noteDisplay"></div>
     <div id="colorDot"></div>
@@ -474,46 +529,48 @@
     </div>
   </div>
 
-  <div class="section">
-    <div class="section-head">// controls</div>
-    <div class="bottom-btns">
-      <button class="ctrl-btn active" id="muteBtn">[ sound: on ]</button>
-      <button class="ctrl-btn" id="camBtn">[ cam: rear ]</button>
-      <button class="ctrl-btn" id="fileBtn">[ video file ]</button>
-      <button class="ctrl-btn" id="recBtn">[ rec ]</button>
-    </div>
-  </div>
-  <script>
+  <div class="bottom-spacer"></div>
+
+<script>
 // ════════════════════════════════════════════
 //  ELEMENTS
 // ════════════════════════════════════════════
-const video           = document.getElementById('video');
-const videoFileInput  = document.getElementById('videoFileInput');
-const canvas          = document.getElementById('canvas');
-const offscreen       = document.getElementById('offscreen');
-const trailCanvas     = document.getElementById('trailCanvas');
-const vizCanvas       = document.getElementById('vizCanvas');
-const startOverlay    = document.getElementById('startOverlay');
-const muteBtn         = document.getElementById('muteBtn');
-const camBtn          = document.getElementById('camBtn');
-const fileBtn         = document.getElementById('fileBtn');
-const recBtn          = document.getElementById('recBtn');
-const audioStatus     = document.getElementById('audioStatus');
-const noteDisplay     = document.getElementById('noteDisplay');
-const motionBar       = document.getElementById('motionBar');
-const colorDot        = document.getElementById('colorDot');
-const videoFileLabel  = document.getElementById('videoFileLabel');
-const videoProgress   = document.getElementById('videoProgress');
+const video             = document.getElementById('video');
+const videoFileInput    = document.getElementById('videoFileInput');
+const canvas            = document.getElementById('canvas');
+const offscreen         = document.getElementById('offscreen');
+const trailCanvas       = document.getElementById('trailCanvas');
+const vizCanvas         = document.getElementById('vizCanvas');
+const startOverlay      = document.getElementById('startOverlay');
+const muteBtn           = document.getElementById('muteBtn');
+const camBtn            = document.getElementById('camBtn');
+const fileBtn           = document.getElementById('fileBtn');
+const recBtn            = document.getElementById('recBtn');
+const audioStatus       = document.getElementById('audioStatus');
+const noteDisplay       = document.getElementById('noteDisplay');
+const motionBar         = document.getElementById('motionBar');
+const colorDot          = document.getElementById('colorDot');
+const videoFileLabel    = document.getElementById('videoFileLabel');
+const videoProgress     = document.getElementById('videoProgress');
 const videoProgressFill = document.getElementById('videoProgressFill');
-const volumeSlider    = document.getElementById('volumeSlider');
-const slider2         = document.getElementById('slider2');
-const slider3         = document.getElementById('slider3');
-const slider4         = document.getElementById('slider4');
+const volumeSlider      = document.getElementById('volumeSlider');
+const slider2           = document.getElementById('slider2');
+const slider3           = document.getElementById('slider3');
+const slider4           = document.getElementById('slider4');
+const silentWarning     = document.getElementById('silentWarning');
+const swDismiss         = document.getElementById('swDismiss');
 
 const ctx      = canvas.getContext('2d');
 const offCtx   = offscreen.getContext('2d');
 const vizCtx   = vizCanvas.getContext('2d');
 const trailCtx = trailCanvas.getContext('2d');
+
+// ════════════════════════════════════════════
+//  ПРЕДУПРЕЖДЕНИЕ — скрываем по кнопке [ ok ]
+// ════════════════════════════════════════════
+swDismiss.addEventListener('click', () => {
+  silentWarning.classList.add('hidden');
+});
 
 // ════════════════════════════════════════════
 //  ГАММЫ
@@ -573,14 +630,10 @@ let useFrontCam   = false;
 let audioReady    = false;
 let startHandled  = false;
 let frameCount    = 0;
-
-// Источник видео: 'camera' или 'file'
 let videoSource   = 'camera';
-
 let reverbAmount  = 0.4;
 let sensitivity   = 0.5;
 let bassAmount    = 0.6;
-
 let noteHistory   = [];
 let noteTrails    = [];
 
@@ -679,7 +732,7 @@ async function initAudio() {
   await new Promise(r => setTimeout(r, 200));
   if (audioCtx.state === 'suspended') await audioCtx.resume();
   if (!masterGain) {
-    analyser   = audioCtx.createAnalyser();
+    analyser = audioCtx.createAnalyser();
     analyser.fftSize = 512;
     masterGain = audioCtx.createGain();
     masterGain.gain.value = parseFloat(volumeSlider.value);
@@ -731,16 +784,13 @@ function pushNoteHistory(noteName) {
 }
 
 // ════════════════════════════════════════════
-//  СЛЕДЫ НОТ — усиленная визуализация
-//  Теперь каждый след хранит velocity для
-//  определения размера и яркости точки
+//  СЛЕДЫ НОТ
 // ════════════════════════════════════════════
 function addTrail(yNorm, color, velocity) {
   noteTrails.push({
-    y:        yNorm,
-    alpha:    1.0,
-    color:    color || '#ff6a00',
-    size:     4 + (velocity || 0.5) * 10, // размер от velocity
+    y: yNorm, alpha: 1.0,
+    color: color || '#ff6a00',
+    size: 4 + (velocity || 0.5) * 10,
     velocity: velocity || 0.5,
   });
   if (noteTrails.length > 20) noteTrails.shift();
@@ -760,12 +810,9 @@ function drawTrails() {
   trailCtx.clearRect(0, 0, 640, 480);
   const cx = Math.round(scanXPos);
   noteTrails = noteTrails.filter(t => t.alpha > 0.015);
-
   noteTrails.forEach(t => {
     const y    = t.y * 480;
-    const size = t.size * t.alpha; // точка уменьшается при затухании
-
-    // Внешнее свечение — большой мягкий круг
+    const size = t.size * t.alpha;
     const glowSize = size * 3.5;
     const grd = trailCtx.createRadialGradient(cx, y, 0, cx, y, glowSize);
     grd.addColorStop(0,   hexToRgba(t.color, t.alpha * 0.35));
@@ -775,24 +822,18 @@ function drawTrails() {
     trailCtx.arc(cx, y, glowSize, 0, Math.PI * 2);
     trailCtx.fillStyle = grd;
     trailCtx.fill();
-
-    // Основная точка — яркое ядро
     trailCtx.beginPath();
     trailCtx.arc(cx, y, size, 0, Math.PI * 2);
     trailCtx.fillStyle = hexToRgba(t.color, t.alpha * 0.9);
     trailCtx.fill();
-
-    // Белый центр — самый яркий момент
     if (t.alpha > 0.6) {
       trailCtx.beginPath();
       trailCtx.arc(cx, y, size * 0.35, 0, Math.PI * 2);
       trailCtx.fillStyle = `rgba(255,255,255,${(t.alpha - 0.6) * 2.5})`;
       trailCtx.fill();
     }
-
-    // Горизонтальная линия — шире и ярче
     const lineWidth = size * 4;
-    const lineGrd   = trailCtx.createLinearGradient(cx - lineWidth, y, cx + lineWidth, y);
+    const lineGrd = trailCtx.createLinearGradient(cx - lineWidth, y, cx + lineWidth, y);
     lineGrd.addColorStop(0,   hexToRgba(t.color, 0));
     lineGrd.addColorStop(0.5, hexToRgba(t.color, t.alpha * 0.5));
     lineGrd.addColorStop(1,   hexToRgba(t.color, 0));
@@ -800,10 +841,8 @@ function drawTrails() {
     trailCtx.moveTo(cx - lineWidth, y);
     trailCtx.lineTo(cx + lineWidth, y);
     trailCtx.strokeStyle = lineGrd;
-    trailCtx.lineWidth   = 1.5;
+    trailCtx.lineWidth = 1.5;
     trailCtx.stroke();
-
-    // Затухание
     t.alpha *= 0.91;
   });
 }
@@ -815,14 +854,11 @@ function analyzeColor(data, scanX, H, W) {
   let rSum = 0, gSum = 0, bSum = 0;
   for (let y = 0; y < H; y++) {
     const i = (y * W + scanX) * 4;
-    rSum += data[i];
-    gSum += data[i+1];
-    bSum += data[i+2];
+    rSum += data[i]; gSum += data[i+1]; bSum += data[i+2];
   }
   rSum /= H; gSum /= H; bSum /= H;
   const warmth = Math.min(255, Math.max(0, 128 + (rSum - bSum)));
-  colorDot.style.background =
-    `rgb(${Math.round(rSum)},${Math.round(gSum)},${Math.round(bSum)})`;
+  colorDot.style.background = `rgb(${Math.round(rSum)},${Math.round(gSum)},${Math.round(bSum)})`;
   return warmth;
 }
 
@@ -838,20 +874,13 @@ function pickNote(brightness, colorWarmth) {
   return scale[idx];
 }
 
-// ════════════════════════════════════════════
-//  ЦВЕТ СЛЕДА — в color-режиме зависит от
-//  теплоты (warmth): тёплый = красный,
-//  холодный = синий
-// ════════════════════════════════════════════
 function trailColor(warmth) {
   if (!colorMode) return '#ff6a00';
   const t = warmth / 255;
   const r = Math.round(50  + t * 205);
   const g = Math.round(106 - t * 80);
   const b = Math.round(200 - t * 170);
-  return `#${r.toString(16).padStart(2,'0')}` +
-         `${g.toString(16).padStart(2,'0')}` +
-         `${b.toString(16).padStart(2,'0')}`;
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
 }
 
 // ════════════════════════════════════════════
@@ -868,36 +897,24 @@ function updateAudioStatus() {
 //  ЗАПИСЬ
 // ════════════════════════════════════════════
 function getMimeType() {
-  const types = [
-    'audio/mp4', 'audio/mp4;codecs=mp4a.40.2',
-    'audio/webm;codecs=opus', 'audio/webm',
-  ];
-  for (const t of types) {
-    if (MediaRecorder.isTypeSupported(t)) return t;
-  }
+  const types = ['audio/mp4','audio/mp4;codecs=mp4a.40.2','audio/webm;codecs=opus','audio/webm'];
+  for (const t of types) { if (MediaRecorder.isTypeSupported(t)) return t; }
   return '';
 }
-
 function getFileExtension(mimeType) {
   if (mimeType.startsWith('audio/mp4')) return 'mp4';
   return 'webm';
 }
-
 function startRecording() {
   if (!audioCtx || !masterGain) return;
   recordDest = audioCtx.createMediaStreamDestination();
   masterGain.connect(recordDest);
   const mimeType = getMimeType();
   const options  = mimeType ? { mimeType } : {};
-  try {
-    mediaRecorder = new MediaRecorder(recordDest.stream, options);
-  } catch(e) {
-    mediaRecorder = new MediaRecorder(recordDest.stream);
-  }
+  try { mediaRecorder = new MediaRecorder(recordDest.stream, options); }
+  catch(e) { mediaRecorder = new MediaRecorder(recordDest.stream); }
   recordedChunks = [];
-  mediaRecorder.ondataavailable = e => {
-    if (e.data.size > 0) recordedChunks.push(e.data);
-  };
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
   mediaRecorder.onstop = () => {
     const finalMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
     const ext  = getFileExtension(finalMime);
@@ -905,7 +922,7 @@ function startRecording() {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     const ts   = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-    a.href = url; a.download = `writing-sound-${ts}.${ext}`; a.click();
+    a.href = url; a.download = `sound-vision-${ts}.${ext}`; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     try { masterGain.disconnect(recordDest); } catch(e) {}
     recordDest = null;
@@ -915,7 +932,6 @@ function startRecording() {
   recBtn.textContent = '[ ● rec ]';
   recBtn.classList.add('recording');
 }
-
 function stopRecording() {
   if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
   mediaRecorder.stop();
@@ -925,81 +941,53 @@ function stopRecording() {
 }
 
 // ════════════════════════════════════════════
-//  SLIDER LABELS
-// ════════════════════════════════════════════
-// ════════════════════════════════════════════
 //  DRAGGABLE SCAN LINE
-//  scanX теперь не константа а переменная
-//  которую двигает палец / мышь
 // ════════════════════════════════════════════
+let scanXPos   = 320;
+let isDragging = false;
 
-// Начальная позиция — центр (320 из 640)
-let scanXPos     = 320;
-let isDragging   = false;
-
-const scanLine   = document.getElementById('scanLine');
-const scanGrab   = document.getElementById('scanGrab');
-const tickTop    = document.getElementById('tickTop');
-const tickBot    = document.getElementById('tickBot');
+const scanLine    = document.getElementById('scanLine');
+const scanGrab    = document.getElementById('scanGrab');
+const tickTop     = document.getElementById('tickTop');
+const tickBot     = document.getElementById('tickBot');
 const scanWrapper = document.querySelector('.scanner-wrapper');
 
-// Обновляем позицию линии и зоны захвата
 function updateScanLine(clientX) {
-  const rect   = scanWrapper.getBoundingClientRect();
-  // Переводим экранные координаты в координаты внутри wrapper
-  const relX   = clientX - rect.left;
-  // Клампируем — не выходим за края (отступ 2px)
+  const rect    = scanWrapper.getBoundingClientRect();
+  const relX    = clientX - rect.left;
   const clamped = Math.max(2, Math.min(rect.width - 2, relX));
-  // Нормализуем в 0..640 (внутренняя система координат canvas)
   scanXPos = (clamped / rect.width) * 640;
-
-  // Двигаем все элементы линии
   const pct = (clamped / rect.width) * 100 + '%';
-  scanLine.style.left  = pct;
-  scanGrab.style.left  = pct;
-  tickTop.style.left   = pct;
-  tickBot.style.left   = pct;
+  scanLine.style.left = pct;
+  scanGrab.style.left = pct;
+  tickTop.style.left  = pct;
+  tickBot.style.left  = pct;
 }
 
-// ── TOUCH ──
 scanGrab.addEventListener('touchstart', e => {
-  e.preventDefault();
-  isDragging = true;
+  e.preventDefault(); isDragging = true;
   updateScanLine(e.touches[0].clientX);
 }, { passive: false });
-
 document.addEventListener('touchmove', e => {
   if (!isDragging) return;
-  e.preventDefault();
-  updateScanLine(e.touches[0].clientX);
+  e.preventDefault(); updateScanLine(e.touches[0].clientX);
 }, { passive: false });
-
-document.addEventListener('touchend', () => {
-  isDragging = false;
-});
-
-// ── MOUSE (для десктопа) ──
+document.addEventListener('touchend', () => { isDragging = false; });
 scanGrab.addEventListener('mousedown', e => {
-  e.preventDefault();
-  isDragging = true;
-  updateScanLine(e.clientX);
+  e.preventDefault(); isDragging = true; updateScanLine(e.clientX);
 });
-
 document.addEventListener('mousemove', e => {
-  if (!isDragging) return;
-  updateScanLine(e.clientX);
+  if (!isDragging) return; updateScanLine(e.clientX);
 });
-
-document.addEventListener('mouseup', () => {
-  isDragging = false;
-});
-
-// Клик по самому wrapper тоже перемещает линию
+document.addEventListener('mouseup', () => { isDragging = false; });
 scanWrapper.addEventListener('click', e => {
-  // Не реагируем если кликнули на оверлей
   if (startOverlay.style.display !== 'none') return;
   updateScanLine(e.clientX);
 });
+
+// ════════════════════════════════════════════
+//  SLIDER LABELS
+// ════════════════════════════════════════════
 function updateSliderLabels() {
   if (soundMode === 'musical') {
     document.getElementById('s2label').firstChild.textContent = 'reverb ';
@@ -1020,6 +1008,7 @@ function updateSliderLabels() {
     document.getElementById('s4Val').textContent = '2000 hz';
   }
 }
+
 // ════════════════════════════════════════════
 //  STRING NOTE
 // ════════════════════════════════════════════
@@ -1027,13 +1016,11 @@ function playStringNote(freq, noteName, velocity = 0.5, yNorm = 0.5, warmth = 12
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const vol = parseFloat(volumeSlider.value) * velocity * 0.45;
-
   const osc1  = audioCtx.createOscillator();
   const filt  = audioCtx.createBiquadFilter();
   const gain1 = audioCtx.createGain();
   osc1.type = waveType;
   osc1.frequency.setValueAtTime(freq, now);
-
   const lfo  = audioCtx.createOscillator();
   const lfoG = audioCtx.createGain();
   lfo.type = 'sine';
@@ -1041,23 +1028,19 @@ function playStringNote(freq, noteName, velocity = 0.5, yNorm = 0.5, warmth = 12
   lfoG.gain.value = freq * 0.007;
   lfo.connect(lfoG); lfoG.connect(osc1.frequency);
   lfo.start(now + 0.25);
-
   filt.type = 'lowpass';
   filt.frequency.value = waveType === 'sawtooth' ? 1100 :
                          waveType === 'square'   ? 700  :
                          waveType === 'triangle' ? 2500 : 3500;
   filt.Q.value = 1.5;
-
   const atk = waveType === 'sine' ? 0.04 : 0.12;
   gain1.gain.setValueAtTime(0, now);
   gain1.gain.linearRampToValueAtTime(vol, now + atk);
   gain1.gain.exponentialRampToValueAtTime(vol * 0.65, now + 0.7);
   gain1.gain.exponentialRampToValueAtTime(0.001, now + 2.8);
-
   osc1.connect(filt); filt.connect(gain1); gain1.connect(analyser);
   osc1.start(now); osc1.stop(now + 3.0);
   lfo.stop(now + 3.0);
-
   const osc2  = audioCtx.createOscillator();
   const gain2 = audioCtx.createGain();
   osc2.type = 'sine';
@@ -1067,16 +1050,13 @@ function playStringNote(freq, noteName, velocity = 0.5, yNorm = 0.5, warmth = 12
   gain2.gain.exponentialRampToValueAtTime(0.001, now + 2.2);
   osc2.connect(gain2); gain2.connect(analyser);
   osc2.start(now); osc2.stop(now + 2.3);
-
   noteDisplay.textContent = noteName;
   noteDisplay.style.opacity = '1';
   clearTimeout(noteHoldTimer);
   noteHoldTimer = setTimeout(() => { noteDisplay.style.opacity = '0'; }, 2000);
   document.getElementById('infoNote').textContent = noteName;
   document.getElementById('liveNote').textContent = noteName;
-
   pushNoteHistory(noteName);
-  // Передаём velocity в addTrail для размера точки
   addTrail(yNorm, trailColor(warmth), velocity);
 }
 
@@ -1599,25 +1579,22 @@ function flashDrum(name) {
   btn.classList.add('hit');
   setTimeout(() => btn.classList.remove('hit'), 75);
 }
+
 // ════════════════════════════════════════════
 //  CAMERA
 // ════════════════════════════════════════════
 async function startCamera() {
-  // Останавливаем всё что было до этого
   cancelAnimationFrame(animId);
   isRunning = false;
   if (video.srcObject) {
     video.srcObject.getTracks().forEach(t => t.stop());
     video.srcObject = null;
   }
-
-  // Сбрасываем состояние видеофайла
   videoSource = 'camera';
   videoFileLabel.classList.remove('visible');
   videoProgress.style.display = 'none';
   fileBtn.classList.remove('file-active');
   camBtn.textContent = useFrontCam ? '[ cam: front ]' : '[ cam: rear ]';
-
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
@@ -1640,60 +1617,41 @@ async function startCamera() {
 
 // ════════════════════════════════════════════
 //  VIDEO FILE
-//  Загружаем файл через URL.createObjectURL
-//  и запускаем как src для того же <video>
 // ════════════════════════════════════════════
 function startVideoFile(file) {
-  // Останавливаем камеру если была
   cancelAnimationFrame(animId);
   isRunning = false;
   if (video.srcObject) {
     video.srcObject.getTracks().forEach(t => t.stop());
     video.srcObject = null;
   }
-
   videoSource = 'file';
   fileBtn.classList.add('file-active');
   fileBtn.textContent = '[ ■ stop ]';
-
-  // Показываем имя файла (обрезаем если длинное)
-  const name = file.name.length > 20
-    ? file.name.slice(0, 18) + '…'
-    : file.name;
+  const name = file.name.length > 20 ? file.name.slice(0, 18) + '…' : file.name;
   videoFileLabel.textContent = '▶ ' + name;
   videoFileLabel.classList.add('visible');
   videoProgress.style.display = 'block';
-
-  // Освобождаем старый URL если был
   if (video._fileUrl) URL.revokeObjectURL(video._fileUrl);
   video._fileUrl = URL.createObjectURL(file);
-
-  // Настраиваем видео
   video.src      = video._fileUrl;
   video.srcObject = null;
-  video.muted    = true;   // своя музыка — звук видео не нужен
+  video.muted    = true;
   video.loop     = true;
   video.playbackRate = 1.0;
-
   video.onloadedmetadata = async () => {
     await video.play();
     isRunning = true;
     resetMotionState();
     scanLoop();
   };
-
-  // Прогресс-бар
   video.ontimeupdate = () => {
     if (video.duration && videoSource === 'file') {
       const pct = (video.currentTime / video.duration) * 100;
       videoProgressFill.style.width = pct + '%';
     }
   };
-
-  video.onended = () => {
-    // loop=true значит не дойдёт сюда, но на всякий случай
-    videoProgressFill.style.width = '0%';
-  };
+  video.onended = () => { videoProgressFill.style.width = '0%'; };
 }
 
 function stopVideoFile() {
@@ -1701,24 +1659,18 @@ function stopVideoFile() {
   isRunning = false;
   video.pause();
   video.src = '';
-  if (video._fileUrl) {
-    URL.revokeObjectURL(video._fileUrl);
-    video._fileUrl = null;
-  }
+  if (video._fileUrl) { URL.revokeObjectURL(video._fileUrl); video._fileUrl = null; }
   videoFileLabel.classList.remove('visible');
   videoProgress.style.display = 'none';
   videoProgressFill.style.width = '0%';
   fileBtn.classList.remove('file-active');
   fileBtn.textContent = '[ video file ]';
   videoSource = 'camera';
-  // Возвращаемся к камере автоматически
   startCamera();
 }
 
 // ════════════════════════════════════════════
 //  СБРОС СОСТОЯНИЯ ДВИЖЕНИЯ
-//  Вызываем при смене источника чтобы не было
-//  ложных триггеров от старых данных
 // ════════════════════════════════════════════
 function resetMotionState() {
   prevScanCol.fill(0);
@@ -1739,7 +1691,6 @@ function resetMotionState() {
 // ════════════════════════════════════════════
 function scanLoop() {
   if (!isRunning) return;
-
   if (video.readyState >= 2) {
     const vw = video.videoWidth  || 640;
     const vh = video.videoHeight || 480;
@@ -1747,72 +1698,52 @@ function scanLoop() {
     let sx = 0, sy = 0, sw = vw, sh = vh;
     if (va > ta) { sw = Math.round(vh * ta); sx = Math.round((vw - sw) / 2); }
     else         { sh = Math.round(vw / ta); sy = Math.round((vh - sh) / 2); }
-
-    // Рисуем кадр в offscreen для анализа пикселей
     offCtx.drawImage(video, sx, sy, sw, sh, 0, 0, 640, 480);
     const frame = offCtx.getImageData(0, 0, 640, 480);
-
     processFrame(frame.data);
     drawVisualizer();
     drawTrails();
   }
-
   animId = requestAnimationFrame(scanLoop);
   frameCount++;
 }
 
 // ════════════════════════════════════════════
 //  FRAME PROCESSING
-//  Ключевое изменение: в colorMode рисуем
-//  оригинальный цветной кадр, в grayscale —
-//  чёрно-белый как раньше
 // ════════════════════════════════════════════
 function processFrame(data) {
   const W = 640, H = 480;
-  // Используем глобальную позицию вместо фиксированного центра
-const scanX = Math.round(scanXPos);
+  const scanX = Math.round(scanXPos);
   const scanW = 5;
   const scanCol = new Float32Array(H);
 
   if (colorMode) {
-    // ── ЦВЕТНОЙ РЕЖИМ ──
-    // Рисуем оригинальный кадр как есть
-    // Поверх накладываем лёгкий оверлей для стиля
     const out  = ctx.createImageData(W, H);
     const outD = out.data;
-
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
         const i = (y * W + x) * 4;
-        // Оригинальные цвета с лёгким контрастом
         outD[i]   = Math.min(255, data[i]   * 1.05);
         outD[i+1] = Math.min(255, data[i+1] * 1.05);
         outD[i+2] = Math.min(255, data[i+2] * 1.05);
         outD[i+3] = 255;
-        // Собираем яркость для анализа
         if (x >= scanX - scanW && x <= scanX + scanW) {
           scanCol[y] = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
         }
       }
     }
     ctx.putImageData(out, 0, 0);
-
-    // Сетка поверх цветного изображения — чуть темнее
     ctx.strokeStyle = 'rgba(0,0,0,0.12)';
     ctx.lineWidth = 1;
     for (let y = 0; y < H; y += 40) {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
     }
-
-    // Подсветка сканирующей полосы в цвете
     ctx.fillStyle = 'rgba(255,255,255,0.04)';
     ctx.fillRect(scanX - scanW, 0, scanW * 2, H);
 
   } else {
-    // ── GRAYSCALE РЕЖИМ ──
     const out  = ctx.createImageData(W, H);
     const outD = out.data;
-
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
         const i    = (y * W + x) * 4;
@@ -1823,8 +1754,6 @@ const scanX = Math.round(scanXPos);
       }
     }
     ctx.putImageData(out, 0, 0);
-
-    // Сетка
     ctx.strokeStyle = 'rgba(255,255,255,0.03)';
     ctx.lineWidth = 1;
     for (let y = 0; y < H; y += 40) {
@@ -1832,18 +1761,13 @@ const scanX = Math.round(scanXPos);
     }
   }
 
-  // ── ОБЩИЙ АНАЛИЗ ──
-  const colorWarmth = colorMode
-    ? analyzeColor(data, scanX, H, W)
-    : 128;
+  const colorWarmth = colorMode ? analyzeColor(data, scanX, H, W) : 128;
   prevColorHue = colorWarmth;
 
-  // Средняя яркость по сканирующей полосе
   let sum = 0;
   for (let i = 0; i < H; i++) sum += scanCol[i];
   const avgBright = sum / H;
 
-  // Движение — разница с предыдущим кадром
   let motionSum = 0;
   for (let y = 0; y < H; y++) motionSum += Math.abs(scanCol[y] - prevScanCol[y]);
   const motionRaw = motionSum / H;
@@ -1852,7 +1776,6 @@ const scanX = Math.round(scanXPos);
     : motionSmoothed * 0.92 + motionRaw * 0.08;
   prevScanCol.set(scanCol);
 
-  // Обновляем UI
   document.getElementById('infoLum').textContent    = Math.round(avgBright);
   document.getElementById('liveLum').textContent    = `lum. ${Math.round(avgBright)}`;
   document.getElementById('infoMotion').textContent = Math.round(motionSmoothed * 10) / 10;
@@ -1889,9 +1812,7 @@ function applySoundRaw(scanCol, avgBright) {
     oscillators[i].frequency.linearRampToValueAtTime(freq, now + 0.04);
     gainNodes[i].gain.cancelScheduledValues(now);
     gainNodes[i].gain.setValueAtTime(gainNodes[i].gain.value, now);
-    gainNodes[i].gain.linearRampToValueAtTime(
-      Math.max(0, Math.min(vol, volMax)), now + 0.04
-    );
+    gainNodes[i].gain.linearRampToValueAtTime(Math.max(0, Math.min(vol, volMax)), now + 0.04);
   }
   document.getElementById('infoMode').textContent = 'raw';
   document.getElementById('infoNote').textContent = '—';
@@ -1905,7 +1826,6 @@ function applySoundMusical(scanCol, avgBright, motion, colorWarmth) {
   if (audioCtx.state !== 'running') { audioCtx.resume(); return; }
 
   const now = audioCtx.currentTime;
-
   gainNodes.forEach(g => {
     g.gain.cancelScheduledValues(now);
     g.gain.setTargetAtTime(0, now, 0.05);
@@ -1930,7 +1850,6 @@ function applySoundMusical(scanCol, avgBright, motion, colorWarmth) {
     if (zoneCooldowns[z] > 0) zoneCooldowns[z]--;
   }
 
-  // Яркость по зонам
   const zoneBright = new Float32Array(ZONE_COUNT);
   for (let z = 0; z < ZONE_COUNT; z++) {
     const s = Math.floor(z * zoneH);
@@ -1943,7 +1862,6 @@ function applySoundMusical(scanCol, avgBright, motion, colorWarmth) {
   const triggerThreshold = 30 - sensitivity * 24;
   const minHardCooldown  = Math.floor(4 + (1 - sensitivity) * 10);
 
-  // Ищем зону с максимальным изменением
   let maxDelta = 0, triggerZone = -1;
   for (let z = 0; z < ZONE_COUNT; z++) {
     const delta = Math.abs(zoneBright[z] - prevZoneBright[z]);
@@ -1969,20 +1887,16 @@ function applySoundMusical(scanCol, avgBright, motion, colorWarmth) {
 
   prevZoneBright.set(zoneBright);
 
-  // Бас из нижней зоны
   if (bassCooldown > 0) bassCooldown--;
   const bottomBright = zoneBright[ZONE_COUNT - 1];
   const bottomDelta  = Math.abs(bottomBright - prevZoneBright[ZONE_COUNT - 1]);
   if (bottomDelta > triggerThreshold * 0.8 && bassCooldown === 0 && bottomBright > 15) {
     const bassNorm = bottomBright / 255;
-    const bIdx = Math.min(
-      Math.floor(bassNorm * BASS_FREQS.length), BASS_FREQS.length - 1
-    );
+    const bIdx = Math.min(Math.floor(bassNorm * BASS_FREQS.length), BASS_FREQS.length - 1);
     playBassNote(BASS_FREQS[bIdx], 0.4 + bassNorm * 0.4);
     bassCooldown = 25;
   }
 
-  // ── KICK ──
   if (kickCooldown > 0) kickCooldown--;
   if (drums.kick) {
     const globalDelta = Math.abs(avgBright - prevBright);
@@ -1993,7 +1907,6 @@ function applySoundMusical(scanCol, avgBright, motion, colorWarmth) {
     }
   }
 
-  // ── SNARE ──
   if (snareCooldown > 0) snareCooldown--;
   if (drums.snare) {
     let topSum = 0, botSum = 0;
@@ -2009,7 +1922,6 @@ function applySoundMusical(scanCol, avgBright, motion, colorWarmth) {
     }
   }
 
-  // ── HIHAT ──
   if (hihatCooldown > 0) hihatCooldown--;
   if (drums.hihat) {
     const topBright = zoneBright[0];
@@ -2024,7 +1936,6 @@ function applySoundMusical(scanCol, avgBright, motion, colorWarmth) {
     }
   }
 
-  // ── PERC ──
   if (percCooldown > 0) percCooldown--;
   if (drums.perc) {
     let midSum = 0, midDeltaSum = 0;
@@ -2064,8 +1975,7 @@ function drawVisualizer() {
       if (v < 0.015) continue;
       const x = (i / buf) * W;
       const h = v * H;
-      vizCtx.fillStyle =
-        `rgba(255,${Math.floor(80 + 26 * v)},0,${0.3 + v * 0.7})`;
+      vizCtx.fillStyle = `rgba(255,${Math.floor(80 + 26 * v)},0,${0.3 + v * 0.7})`;
       vizCtx.fillRect(x, H - h, 1.5, h);
     }
   } else {
@@ -2074,8 +1984,7 @@ function drawVisualizer() {
     analyser.getByteTimeDomainData(dat);
     const isQuiet = motionSmoothed < MOTION_THRESHOLD;
     vizCtx.beginPath();
-    vizCtx.strokeStyle = isQuiet
-      ? 'rgba(255,106,0,0.12)' : 'rgba(255,106,0,0.85)';
+    vizCtx.strokeStyle = isQuiet ? 'rgba(255,106,0,0.12)' : 'rgba(255,106,0,0.85)';
     vizCtx.lineWidth   = isQuiet ? 1 : 1.5;
     vizCtx.shadowColor = 'rgba(255,106,0,0.35)';
     vizCtx.shadowBlur  = isQuiet ? 0 : 6;
@@ -2093,6 +2002,7 @@ function drawVisualizer() {
     vizCtx.stroke();
   }
 }
+
 // ════════════════════════════════════════════
 //  START
 // ════════════════════════════════════════════
@@ -2135,26 +2045,18 @@ document.querySelectorAll('.scale-btn').forEach(btn => {
 
 // ════════════════════════════════════════════
 //  COLOR MODE BUTTONS
-//  Переключаем colorMode и меняем класс
-//  colorDot для пульсации в color-режиме
 // ════════════════════════════════════════════
 document.querySelectorAll('.color-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     colorMode = btn.dataset.color === 'on';
     document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-
     if (colorMode) {
-      // Цветной режим — точка пульсирует
       colorDot.classList.add('color-active');
     } else {
-      // Grayscale — точка гаснет
       colorDot.classList.remove('color-active');
       colorDot.style.background = '#333';
     }
-
-    // Сбрасываем prev-данные чтобы не было
-    // ложных триггеров при переключении
     prevScanCol.fill(0);
     prevZoneBright.fill(0);
     hardCooldown = 0;
@@ -2174,7 +2076,6 @@ document.querySelectorAll('.drum-btn').forEach(btn => {
       if (name === 'snare') snareCooldown = 0;
       if (name === 'hihat') { hihatCooldown = 0; hihatFlicker = 0; }
       if (name === 'perc')  percCooldown  = 0;
-      // Превью звука при включении
       if (!audioCtx || !audioReady) return;
       if (name === 'kick')  playKick(0.7);
       if (name === 'snare') playSnare(0.7);
@@ -2289,11 +2190,8 @@ muteBtn.addEventListener('click', async () => {
 
 // ════════════════════════════════════════════
 //  CAMERA SWITCH
-//  Переключает front/rear и всегда
-//  возвращает к камере из любого источника
 // ════════════════════════════════════════════
 camBtn.addEventListener('click', async () => {
-  // Если сейчас видеофайл — просто возвращаемся к камере
   if (videoSource === 'file') {
     video.pause();
     video.src = '';
@@ -2307,7 +2205,6 @@ camBtn.addEventListener('click', async () => {
     videoProgress.style.display = 'none';
     videoProgressFill.style.width = '0%';
   } else {
-    // Переключаем front/rear
     useFrontCam = !useFrontCam;
   }
   camBtn.textContent = useFrontCam ? '[ cam: front ]' : '[ cam: rear ]';
@@ -2316,25 +2213,18 @@ camBtn.addEventListener('click', async () => {
 
 // ════════════════════════════════════════════
 //  FILE BUTTON
-//  Если сейчас играет файл — останавливаем
-//  и возвращаемся к камере.
-//  Если нет — открываем выбор файла.
 // ════════════════════════════════════════════
 fileBtn.addEventListener('click', () => {
   if (videoSource === 'file') {
-    // Стоп — назад к камере
     stopVideoFile();
   } else {
-    // Открываем диалог выбора файла
     videoFileInput.click();
   }
 });
 
-// Когда пользователь выбрал файл
 videoFileInput.addEventListener('change', () => {
   const file = videoFileInput.files[0];
   if (!file) return;
-  // Сбрасываем input чтобы можно было выбрать тот же файл снова
   videoFileInput.value = '';
   startVideoFile(file);
 });
