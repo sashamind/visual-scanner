@@ -957,6 +957,26 @@ let obLang    = 'en';
 let obCurrent = 0;
 const OB_TOTAL = 5;
 
+// ════════════════════════════════════════════
+//  ONBOARDING VISIBILITY CHECK
+// ════════════════════════════════════════════
+function shouldShowOnboarding() {
+  const seenAt = localStorage.getItem('ob_seen_at');
+  if (!seenAt) return true;
+  const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
+  const elapsed  = Date.now() - parseInt(seenAt);
+  return elapsed > ONE_WEEK;
+}
+
+function restoreLangFromStorage() {
+  const saved = localStorage.getItem('ob_lang');
+  if (saved) {
+    obLang = saved;
+    uiLang = saved;
+    applyUiLang();
+  }
+}
+
 // Применяем язык к шагам онбординга
 function setLang(lang) {
   obLang = lang;
@@ -1003,11 +1023,15 @@ function obSkip() {
 }
 
 function obFinish() {
-  uiLang = obLang;
-  try { localStorage.setItem('sv_lang', uiLang); } catch(e) {}
-  applyUILang();
+  // Запоминаем дату когда пользователь прошёл онбординг
+  const now = Date.now(); // миллисекунды с 1970 года
+  localStorage.setItem('ob_seen_at', now);
+  localStorage.setItem('ob_lang', obLang);
+
   document.getElementById('onboarding').classList.add('hidden');
-  try { localStorage.setItem('sv_ob_done', '1'); } catch(e) {}
+  uiLang = obLang;
+  applyUiLang();
+  startOverlay.style.display = 'flex';
 }
 
 // Применяем все тексты интерфейса
@@ -2768,6 +2792,15 @@ recBtn.addEventListener('click', () => {
   }
   isRecording ? stopRecording() : startRecording();
 });
+// Показываем онбординг только если не видел или прошла неделя
+if (shouldShowOnboarding()) {
+  document.getElementById('onboarding').classList.remove('hidden');
+} else {
+  document.getElementById('onboarding').classList.add('hidden');
+  restoreLangFromStorage();
+  startOverlay.style.display = 'flex';
+}
+
 updateSliderLabels();
 
 </script>
