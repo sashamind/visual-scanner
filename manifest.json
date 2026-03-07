@@ -1,7 +1,7 @@
 {
-  "name": "Theremin",
-  "short_name": "Theremin",
-  "description": "Видео-theremin в браузере",
+  "name": "Sound Vision",
+"short_name": "SoundVision",
+"description": "Видео в звук в браузере",
   "start_url": "/",
   "display": "fullscreen",
   "orientation": "portrait",
