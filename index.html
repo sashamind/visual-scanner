@@ -38,10 +38,7 @@
     }
     .header-sub { font-size: 0.45rem; color: #555; letter-spacing: 2px; }
 
-    /* ── ПРЕДУПРЕЖДЕНИЕ О БЕЗЗВУЧНОМ РЕЖИМЕ ──
-       Полоса между шапкой и controls.
-       Видна всегда пока пользователь не нажмёт dismiss.
-       Мигает красным чтобы точно заметили. */
+    /* ── ПРЕДУПРЕЖДЕНИЕ О БЕЗЗВУЧНОМ РЕЖИМЕ ── */
     #silentWarning {
       width: 100%; max-width: 640px;
       background: #0a0000;
@@ -67,10 +64,9 @@
       0%, 100% { opacity: 1; }
       50%       { opacity: 0.5; }
     }
-    /* Когда скрыто — убираем совсем */
     #silentWarning.hidden { display: none; }
 
-    /* ── CONTROLS (перенесены наверх, под шапку) ── */
+    /* ── CONTROLS ── */
     .top-controls {
       width: 100%; max-width: 640px;
       display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -338,284 +334,251 @@
       border-radius:0; background:var(--orange); cursor:pointer;
     }
 
-    /* ── КНОПКИ CONTROLS (стиль тот же, класс другой) ── */
     .ctrl-btn {
-  padding:12px 6px; border:none; border-right:1px solid #1a1a1a;
-  background:#000; color:#666; font-family:'Share Tech Mono',monospace;
-  font-size:0.48rem; letter-spacing:1px; cursor:pointer; text-align:center;
-  white-space: nowrap; /* ← добавь эту строчку */
-}
-    
+      padding:12px 6px; border:none; border-right:1px solid #1a1a1a;
+      background:#000; color:#666; font-family:'Share Tech Mono',monospace;
+      font-size:0.48rem; letter-spacing:1px; cursor:pointer; text-align:center;
+      white-space: nowrap;
+    }
     .ctrl-btn:last-child { border-right:none; }
     .ctrl-btn.active { color:#fff; }
     .ctrl-btn:active  { background:#111; }
     .ctrl-btn.recording { color: #f44; animation: blink 1s step-end infinite; }
     .ctrl-btn.file-active { color: var(--orange); }
 
-    /* Нижний отступ */
     .bottom-spacer { height: 24px; }
+
     /* ════════════════════════════════════════════
-   ONBOARDING
-   Полноэкранный оверлей поверх всего.
-   Показывается один раз при первом запуске.
-   ════════════════════════════════════════════ */
-#onboarding {
-  position: fixed; inset: 0; z-index: 100;
-  background: #000;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  font-family: 'Share Tech Mono', monospace;
-}
-#onboarding.hidden { display: none; }
+       ONBOARDING
+       ════════════════════════════════════════════ */
+    #onboarding {
+      position: fixed; inset: 0; z-index: 100;
+      background: #000;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    #onboarding.hidden { display: none; }
 
-/* Сетка на фоне — как у startOverlay */
-.ob-grid {
-  position: absolute; inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
-}
+    .ob-grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
 
-.ob-screen {
-  display: none; /* показываем только активный */
-  flex-direction: column;
-  align-items: center; justify-content: center;
-  text-align: center;
-  padding: 32px 28px;
-  max-width: 480px;
-  width: 100%;
-  gap: 20px;
-  z-index: 1;
-}
-.ob-screen.active { display: flex; }
+    .ob-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 32px 28px;
+      max-width: 480px;
+      width: 100%;
+      gap: 20px;
+      z-index: 1;
+    }
+    .ob-screen.active { display: flex; }
 
-/* Номер шага */
-.ob-step {
-  font-size: 0.38rem; color: #444; letter-spacing: 3px;
-}
+    .ob-step { font-size: 0.38rem; color: #444; letter-spacing: 3px; }
 
-/* Иконка / эмодзи */
-.ob-icon {
-  font-size: 2.8rem;
-  line-height: 1;
-}
+    .ob-icon { font-size: 2.8rem; line-height: 1; }
 
-/* Заголовок */
-.ob-title {
-  font-family: 'Inter', sans-serif; font-weight: 600;
-  font-size: 1.1rem; color: #fff; letter-spacing: 1px;
-  line-height: 1.3;
-}
-.ob-title span { color: var(--orange); }
+    .ob-title {
+      font-family: 'Inter', sans-serif; font-weight: 600;
+      font-size: 1.1rem; color: #fff; letter-spacing: 1px;
+      line-height: 1.3;
+    }
+    .ob-title span { color: var(--orange); }
 
-/* Описание */
-.ob-desc {
-  font-size: 0.52rem; color: #666; letter-spacing: 1px;
-  line-height: 2.2; max-width: 340px;
-}
-.ob-desc strong { color: #999; }
+    .ob-desc {
+      font-size: 0.52rem; color: #666; letter-spacing: 1px;
+      line-height: 2.2; max-width: 340px;
+    }
+    .ob-desc strong { color: #999; }
 
-/* Разделитель */
-.ob-divider {
-  width: 40px; height: 1px; background: #222;
-}
+    .ob-divider { width: 40px; height: 1px; background: #222; }
 
-/* Кнопки навигации */
-.ob-nav {
-  display: flex; gap: 12px; align-items: center;
-  margin-top: 8px;
-}
-.ob-btn {
-  padding: 10px 24px;
-  border: 1px solid #333; background: #000;
-  color: #666; font-family: 'Share Tech Mono', monospace;
-  font-size: 0.5rem; letter-spacing: 2px; cursor: pointer;
-}
-.ob-btn.primary {
-  border-color: var(--orange); color: var(--orange);
-  animation: obPulse 2s ease-in-out infinite;
-}
-@keyframes obPulse {
-  0%,100% { box-shadow: 0 0 0 0 rgba(255,106,0,0); }
-  50%      { box-shadow: 0 0 12px 2px rgba(255,106,0,0.2); }
-}
-.ob-btn.skip {
-  border-color: transparent; color: #333; font-size: 0.42rem;
-}
+    .ob-nav {
+      display: flex; gap: 12px; align-items: center;
+      margin-top: 8px;
+    }
+    .ob-btn {
+      padding: 10px 24px;
+      border: 1px solid #333; background: #000;
+      color: #666; font-family: 'Share Tech Mono', monospace;
+      font-size: 0.5rem; letter-spacing: 2px; cursor: pointer;
+      white-space: nowrap;
+    }
+    .ob-btn.primary {
+      border-color: var(--orange); color: var(--orange);
+      animation: obPulse 2s ease-in-out infinite;
+    }
+    @keyframes obPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255,106,0,0); }
+      50%      { box-shadow: 0 0 12px 2px rgba(255,106,0,0.2); }
+    }
+    .ob-btn.skip {
+      border-color: transparent; color: #333; font-size: 0.42rem;
+    }
 
-/* Точки прогресса */
-.ob-dots {
-  display: flex; gap: 8px; align-items: center;
-}
-.ob-dot {
-  width: 4px; height: 4px; border-radius: 50%;
-  background: #222; transition: background 0.3s, transform 0.3s;
-}
-.ob-dot.active {
-  background: var(--orange); transform: scale(1.4);
-}
+    .ob-dots { display: flex; gap: 8px; align-items: center; }
+    .ob-dot {
+      width: 4px; height: 4px; border-radius: 50%;
+      background: #222; transition: background 0.3s, transform 0.3s;
+    }
+    .ob-dot.active { background: var(--orange); transform: scale(1.4); }
 
-/* ── ВЫБОР ЯЗЫКА (первый экран) ── */
-.ob-lang-grid {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 10px; width: 100%; max-width: 320px;
-}
-.ob-lang-btn {
-  padding: 14px 10px;
-  border: 1px solid #222; background: #000;
-  color: #555; font-family: 'Share Tech Mono', monospace;
-  font-size: 0.52rem; letter-spacing: 2px; cursor: pointer;
-  text-align: center; line-height: 2; transition: all 0.2s;
-}
-.ob-lang-btn .lang-flag { display: block; font-size: 1.4rem; margin-bottom: 4px; }
-.ob-lang-btn:active,
-.ob-lang-btn.selected {
-  border-color: var(--orange); color: var(--orange);
-  background: var(--orange-faint);
-}
+    .ob-lang-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; width: 100%; max-width: 260px;
+    }
+    .ob-lang-btn {
+      padding: 14px 10px;
+      border: 1px solid #222; background: #000;
+      color: #555; font-family: 'Share Tech Mono', monospace;
+      font-size: 0.52rem; letter-spacing: 2px; cursor: pointer;
+      text-align: center; line-height: 2; transition: all 0.2s;
+    }
+    .ob-lang-btn .lang-flag { display: block; font-size: 1.4rem; margin-bottom: 4px; }
+    .ob-lang-btn.selected {
+      border-color: var(--orange); color: var(--orange);
+      background: var(--orange-faint);
+    }
   </style>
 </head>
 <body>
-<!-- ════════════════════════════════════════
-     ONBOARDING OVERLAY
-     ════════════════════════════════════════ -->
-<div id="onboarding">
-  <div class="ob-grid"></div>
 
-  <!-- ШАГ 0: ВЫБОР ЯЗЫКА -->
-  <div class="ob-screen active" id="ob0">
-    <div class="ob-step">SOUND VISION</div>
-    <div class="ob-icon">🌐</div>
-    <div class="ob-title">Choose <span>language</span></div>
-    <div class="ob-lang-grid">
-      <button class="ob-lang-btn selected" data-lang="en" onclick="setLang('en')">
-        <span class="lang-flag">🇬🇧</span>ENGLISH
-      </button>
-      <button class="ob-lang-btn" data-lang="ru" onclick="setLang('ru')">
-        <span class="lang-flag">🇷🇺</span>РУССКИЙ
-      </button>
-      <button class="ob-lang-btn" data-lang="es" onclick="setLang('es')">
-        <span class="lang-flag">🇪🇸</span>ESPAÑOL
-      </button>
-      <button class="ob-lang-btn" data-lang="de" onclick="setLang('de')">
-        <span class="lang-flag">🇩🇪</span>DEUTSCH
-      </button>
+  <!-- ONBOARDING -->
+  <div id="onboarding">
+    <div class="ob-grid"></div>
+
+    <!-- ШАГ 0: ВЫБОР ЯЗЫКА -->
+    <div class="ob-screen active" id="ob0">
+      <div class="ob-step">SOUND VISION</div>
+      <div class="ob-icon">🌐</div>
+      <div class="ob-title">Choose <span>language</span></div>
+      <div class="ob-lang-grid">
+        <button class="ob-lang-btn selected" data-lang="en" onclick="setLang('en')">
+          <span class="lang-flag">🇬🇧</span>ENGLISH
+        </button>
+        <button class="ob-lang-btn" data-lang="ru" onclick="setLang('ru')">
+          <span class="lang-flag">🇷🇺</span>РУССКИЙ
+        </button>
+      </div>
+      <div class="ob-nav">
+        <button class="ob-btn primary" id="ob0-cont" onclick="obNext()">[ continue ]</button>
+      </div>
     </div>
-    <div class="ob-nav">
-      <button class="ob-btn primary" onclick="obNext()">[ continue ]</button>
+
+    <!-- ШАГ 1 -->
+    <div class="ob-screen" id="ob1">
+      <div class="ob-step" id="ob1-step">01 / 04</div>
+      <div class="ob-icon">👁️</div>
+      <div class="ob-title" id="ob1-title">Your camera<br><span>plays music</span></div>
+      <div class="ob-divider"></div>
+      <div class="ob-desc" id="ob1-desc">
+        Sound Vision reads light and color<br>
+        from your camera in real time<br>
+        and converts it into <strong>live sound</strong>.
+      </div>
+      <div class="ob-dots">
+        <div class="ob-dot active"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+      </div>
+      <div class="ob-nav">
+        <button class="ob-btn skip" id="ob1-skip" onclick="obSkip()">skip</button>
+        <button class="ob-btn primary" id="ob1-next" onclick="obNext()">[ next ]</button>
+      </div>
+    </div>
+
+    <!-- ШАГ 2 -->
+    <div class="ob-screen" id="ob2">
+      <div class="ob-step" id="ob2-step">02 / 04</div>
+      <div class="ob-icon">📡</div>
+      <div class="ob-title" id="ob2-title">The <span>scan line</span><br>is your instrument</div>
+      <div class="ob-divider"></div>
+      <div class="ob-desc" id="ob2-desc">
+        A vertical line scans the image.<br>
+        <strong>Drag it left or right</strong> to choose<br>
+        what part of the scene to listen to.
+      </div>
+      <div class="ob-dots">
+        <div class="ob-dot"></div>
+        <div class="ob-dot active"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+      </div>
+      <div class="ob-nav">
+        <button class="ob-btn skip" id="ob2-skip" onclick="obSkip()">skip</button>
+        <button class="ob-btn primary" id="ob2-next" onclick="obNext()">[ next ]</button>
+      </div>
+    </div>
+
+    <!-- ШАГ 3 -->
+    <div class="ob-screen" id="ob3">
+      <div class="ob-step" id="ob3-step">03 / 04</div>
+      <div class="ob-icon">🎛️</div>
+      <div class="ob-title" id="ob3-title"><span>Light</span> becomes<br>melody</div>
+      <div class="ob-divider"></div>
+      <div class="ob-desc" id="ob3-desc">
+        <strong>Bright areas</strong> → high notes<br>
+        <strong>Dark areas</strong> → low notes<br>
+        Switch scales, add drums,<br>
+        change timbre — make it yours.
+      </div>
+      <div class="ob-dots">
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot active"></div>
+        <div class="ob-dot"></div>
+      </div>
+      <div class="ob-nav">
+        <button class="ob-btn skip" id="ob3-skip" onclick="obSkip()">skip</button>
+        <button class="ob-btn primary" id="ob3-next" onclick="obNext()">[ next ]</button>
+      </div>
+    </div>
+
+    <!-- ШАГ 4 -->
+    <div class="ob-screen" id="ob4">
+      <div class="ob-step" id="ob4-step">04 / 04</div>
+      <div class="ob-icon">🔊</div>
+      <div class="ob-title" id="ob4-title">One last thing:<br><span>unmute</span> your phone</div>
+      <div class="ob-divider"></div>
+      <div class="ob-desc" id="ob4-desc">
+        Make sure silent mode is <strong>off</strong><br>
+        and media volume is <strong>turned up</strong>.<br>
+        Then tap to begin.
+      </div>
+      <div class="ob-dots">
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot active"></div>
+      </div>
+      <div class="ob-nav">
+        <button class="ob-btn primary" id="ob4-start" onclick="obFinish()">[ start ]</button>
+      </div>
     </div>
   </div>
 
-  <!-- ШАГ 1: ЧТО ЭТО -->
-  <div class="ob-screen" id="ob1">
-    <div class="ob-step" id="ob1-step">01 / 04</div>
-    <div class="ob-icon">👁️</div>
-    <div class="ob-title" id="ob1-title">Your camera<br><span>plays music</span></div>
-    <div class="ob-divider"></div>
-    <div class="ob-desc" id="ob1-desc">
-      Sound Vision reads light and color<br>
-      from your camera in real time<br>
-      and converts it into <strong>live sound</strong>.
-    </div>
-    <div class="ob-dots">
-      <div class="ob-dot active"></div>
-      <div class="ob-dot"></div>
-      <div class="ob-dot"></div>
-      <div class="ob-dot"></div>
-    </div>
-    <div class="ob-nav">
-      <button class="ob-btn skip" onclick="obSkip()">skip</button>
-      <button class="ob-btn primary" onclick="obNext()">[ next ]</button>
-    </div>
-  </div>
-
-  <!-- ШАГ 2: СКАНЕР -->
-  <div class="ob-screen" id="ob2">
-    <div class="ob-step" id="ob2-step">02 / 04</div>
-    <div class="ob-icon">📡</div>
-    <div class="ob-title" id="ob2-title">The <span>scan line</span><br>is your instrument</div>
-    <div class="ob-divider"></div>
-    <div class="ob-desc" id="ob2-desc">
-      A vertical line scans the image.<br>
-      <strong>Drag it left or right</strong> to choose<br>
-      what part of the scene to listen to.
-    </div>
-    <div class="ob-dots">
-      <div class="ob-dot"></div>
-      <div class="ob-dot active"></div>
-      <div class="ob-dot"></div>
-      <div class="ob-dot"></div>
-    </div>
-    <div class="ob-nav">
-      <button class="ob-btn skip" onclick="obSkip()">skip</button>
-      <button class="ob-btn primary" onclick="obNext()">[ next ]</button>
-    </div>
-  </div>
-
-  <!-- ШАГ 3: РЕЖИМЫ -->
-  <div class="ob-screen" id="ob3">
-    <div class="ob-step" id="ob3-step">03 / 04</div>
-    <div class="ob-icon">🎛️</div>
-    <div class="ob-title" id="ob3-title"><span>Light</span> becomes<br>melody</div>
-    <div class="ob-divider"></div>
-    <div class="ob-desc" id="ob3-desc">
-      <strong>Bright areas</strong> → high notes<br>
-      <strong>Dark areas</strong> → low notes<br>
-      Switch scales, add drums,<br>
-      change timbre — make it yours.
-    </div>
-    <div class="ob-dots">
-      <div class="ob-dot"></div>
-      <div class="ob-dot"></div>
-      <div class="ob-dot active"></div>
-      <div class="ob-dot"></div>
-    </div>
-    <div class="ob-nav">
-      <button class="ob-btn skip" onclick="obSkip()">skip</button>
-      <button class="ob-btn primary" onclick="obNext()">[ next ]</button>
-    </div>
-  </div>
-
-  <!-- ШАГ 4: СТАРТ -->
-  <div class="ob-screen" id="ob4">
-    <div class="ob-step" id="ob4-step">04 / 04</div>
-    <div class="ob-icon">🔊</div>
-    <div class="ob-title" id="ob4-title">One last thing:<br><span>unmute</span> your phone</div>
-    <div class="ob-divider"></div>
-    <div class="ob-desc" id="ob4-desc">
-      Make sure silent mode is <strong>off</strong><br>
-      and media volume is <strong>turned up</strong>.<br>
-      Then tap to begin.
-    </div>
-    <div class="ob-dots">
-      <div class="ob-dot"></div>
-      <div class="ob-dot"></div>
-      <div class="ob-dot"></div>
-      <div class="ob-dot active"></div>
-    </div>
-    <div class="ob-nav">
-      <button class="ob-btn primary" onclick="obFinish()">[ start ]</button>
-    </div>
-  </div>
-</div>
   <!-- ШАПКА -->
   <div class="header">
     <div class="header-title">Sound Vision</div>
     <div class="header-sub">visual → audio</div>
   </div>
 
-  <!-- ПРЕДУПРЕЖДЕНИЕ О БЕЗЗВУЧНОМ РЕЖИМЕ
-       Показывается сразу, скрывается кнопкой [ ok ] -->
+  <!-- ПРЕДУПРЕЖДЕНИЕ -->
   <div id="silentWarning">
-    <div class="sw-text">
-      ⚠ check: <span>silent mode off</span> · media volume up
-    </div>
+    <div class="sw-text">⚠ check: <span>silent mode off</span> · media volume up</div>
     <button class="sw-dismiss" id="swDismiss">[ ok ]</button>
   </div>
 
-  <!-- CONTROLS — перенесены сюда, между шапкой и видео -->
+  <!-- CONTROLS -->
   <div class="top-controls">
     <button class="ctrl-btn active" id="muteBtn">[ sound: on ]</button>
     <button class="ctrl-btn" id="camBtn">[ cam: rear ]</button>
@@ -623,7 +586,7 @@
     <button class="ctrl-btn" id="recBtn">[ rec ]</button>
   </div>
 
-  <!-- ВИДЕО / СКАНЕР -->
+  <!-- СКАНЕР -->
   <div class="scanner-wrapper">
     <video id="video" autoplay playsinline muted></video>
     <input type="file" id="videoFileInput" accept="video/*" style="display:none">
@@ -774,15 +737,10 @@
   </div>
 
   <div class="bottom-spacer"></div>
-
-<script>
-  // ════════════════════════════════════════════
-//  ONBOARDING
-//  Показываем один раз, сохраняем в
-//  localStorage что уже видели
+  <script>
 // ════════════════════════════════════════════
-
-// Тексты на всех языках
+//  ONBOARDING — тексты
+// ════════════════════════════════════════════
 const OB_LANGS = {
   en: {
     step: ['01 / 04','02 / 04','03 / 04','04 / 04'],
@@ -816,45 +774,129 @@ const OB_LANGS = {
     ],
     next: '[ далее ]', start: '[ начать ]', skip: 'пропустить', cont: '[ продолжить ]',
   },
-  es: {
-    step: ['01 / 04','02 / 04','03 / 04','04 / 04'],
-    title: [
-      'Tu cámara<br><span>toca música</span>',
-      'La <span>línea de escaneo</span><br>es tu instrumento',
-      'La <span>luz</span> se convierte<br>en melodía',
-      'Una cosa más:<br><span>quita</span> el silencio',
-    ],
-    desc: [
-      'Sound Vision lee luz y color<br>de tu cámara en tiempo real<br>y lo convierte en <strong>sonido en vivo</strong>.',
-      'Una línea vertical escanea la imagen.<br><strong>Arrástrala izquierda o derecha</strong><br>para elegir qué parte escuchar.',
-      '<strong>Áreas brillantes</strong> → notas altas<br><strong>Áreas oscuras</strong> → notas bajas<br>Cambia escalas, añade percusión,<br>personaliza el timbre.',
-      'Asegúrate de que el silencio esté <strong>desactivado</strong><br>y el volumen <strong>subido</strong>.<br>Luego toca para empezar.',
-    ],
-    next: '[ siguiente ]', start: '[ empezar ]', skip: 'omitir', cont: '[ continuar ]',
+};
+
+// ════════════════════════════════════════════
+//  ЛОКАЛИЗАЦИЯ ИНТЕРФЕЙСА
+// ════════════════════════════════════════════
+const UI_TEXT = {
+  en: {
+    headerSub:      'visual → audio',
+    silentText:     '⚠ check: <span>silent mode off</span> · media volume up',
+    silentOk:       '[ ok ]',
+    soundOn:        '[ sound: on ]',
+    soundOff:       '[ sound: off ]',
+    camRear:        '[ cam: rear ]',
+    camFront:       '[ cam: front ]',
+    videoFile:      '[ video file ]',
+    videoStop:      '[ ■ stop ]',
+    rec:            '[ rec ]',
+    recActive:      '[ ● rec ]',
+    overlayLabel:   'visual → audio',
+    overlayWarning: '⚠ make sure your phone<br><span>is not on silent</span><br>and media volume is up',
+    overlayTap:     '[ tap to start ]',
+    sectionSoundMode:  '// sound mode',
+    sectionScale:      '// scale (musical mode)',
+    sectionColor:      '// color → pitch',
+    sectionTimbre:     '// timbre (mus.) / wave (raw)',
+    sectionPercussion: '// percussion (musical mode)',
+    sectionParams:     '// parameters',
+    smodeRawDesc:   'atonal drone',
+    smodeMusDesc:   'ambient / avant-garde',
+    scPentaDesc:    'minor',
+    scJapanDesc:    'cinematic',
+    scWholeDesc:    'dreamlike',
+    scChromDesc:    'chaos',
+    cbBrightName:   'BRIGHTNESS',
+    cbBrightDesc:   'luminance only',
+    cbColorName:    'COLOR',
+    cbColorDesc:    'red=high / blue=low',
+    drumKickDesc:   'brightness spike',
+    drumSnareDesc:  'contrast → impact',
+    drumHihatDesc:  'flicker → whisper',
+    drumPercDesc:   'midzone → resonance',
+    slVolume:       'volume',
+    slReverb:       'reverb',
+    slSensitivity:  'sensitivity',
+    slBass:         'bass',
+    slVoices:       'voices',
+    slMinHz:        'min hz',
+    slMaxHz:        'max hz',
+    dcBrightness:   'brightness',
+    dcNote:         'note',
+    dcMode:         'mode',
+    dcMotion:       'motion',
+    historyLabel:   'history',
+    audioLabel:     'audio',
+    lumLabel:       'lum.',
+    modeQuiet:      'quiet',
+    modeRaw:        'raw',
+    modeMus:        'mus.',
+    sensLabels:     ['low','soft','mid','high','max'],
   },
-  de: {
-    step: ['01 / 04','02 / 04','03 / 04','04 / 04'],
-    title: [
-      'Deine Kamera<br><span>spielt Musik</span>',
-      'Die <span>Scanlinie</span><br>ist dein Instrument',
-      '<span>Licht</span> wird zur<br>Melodie',
-      'Noch etwas:<br><span>Stummschaltung</span> aus',
-    ],
-    desc: [
-      'Sound Vision liest Licht und Farbe<br>von deiner Kamera in Echtzeit<br>und wandelt es in <strong>Live-Klang</strong> um.',
-      'Eine vertikale Linie scannt das Bild.<br><strong>Ziehe sie links oder rechts</strong>,<br>um den Bereich zum Hören zu wählen.',
-      '<strong>Helle Bereiche</strong> → hohe Noten<br><strong>Dunkle Bereiche</strong> → tiefe Noten<br>Wechsle Tonleitern, füge Drums hinzu,<br>passe den Klang an.',
-      'Stelle sicher, dass der Stumm-Modus <strong>aus</strong><br>und die Medienlautstärke <strong>hoch</strong> ist.<br>Dann tippe zum Starten.',
-    ],
-    next: '[ weiter ]', start: '[ starten ]', skip: 'überspringen', cont: '[ weiter ]',
+  ru: {
+    headerSub:      'свет → звук',
+    silentText:     '⚠ проверь: <span>беззвучный режим выкл</span> · громкость медиа вверх',
+    silentOk:       '[ ок ]',
+    soundOn:        '[ звук: вкл ]',
+    soundOff:       '[ звук: выкл ]',
+    camRear:        '[ кам: осн ]',
+    camFront:       '[ кам: фронт ]',
+    videoFile:      '[ видеофайл ]',
+    videoStop:      '[ ■ стоп ]',
+    rec:            '[ запись ]',
+    recActive:      '[ ● запись ]',
+    overlayLabel:   'свет → звук',
+    overlayWarning: '⚠ убедись, что телефон<br><span>не на беззвучном</span><br>и громкость медиа поднята',
+    overlayTap:     '[ нажми, чтобы начать ]',
+    sectionSoundMode:  '// режим звука',
+    sectionScale:      '// гамма (муз. режим)',
+    sectionColor:      '// цвет → высота',
+    sectionTimbre:     '// тембр (муз.) / волна (raw)',
+    sectionPercussion: '// перкуссия (муз. режим)',
+    sectionParams:     '// параметры',
+    smodeRawDesc:   'атональный дрон',
+    smodeMusDesc:   'эмбиент / авангард',
+    scPentaDesc:    'минор',
+    scJapanDesc:    'кино',
+    scWholeDesc:    'сон',
+    scChromDesc:    'хаос',
+    cbBrightName:   'ЯРКОСТЬ',
+    cbBrightDesc:   'только luminance',
+    cbColorName:    'ЦВЕТ',
+    cbColorDesc:    'красный=высоко / синий=низко',
+    drumKickDesc:   'всплеск яркости',
+    drumSnareDesc:  'контраст → удар',
+    drumHihatDesc:  'мерцание → шёпот',
+    drumPercDesc:   'середина → резонанс',
+    slVolume:       'громкость',
+    slReverb:       'reverb',
+    slSensitivity:  'чувствит.',
+    slBass:         'бас',
+    slVoices:       'голоса',
+    slMinHz:        'мин гц',
+    slMaxHz:        'макс гц',
+    dcBrightness:   'яркость',
+    dcNote:         'нота',
+    dcMode:         'режим',
+    dcMotion:       'движение',
+    historyLabel:   'история',
+    audioLabel:     'audio',
+    lumLabel:       'ярк.',
+    modeQuiet:      'тихо',
+    modeRaw:        'raw',
+    modeMus:        'муз.',
+    sensLabels:     ['низк','мягк','сред','выс','макс'],
   },
 };
 
-let obLang    = 'en';   // текущий язык
-let obCurrent = 0;      // текущий экран (0 = выбор языка, 1-4 = шаги)
-const OB_TOTAL = 5;     // всего экранов включая выбор языка
+// Текущий язык
+let uiLang    = 'en';
+let obLang    = 'en';
+let obCurrent = 0;
+const OB_TOTAL = 5;
 
-// Устанавливаем язык и подсвечиваем кнопку
+// Применяем язык к шагам онбординга
 function setLang(lang) {
   obLang = lang;
   document.querySelectorAll('.ob-lang-btn').forEach(b => {
@@ -862,40 +904,28 @@ function setLang(lang) {
   });
 }
 
-// Применяем тексты выбранного языка к шагам 1-4
 function applyLangTexts() {
   const t = OB_LANGS[obLang];
   for (let i = 1; i <= 4; i++) {
-    const el = document.getElementById(`ob${i}`);
-    el.querySelector(`#ob${i}-step`).textContent  = t.step[i-1];
-    el.querySelector(`#ob${i}-title`).innerHTML   = t.title[i-1];
-    el.querySelector(`#ob${i}-desc`).innerHTML    = t.desc[i-1];
-    // Кнопки
-    const btns = el.querySelectorAll('.ob-btn');
-    btns.forEach(b => {
-      if (b.classList.contains('primary')) {
-        b.textContent = i === 4 ? t.start : t.next;
-      }
-      if (b.classList.contains('skip')) {
-        b.textContent = t.skip;
-      }
-    });
+    document.getElementById(`ob${i}-step`).textContent   = t.step[i-1];
+    document.getElementById(`ob${i}-title`).innerHTML    = t.title[i-1];
+    document.getElementById(`ob${i}-desc`).innerHTML     = t.desc[i-1];
+    const nextBtn = document.getElementById(`ob${i}-next`);
+    const skipBtn = document.getElementById(`ob${i}-skip`);
+    if (nextBtn) nextBtn.textContent = i === 4 ? t.start : t.next;
+    if (skipBtn) skipBtn.textContent = t.skip;
   }
-  // Кнопка continue на экране языка
-  document.querySelector('#ob0 .ob-btn.primary').textContent = OB_LANGS[obLang].cont;
+  document.getElementById('ob0-cont').textContent = t.cont;
 }
 
-// Переход к следующему экрану
 function obNext() {
-  if (obCurrent === 0) applyLangTexts(); // применяем язык при уходе с экрана выбора
-  const cur = document.getElementById(`ob${obCurrent}`);
-  cur.classList.remove('active');
+  if (obCurrent === 0) applyLangTexts();
+  document.getElementById(`ob${obCurrent}`).classList.remove('active');
   obCurrent++;
   if (obCurrent >= OB_TOTAL) { obFinish(); return; }
   document.getElementById(`ob${obCurrent}`).classList.add('active');
 }
 
-// Пропустить — сразу на последний экран (про звук)
 function obSkip() {
   applyLangTexts();
   document.getElementById(`ob${obCurrent}`).classList.remove('active');
@@ -903,20 +933,67 @@ function obSkip() {
   document.getElementById('ob4').classList.add('active');
 }
 
-// Завершить онбординг
 function obFinish() {
+  uiLang = obLang;
+  try { localStorage.setItem('sv_lang', uiLang); } catch(e) {}
+  applyUILang();
   document.getElementById('onboarding').classList.add('hidden');
-  // Сохраняем чтобы не показывать снова
   try { localStorage.setItem('sv_ob_done', '1'); } catch(e) {}
 }
 
-// Проверяем — если уже видели, скрываем сразу
-// Закомментируй эти строки если хочешь показывать каждый раз (для теста)
-// try {
-//   if (localStorage.getItem('sv_ob_done')) {
-//     document.getElementById('onboarding').classList.add('hidden');
-//   }
-// } catch(e) {}
+// Применяем все тексты интерфейса
+function applyUILang() {
+  const t = UI_TEXT[uiLang];
+
+  document.querySelector('.header-sub').textContent       = t.headerSub;
+  document.querySelector('.sw-text').innerHTML            = t.silentText;
+  document.getElementById('swDismiss').textContent        = t.silentOk;
+
+  muteBtn.textContent = isMuted ? t.soundOff : t.soundOn;
+  camBtn.textContent  = useFrontCam ? t.camFront : t.camRear;
+  if (videoSource !== 'file') fileBtn.textContent         = t.videoFile;
+  if (!isRecording)           recBtn.textContent          = t.rec;
+
+  document.querySelector('.overlay-label').textContent    = t.overlayLabel;
+  document.querySelector('.overlay-warning').innerHTML    = t.overlayWarning;
+  document.querySelector('.overlay-tap').textContent      = t.overlayTap;
+
+  const heads = document.querySelectorAll('.section-head');
+  heads[0].textContent = t.sectionSoundMode;
+  heads[1].textContent = t.sectionScale;
+  heads[2].textContent = t.sectionColor;
+  heads[3].textContent = t.sectionTimbre;
+  heads[4].textContent = t.sectionPercussion;
+  heads[5].textContent = t.sectionParams;
+
+  document.querySelector('[data-smode="raw"] .smode-desc').textContent     = t.smodeRawDesc;
+  document.querySelector('[data-smode="musical"] .smode-desc').textContent = t.smodeMusDesc;
+
+  document.querySelector('[data-scale="pentatonic"] .sc-desc').textContent = t.scPentaDesc;
+  document.querySelector('[data-scale="japanese"] .sc-desc').textContent   = t.scJapanDesc;
+  document.querySelector('[data-scale="wholetone"] .sc-desc').textContent  = t.scWholeDesc;
+  document.querySelector('[data-scale="chromatic"] .sc-desc').textContent  = t.scChromDesc;
+
+  document.querySelector('[data-color="off"] .cb-name').textContent        = t.cbBrightName;
+  document.querySelector('[data-color="off"] .cb-desc').textContent        = t.cbBrightDesc;
+  document.querySelector('[data-color="on"] .cb-name').textContent         = t.cbColorName;
+  document.querySelector('[data-color="on"] .cb-desc').textContent         = t.cbColorDesc;
+
+  document.querySelector('[data-drum="kick"] .d-desc').textContent         = t.drumKickDesc;
+  document.querySelector('[data-drum="snare"] .d-desc').textContent        = t.drumSnareDesc;
+  document.querySelector('[data-drum="hihat"] .d-desc').textContent        = t.drumHihatDesc;
+  document.querySelector('[data-drum="perc"] .d-desc').textContent         = t.drumPercDesc;
+
+  const dcLabels = document.querySelectorAll('.dc-label');
+  dcLabels[0].textContent = t.dcBrightness;
+  dcLabels[1].textContent = t.dcNote;
+  dcLabels[2].textContent = t.dcMode;
+  dcLabels[3].textContent = t.dcMotion;
+
+  document.querySelector('.note-history-label').textContent = t.historyLabel;
+
+  updateSliderLabels();
+}
 // ════════════════════════════════════════════
 //  ELEMENTS
 // ════════════════════════════════════════════
@@ -951,7 +1028,7 @@ const vizCtx   = vizCanvas.getContext('2d');
 const trailCtx = trailCanvas.getContext('2d');
 
 // ════════════════════════════════════════════
-//  ПРЕДУПРЕЖДЕНИЕ — скрываем по кнопке [ ok ]
+//  SILENT WARNING DISMISS
 // ════════════════════════════════════════════
 swDismiss.addEventListener('click', () => {
   silentWarning.classList.add('hidden');
@@ -1272,8 +1349,9 @@ function trailColor(warmth) {
 //  AUDIO STATUS
 // ════════════════════════════════════════════
 function updateAudioStatus() {
-  if (!audioCtx) { audioStatus.textContent = 'audio: —'; return; }
-  audioStatus.textContent = `audio: ${audioCtx.state}`;
+  const t = UI_TEXT[uiLang];
+  if (!audioCtx) { audioStatus.textContent = `${t.audioLabel}: —`; return; }
+  audioStatus.textContent = `${t.audioLabel}: ${audioCtx.state}`;
   audioStatus.style.color = audioCtx.state === 'running'
     ? 'rgba(255,255,255,0.25)' : '#f44';
 }
@@ -1286,10 +1364,12 @@ function getMimeType() {
   for (const t of types) { if (MediaRecorder.isTypeSupported(t)) return t; }
   return '';
 }
+
 function getFileExtension(mimeType) {
   if (mimeType.startsWith('audio/mp4')) return 'mp4';
   return 'webm';
 }
+
 function startRecording() {
   if (!audioCtx || !masterGain) return;
   recordDest = audioCtx.createMediaStreamDestination();
@@ -1314,14 +1394,15 @@ function startRecording() {
   };
   mediaRecorder.start(100);
   isRecording = true;
-  recBtn.textContent = '[ ● rec ]';
+  recBtn.textContent = UI_TEXT[uiLang].recActive;
   recBtn.classList.add('recording');
 }
+
 function stopRecording() {
   if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
   mediaRecorder.stop();
   isRecording = false;
-  recBtn.textContent = '[ rec ]';
+  recBtn.textContent = UI_TEXT[uiLang].rec;
   recBtn.classList.remove('recording');
 }
 
@@ -1349,6 +1430,15 @@ function updateScanLine(clientX) {
   tickBot.style.left  = pct;
 }
 
+// Сбрасываем линию в центр
+function resetScanLine() {
+  scanXPos = 320;
+  scanLine.style.left = '50%';
+  scanGrab.style.left = '50%';
+  tickTop.style.left  = '50%';
+  tickBot.style.left  = '50%';
+}
+
 scanGrab.addEventListener('touchstart', e => {
   e.preventDefault(); isDragging = true;
   updateScanLine(e.touches[0].clientX);
@@ -1374,17 +1464,18 @@ scanWrapper.addEventListener('click', e => {
 //  SLIDER LABELS
 // ════════════════════════════════════════════
 function updateSliderLabels() {
+  const t = UI_TEXT[uiLang];
   if (soundMode === 'musical') {
-    document.getElementById('s2label').firstChild.textContent = 'reverb ';
-    document.getElementById('s3label').firstChild.textContent = 'sensitivity ';
-    document.getElementById('s4label').firstChild.textContent = 'bass ';
+    document.getElementById('s2label').firstChild.textContent = t.slReverb + ' ';
+    document.getElementById('s3label').firstChild.textContent = t.slSensitivity + ' ';
+    document.getElementById('s4label').firstChild.textContent = t.slBass + ' ';
     slider2.min = 0; slider2.max = 1; slider2.step = 0.01;
     slider3.min = 0; slider3.max = 1; slider3.step = 0.01;
     slider4.min = 0; slider4.max = 1; slider4.step = 0.01;
   } else {
-    document.getElementById('s2label').firstChild.textContent = 'voices ';
-    document.getElementById('s3label').firstChild.textContent = 'min hz ';
-    document.getElementById('s4label').firstChild.textContent = 'max hz ';
+    document.getElementById('s2label').firstChild.textContent = t.slVoices + ' ';
+    document.getElementById('s3label').firstChild.textContent = t.slMinHz + ' ';
+    document.getElementById('s4label').firstChild.textContent = t.slMaxHz + ' ';
     slider2.min = 1;   slider2.max = 16;   slider2.step = 1;  slider2.value = 8;
     slider3.min = 50;  slider3.max = 500;  slider3.step = 10; slider3.value = 100;
     slider4.min = 500; slider4.max = 4000; slider4.step = 50; slider4.value = 2000;
@@ -1392,6 +1483,8 @@ function updateSliderLabels() {
     document.getElementById('s3Val').textContent = '100 hz';
     document.getElementById('s4Val').textContent = '2000 hz';
   }
+  // Лейбл volume
+  document.querySelector('.sl-label').firstChild.textContent = t.slVolume + ' ';
 }
 
 // ════════════════════════════════════════════
@@ -1484,7 +1577,6 @@ function playKick(vol) {
     bg.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
     body.connect(bg); bg.connect(masterGain);
     body.start(now); body.stop(now + 0.45);
-
     const metal = audioCtx.createOscillator();
     const mg    = audioCtx.createGain();
     metal.type = 'sine';
@@ -1506,7 +1598,6 @@ function playKick(vol) {
     bg.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
     body.connect(bg); bg.connect(masterGain);
     body.start(now); body.stop(now + 2.6);
-
     const nlen = Math.floor(audioCtx.sampleRate * 1.0);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1530,7 +1621,6 @@ function playKick(vol) {
     bg.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
     body.connect(bg); bg.connect(masterGain);
     body.start(now); body.stop(now + 0.65);
-
     const nlen = Math.floor(audioCtx.sampleRate * 0.15);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1555,7 +1645,6 @@ function playKick(vol) {
     bg.gain.exponentialRampToValueAtTime(0.001,   now + 1.6);
     body.connect(bg); bg.connect(masterGain);
     body.start(now); body.stop(now + 1.7);
-
     const sub = audioCtx.createOscillator();
     const sg  = audioCtx.createGain();
     sub.type = 'sine';
@@ -1565,7 +1654,6 @@ function playKick(vol) {
     sg.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
     sub.connect(sg); sg.connect(masterGain);
     sub.start(now); sub.stop(now + 1.4);
-
     const mid  = audioCtx.createOscillator();
     const midG = audioCtx.createGain();
     mid.type = 'triangle';
@@ -1575,7 +1663,6 @@ function playKick(vol) {
     midG.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
     mid.connect(midG); midG.connect(masterGain);
     mid.start(now); mid.stop(now + 0.75);
-
     const lfo  = audioCtx.createOscillator();
     const lfoG = audioCtx.createGain();
     lfo.type = 'sine';
@@ -1583,7 +1670,6 @@ function playKick(vol) {
     lfoG.gain.value = 6;
     lfo.connect(lfoG); lfoG.connect(body.frequency);
     lfo.start(now); lfo.stop(now + 1.7);
-
     const nlen = Math.floor(audioCtx.sampleRate * 0.6);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1618,7 +1704,6 @@ function playSnare(vol) {
     tg.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
     tone.connect(tg); tg.connect(masterGain);
     tone.start(now); tone.stop(now + 0.15);
-
     const nlen = Math.floor(audioCtx.sampleRate * 0.05);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1645,7 +1730,6 @@ function playSnare(vol) {
     sg.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
     src.connect(lp); lp.connect(sg); sg.connect(masterGain);
     src.start(now);
-
     const tone = audioCtx.createOscillator();
     const tg   = audioCtx.createGain();
     tone.type = 'sine'; tone.frequency.value = 180;
@@ -1664,7 +1748,6 @@ function playSnare(vol) {
     tg.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
     tone.connect(tg); tg.connect(masterGain);
     tone.start(now); tone.stop(now + 0.3);
-
     const nlen = Math.floor(audioCtx.sampleRate * 0.2);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1689,7 +1772,6 @@ function playSnare(vol) {
     tg.gain.exponentialRampToValueAtTime(0.001,   now + 0.5);
     tone.connect(tg); tg.connect(masterGain);
     tone.start(now); tone.stop(now + 0.55);
-
     const tone2 = audioCtx.createOscillator();
     const tg2   = audioCtx.createGain();
     tone2.type = 'triangle';
@@ -1699,7 +1781,6 @@ function playSnare(vol) {
     tg2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
     tone2.connect(tg2); tg2.connect(masterGain);
     tone2.start(now); tone2.stop(now + 0.3);
-
     const nlen = Math.floor(audioCtx.sampleRate * 0.3);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1738,7 +1819,6 @@ function playHihat(vol) {
     g.gain.exponentialRampToValueAtTime(0.001, now + duration);
     src.connect(bp); bp.connect(g); g.connect(masterGain);
     src.start(now);
-
     const sing = audioCtx.createOscillator();
     const sg   = audioCtx.createGain();
     sing.type = 'sine';
@@ -1838,7 +1918,6 @@ function playPerc(vol, pitchNorm = 0.5) {
     g1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
     o1.connect(f1); f1.connect(g1); g1.connect(masterGain);
     o1.start(now); o1.stop(now + 1.3);
-
     const o2 = audioCtx.createOscillator();
     const g2 = audioCtx.createGain();
     o2.type = 'sine'; o2.frequency.value = freq * 1.5;
@@ -1878,7 +1957,6 @@ function playPerc(vol, pitchNorm = 0.5) {
     g1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
     o1.connect(g1); g1.connect(masterGain);
     o1.start(now); o1.stop(now + 0.18);
-
     const nlen = Math.floor(audioCtx.sampleRate * 0.12);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1929,7 +2007,6 @@ function playPerc(vol, pitchNorm = 0.5) {
       g1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
       o1.connect(g1); g1.connect(masterGain);
       o1.start(now); o1.stop(now + 0.38);
-
       const nlen = Math.floor(audioCtx.sampleRate * 0.15);
       const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
       const ndd  = nbuf.getChannelData(0);
@@ -1979,7 +2056,8 @@ async function startCamera() {
   videoFileLabel.classList.remove('visible');
   videoProgress.style.display = 'none';
   fileBtn.classList.remove('file-active');
-  camBtn.textContent = useFrontCam ? '[ cam: front ]' : '[ cam: rear ]';
+  const t = UI_TEXT[uiLang];
+  camBtn.textContent = useFrontCam ? t.camFront : t.camRear;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
@@ -2010,35 +2088,41 @@ function startVideoFile(file) {
     video.srcObject.getTracks().forEach(t => t.stop());
     video.srcObject = null;
   }
+
   videoSource = 'file';
-  // Сбрасываем линию в центр при загрузке видео
-scanXPos = 320;
-updateScanLine(scanWrapper.getBoundingClientRect().left + scanWrapper.getBoundingClientRect().width / 2);
   fileBtn.classList.add('file-active');
-  fileBtn.textContent = '[ ■ stop ]';
+  fileBtn.textContent = UI_TEXT[uiLang].videoStop;
+
+  // Сбрасываем линию в центр при загрузке видео
+  resetScanLine();
+
   const name = file.name.length > 20 ? file.name.slice(0, 18) + '…' : file.name;
   videoFileLabel.textContent = '▶ ' + name;
   videoFileLabel.classList.add('visible');
   videoProgress.style.display = 'block';
+
   if (video._fileUrl) URL.revokeObjectURL(video._fileUrl);
   video._fileUrl = URL.createObjectURL(file);
-  video.src      = video._fileUrl;
+  video.src       = video._fileUrl;
   video.srcObject = null;
-  video.muted    = true;
-  video.loop     = true;
+  video.muted     = true;
+  video.loop      = true;
   video.playbackRate = 1.0;
+
   video.onloadedmetadata = async () => {
     await video.play();
     isRunning = true;
     resetMotionState();
     scanLoop();
   };
+
   video.ontimeupdate = () => {
     if (video.duration && videoSource === 'file') {
       const pct = (video.currentTime / video.duration) * 100;
       videoProgressFill.style.width = pct + '%';
     }
   };
+
   video.onended = () => { videoProgressFill.style.width = '0%'; };
 }
 
@@ -2052,7 +2136,7 @@ function stopVideoFile() {
   videoProgress.style.display = 'none';
   videoProgressFill.style.width = '0%';
   fileBtn.classList.remove('file-active');
-  fileBtn.textContent = '[ video file ]';
+  fileBtn.textContent = UI_TEXT[uiLang].videoFile;
   videoSource = 'camera';
   startCamera();
 }
@@ -2165,7 +2249,7 @@ function processFrame(data) {
   prevScanCol.set(scanCol);
 
   document.getElementById('infoLum').textContent    = Math.round(avgBright);
-  document.getElementById('liveLum').textContent    = `lum. ${Math.round(avgBright)}`;
+  document.getElementById('liveLum').textContent    = `${UI_TEXT[uiLang].lumLabel} ${Math.round(avgBright)}`;
   document.getElementById('infoMotion').textContent = Math.round(motionSmoothed * 10) / 10;
   motionBar.style.width = Math.min(motionSmoothed / 15 * 100, 100) + '%';
 
@@ -2202,7 +2286,7 @@ function applySoundRaw(scanCol, avgBright) {
     gainNodes[i].gain.setValueAtTime(gainNodes[i].gain.value, now);
     gainNodes[i].gain.linearRampToValueAtTime(Math.max(0, Math.min(vol, volMax)), now + 0.04);
   }
-  document.getElementById('infoMode').textContent = 'raw';
+  document.getElementById('infoMode').textContent = UI_TEXT[uiLang].modeRaw;
   document.getElementById('infoNote').textContent = '—';
 }
 
@@ -2220,7 +2304,7 @@ function applySoundMusical(scanCol, avgBright, motion, colorWarmth) {
   });
 
   if (motion < MOTION_THRESHOLD) {
-    document.getElementById('infoMode').textContent = 'quiet';
+    document.getElementById('infoMode').textContent = UI_TEXT[uiLang].modeQuiet;
     prevZoneBright.fill(0);
     hardCooldown = 0;
     prevBright   = avgBright;
@@ -2342,7 +2426,7 @@ function applySoundMusical(scanCol, avgBright, motion, colorWarmth) {
   }
 
   prevBright = avgBright;
-  document.getElementById('infoMode').textContent = 'mus.';
+  document.getElementById('infoMode').textContent = UI_TEXT[uiLang].modeMus;
 }
 
 // ════════════════════════════════════════════
@@ -2524,7 +2608,8 @@ slider2.addEventListener('input', () => {
     document.getElementById('s2Val').textContent = count;
     if (audioCtx && audioReady) {
       oscillators.forEach(o => { try { o.stop(); } catch(e) {} });
-      oscillators = []; gainNodes = [];
+      oscillators = [];
+      gainNodes = [];
       const now = audioCtx.currentTime;
       for (let i = 0; i < count; i++) {
         const osc  = audioCtx.createOscillator();
@@ -2538,114 +2623,11 @@ slider2.addEventListener('input', () => {
   }
 });
 
-slider3.addEventListener('input', () => {
-  if (soundMode === 'musical') {
-    sensitivity = parseFloat(slider3.value);
-    const labels = ['low', 'soft', 'mid', 'high', 'max'];
-    document.getElementById('s3Val').textContent =
-      labels[Math.min(Math.floor(sensitivity * 4), 4)];
-  } else {
-    document.getElementById('s3Val').textContent = slider3.value + ' hz';
-  }
-});
-
-slider4.addEventListener('input', () => {
-  if (soundMode === 'musical') {
-    bassAmount = parseFloat(slider4.value);
-    document.getElementById('s4Val').textContent =
-      Math.round(bassAmount * 100) + '%';
-  } else {
-    document.getElementById('s4Val').textContent = slider4.value + ' hz';
-  }
-});
-
-// ════════════════════════════════════════════
-//  MUTE
-// ════════════════════════════════════════════
-muteBtn.addEventListener('click', async () => {
-  if (!audioCtx) return;
-  if (audioCtx.state === 'suspended') await audioCtx.resume();
-  isMuted = !isMuted;
-  muteBtn.textContent = isMuted ? '[ sound: off ]' : '[ sound: on ]';
-  muteBtn.classList.toggle('active', !isMuted);
-  const now = audioCtx.currentTime;
-  masterGain.gain.cancelScheduledValues(now);
-  masterGain.gain.setValueAtTime(masterGain.gain.value, now);
-  masterGain.gain.linearRampToValueAtTime(
-    isMuted ? 0 : parseFloat(volumeSlider.value), now + 0.1
-  );
-});
-
-// ════════════════════════════════════════════
-//  CAMERA SWITCH
-// ════════════════════════════════════════════
-camBtn.addEventListener('click', async () => {
-  if (videoSource === 'file') {
-    video.pause();
-    video.src = '';
-    if (video._fileUrl) {
-      URL.revokeObjectURL(video._fileUrl);
-      video._fileUrl = null;
-    }
-    fileBtn.textContent = '[ video file ]';
-    fileBtn.classList.remove('file-active');
-    videoFileLabel.classList.remove('visible');
-    videoProgress.style.display = 'none';
-    videoProgressFill.style.width = '0%';
-  } else {
-    useFrontCam = !useFrontCam;
-  }
-  camBtn.textContent = useFrontCam ? '[ cam: front ]' : '[ cam: rear ]';
-  await startCamera();
-});
-
-// ════════════════════════════════════════════
-//  FILE BUTTON
-// ════════════════════════════════════════════
-fileBtn.addEventListener('click', () => {
-  if (videoSource === 'file') {
-    stopVideoFile();
-  } else {
-    videoFileInput.click();
-  }
-});
-
-videoFileInput.addEventListener('change', () => {
-  const file = videoFileInput.files[0];
-  if (!file) return;
-  videoFileInput.value = '';
-  startVideoFile(file);
-});
-
-// ════════════════════════════════════════════
-//  REC BUTTON
-// ════════════════════════════════════════════
-recBtn.addEventListener('click', () => {
-  if (!audioCtx || !audioReady) return;
-  isRecording ? stopRecording() : startRecording();
-});
-
-// ════════════════════════════════════════════
-//  iOS FIXES
-// ════════════════════════════════════════════
-document.addEventListener('touchstart', async () => {
-  if (audioCtx && audioCtx.state === 'suspended') {
-    await audioCtx.resume();
-    updateAudioStatus();
-  }
-}, { passive: true });
-
-document.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState === 'visible' && audioCtx) {
-    await audioCtx.resume();
-    updateAudioStatus();
-  }
-});
-
 // ════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════
 updateSliderLabels();
+
 </script>
 </body>
 </html>
