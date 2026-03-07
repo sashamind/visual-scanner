@@ -354,10 +354,252 @@
 
     /* Нижний отступ */
     .bottom-spacer { height: 24px; }
+    /* ════════════════════════════════════════════
+   ONBOARDING
+   Полноэкранный оверлей поверх всего.
+   Показывается один раз при первом запуске.
+   ════════════════════════════════════════════ */
+#onboarding {
+  position: fixed; inset: 0; z-index: 100;
+  background: #000;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-family: 'Share Tech Mono', monospace;
+}
+#onboarding.hidden { display: none; }
+
+/* Сетка на фоне — как у startOverlay */
+.ob-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+.ob-screen {
+  display: none; /* показываем только активный */
+  flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  padding: 32px 28px;
+  max-width: 480px;
+  width: 100%;
+  gap: 20px;
+  z-index: 1;
+}
+.ob-screen.active { display: flex; }
+
+/* Номер шага */
+.ob-step {
+  font-size: 0.38rem; color: #444; letter-spacing: 3px;
+}
+
+/* Иконка / эмодзи */
+.ob-icon {
+  font-size: 2.8rem;
+  line-height: 1;
+}
+
+/* Заголовок */
+.ob-title {
+  font-family: 'Inter', sans-serif; font-weight: 600;
+  font-size: 1.1rem; color: #fff; letter-spacing: 1px;
+  line-height: 1.3;
+}
+.ob-title span { color: var(--orange); }
+
+/* Описание */
+.ob-desc {
+  font-size: 0.52rem; color: #666; letter-spacing: 1px;
+  line-height: 2.2; max-width: 340px;
+}
+.ob-desc strong { color: #999; }
+
+/* Разделитель */
+.ob-divider {
+  width: 40px; height: 1px; background: #222;
+}
+
+/* Кнопки навигации */
+.ob-nav {
+  display: flex; gap: 12px; align-items: center;
+  margin-top: 8px;
+}
+.ob-btn {
+  padding: 10px 24px;
+  border: 1px solid #333; background: #000;
+  color: #666; font-family: 'Share Tech Mono', monospace;
+  font-size: 0.5rem; letter-spacing: 2px; cursor: pointer;
+}
+.ob-btn.primary {
+  border-color: var(--orange); color: var(--orange);
+  animation: obPulse 2s ease-in-out infinite;
+}
+@keyframes obPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(255,106,0,0); }
+  50%      { box-shadow: 0 0 12px 2px rgba(255,106,0,0.2); }
+}
+.ob-btn.skip {
+  border-color: transparent; color: #333; font-size: 0.42rem;
+}
+
+/* Точки прогресса */
+.ob-dots {
+  display: flex; gap: 8px; align-items: center;
+}
+.ob-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: #222; transition: background 0.3s, transform 0.3s;
+}
+.ob-dot.active {
+  background: var(--orange); transform: scale(1.4);
+}
+
+/* ── ВЫБОР ЯЗЫКА (первый экран) ── */
+.ob-lang-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; width: 100%; max-width: 320px;
+}
+.ob-lang-btn {
+  padding: 14px 10px;
+  border: 1px solid #222; background: #000;
+  color: #555; font-family: 'Share Tech Mono', monospace;
+  font-size: 0.52rem; letter-spacing: 2px; cursor: pointer;
+  text-align: center; line-height: 2; transition: all 0.2s;
+}
+.ob-lang-btn .lang-flag { display: block; font-size: 1.4rem; margin-bottom: 4px; }
+.ob-lang-btn:active,
+.ob-lang-btn.selected {
+  border-color: var(--orange); color: var(--orange);
+  background: var(--orange-faint);
+}
   </style>
 </head>
 <body>
+<!-- ════════════════════════════════════════
+     ONBOARDING OVERLAY
+     ════════════════════════════════════════ -->
+<div id="onboarding">
+  <div class="ob-grid"></div>
 
+  <!-- ШАГ 0: ВЫБОР ЯЗЫКА -->
+  <div class="ob-screen active" id="ob0">
+    <div class="ob-step">SOUND VISION</div>
+    <div class="ob-icon">🌐</div>
+    <div class="ob-title">Choose <span>language</span></div>
+    <div class="ob-lang-grid">
+      <button class="ob-lang-btn selected" data-lang="en" onclick="setLang('en')">
+        <span class="lang-flag">🇬🇧</span>ENGLISH
+      </button>
+      <button class="ob-lang-btn" data-lang="ru" onclick="setLang('ru')">
+        <span class="lang-flag">🇷🇺</span>РУССКИЙ
+      </button>
+      <button class="ob-lang-btn" data-lang="es" onclick="setLang('es')">
+        <span class="lang-flag">🇪🇸</span>ESPAÑOL
+      </button>
+      <button class="ob-lang-btn" data-lang="de" onclick="setLang('de')">
+        <span class="lang-flag">🇩🇪</span>DEUTSCH
+      </button>
+    </div>
+    <div class="ob-nav">
+      <button class="ob-btn primary" onclick="obNext()">[ continue ]</button>
+    </div>
+  </div>
+
+  <!-- ШАГ 1: ЧТО ЭТО -->
+  <div class="ob-screen" id="ob1">
+    <div class="ob-step" id="ob1-step">01 / 04</div>
+    <div class="ob-icon">👁️</div>
+    <div class="ob-title" id="ob1-title">Your camera<br><span>plays music</span></div>
+    <div class="ob-divider"></div>
+    <div class="ob-desc" id="ob1-desc">
+      Sound Vision reads light and color<br>
+      from your camera in real time<br>
+      and converts it into <strong>live sound</strong>.
+    </div>
+    <div class="ob-dots">
+      <div class="ob-dot active"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+    </div>
+    <div class="ob-nav">
+      <button class="ob-btn skip" onclick="obSkip()">skip</button>
+      <button class="ob-btn primary" onclick="obNext()">[ next ]</button>
+    </div>
+  </div>
+
+  <!-- ШАГ 2: СКАНЕР -->
+  <div class="ob-screen" id="ob2">
+    <div class="ob-step" id="ob2-step">02 / 04</div>
+    <div class="ob-icon">📡</div>
+    <div class="ob-title" id="ob2-title">The <span>scan line</span><br>is your instrument</div>
+    <div class="ob-divider"></div>
+    <div class="ob-desc" id="ob2-desc">
+      A vertical line scans the image.<br>
+      <strong>Drag it left or right</strong> to choose<br>
+      what part of the scene to listen to.
+    </div>
+    <div class="ob-dots">
+      <div class="ob-dot"></div>
+      <div class="ob-dot active"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+    </div>
+    <div class="ob-nav">
+      <button class="ob-btn skip" onclick="obSkip()">skip</button>
+      <button class="ob-btn primary" onclick="obNext()">[ next ]</button>
+    </div>
+  </div>
+
+  <!-- ШАГ 3: РЕЖИМЫ -->
+  <div class="ob-screen" id="ob3">
+    <div class="ob-step" id="ob3-step">03 / 04</div>
+    <div class="ob-icon">🎛️</div>
+    <div class="ob-title" id="ob3-title"><span>Light</span> becomes<br>melody</div>
+    <div class="ob-divider"></div>
+    <div class="ob-desc" id="ob3-desc">
+      <strong>Bright areas</strong> → high notes<br>
+      <strong>Dark areas</strong> → low notes<br>
+      Switch scales, add drums,<br>
+      change timbre — make it yours.
+    </div>
+    <div class="ob-dots">
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot active"></div>
+      <div class="ob-dot"></div>
+    </div>
+    <div class="ob-nav">
+      <button class="ob-btn skip" onclick="obSkip()">skip</button>
+      <button class="ob-btn primary" onclick="obNext()">[ next ]</button>
+    </div>
+  </div>
+
+  <!-- ШАГ 4: СТАРТ -->
+  <div class="ob-screen" id="ob4">
+    <div class="ob-step" id="ob4-step">04 / 04</div>
+    <div class="ob-icon">🔊</div>
+    <div class="ob-title" id="ob4-title">One last thing:<br><span>unmute</span> your phone</div>
+    <div class="ob-divider"></div>
+    <div class="ob-desc" id="ob4-desc">
+      Make sure silent mode is <strong>off</strong><br>
+      and media volume is <strong>turned up</strong>.<br>
+      Then tap to begin.
+    </div>
+    <div class="ob-dots">
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot active"></div>
+    </div>
+    <div class="ob-nav">
+      <button class="ob-btn primary" onclick="obFinish()">[ start ]</button>
+    </div>
+  </div>
+</div>
   <!-- ШАПКА -->
   <div class="header">
     <div class="header-title">Sound Vision</div>
@@ -534,6 +776,147 @@
   <div class="bottom-spacer"></div>
 
 <script>
+  // ════════════════════════════════════════════
+//  ONBOARDING
+//  Показываем один раз, сохраняем в
+//  localStorage что уже видели
+// ════════════════════════════════════════════
+
+// Тексты на всех языках
+const OB_LANGS = {
+  en: {
+    step: ['01 / 04','02 / 04','03 / 04','04 / 04'],
+    title: [
+      'Your camera<br><span>plays music</span>',
+      'The <span>scan line</span><br>is your instrument',
+      '<span>Light</span> becomes<br>melody',
+      'One last thing:<br><span>unmute</span> your phone',
+    ],
+    desc: [
+      'Sound Vision reads light and color<br>from your camera in real time<br>and converts it into <strong>live sound</strong>.',
+      'A vertical line scans the image.<br><strong>Drag it left or right</strong> to choose<br>what part of the scene to listen to.',
+      '<strong>Bright areas</strong> → high notes<br><strong>Dark areas</strong> → low notes<br>Switch scales, add drums,<br>change timbre — make it yours.',
+      'Make sure silent mode is <strong>off</strong><br>and media volume is <strong>turned up</strong>.<br>Then tap to begin.',
+    ],
+    next: '[ next ]', start: '[ start ]', skip: 'skip', cont: '[ continue ]',
+  },
+  ru: {
+    step: ['01 / 04','02 / 04','03 / 04','04 / 04'],
+    title: [
+      'Твоя камера<br><span>играет музыку</span>',
+      '<span>Линия сканера</span> —<br>твой инструмент',
+      '<span>Свет</span> становится<br>мелодией',
+      'Последнее:<br><span>выключи</span> беззвучный режим',
+    ],
+    desc: [
+      'Sound Vision считывает свет и цвет<br>с камеры в реальном времени<br>и превращает это в <strong>живой звук</strong>.',
+      'Вертикальная линия сканирует кадр.<br><strong>Потяни её влево или вправо</strong>,<br>чтобы выбрать зону для прослушивания.',
+      '<strong>Светлые области</strong> → высокие ноты<br><strong>Тёмные области</strong> → низкие ноты<br>Меняй гаммы, добавляй барабаны,<br>настраивай тембр — сделай своё.',
+      'Убедись, что беззвучный режим <strong>выключен</strong><br>и громкость медиа <strong>поднята</strong>.<br>Затем нажми, чтобы начать.',
+    ],
+    next: '[ далее ]', start: '[ начать ]', skip: 'пропустить', cont: '[ продолжить ]',
+  },
+  es: {
+    step: ['01 / 04','02 / 04','03 / 04','04 / 04'],
+    title: [
+      'Tu cámara<br><span>toca música</span>',
+      'La <span>línea de escaneo</span><br>es tu instrumento',
+      'La <span>luz</span> se convierte<br>en melodía',
+      'Una cosa más:<br><span>quita</span> el silencio',
+    ],
+    desc: [
+      'Sound Vision lee luz y color<br>de tu cámara en tiempo real<br>y lo convierte en <strong>sonido en vivo</strong>.',
+      'Una línea vertical escanea la imagen.<br><strong>Arrástrala izquierda o derecha</strong><br>para elegir qué parte escuchar.',
+      '<strong>Áreas brillantes</strong> → notas altas<br><strong>Áreas oscuras</strong> → notas bajas<br>Cambia escalas, añade percusión,<br>personaliza el timbre.',
+      'Asegúrate de que el silencio esté <strong>desactivado</strong><br>y el volumen <strong>subido</strong>.<br>Luego toca para empezar.',
+    ],
+    next: '[ siguiente ]', start: '[ empezar ]', skip: 'omitir', cont: '[ continuar ]',
+  },
+  de: {
+    step: ['01 / 04','02 / 04','03 / 04','04 / 04'],
+    title: [
+      'Deine Kamera<br><span>spielt Musik</span>',
+      'Die <span>Scanlinie</span><br>ist dein Instrument',
+      '<span>Licht</span> wird zur<br>Melodie',
+      'Noch etwas:<br><span>Stummschaltung</span> aus',
+    ],
+    desc: [
+      'Sound Vision liest Licht und Farbe<br>von deiner Kamera in Echtzeit<br>und wandelt es in <strong>Live-Klang</strong> um.',
+      'Eine vertikale Linie scannt das Bild.<br><strong>Ziehe sie links oder rechts</strong>,<br>um den Bereich zum Hören zu wählen.',
+      '<strong>Helle Bereiche</strong> → hohe Noten<br><strong>Dunkle Bereiche</strong> → tiefe Noten<br>Wechsle Tonleitern, füge Drums hinzu,<br>passe den Klang an.',
+      'Stelle sicher, dass der Stumm-Modus <strong>aus</strong><br>und die Medienlautstärke <strong>hoch</strong> ist.<br>Dann tippe zum Starten.',
+    ],
+    next: '[ weiter ]', start: '[ starten ]', skip: 'überspringen', cont: '[ weiter ]',
+  },
+};
+
+let obLang    = 'en';   // текущий язык
+let obCurrent = 0;      // текущий экран (0 = выбор языка, 1-4 = шаги)
+const OB_TOTAL = 5;     // всего экранов включая выбор языка
+
+// Устанавливаем язык и подсвечиваем кнопку
+function setLang(lang) {
+  obLang = lang;
+  document.querySelectorAll('.ob-lang-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.lang === lang);
+  });
+}
+
+// Применяем тексты выбранного языка к шагам 1-4
+function applyLangTexts() {
+  const t = OB_LANGS[obLang];
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`ob${i}`);
+    el.querySelector(`#ob${i}-step`).textContent  = t.step[i-1];
+    el.querySelector(`#ob${i}-title`).innerHTML   = t.title[i-1];
+    el.querySelector(`#ob${i}-desc`).innerHTML    = t.desc[i-1];
+    // Кнопки
+    const btns = el.querySelectorAll('.ob-btn');
+    btns.forEach(b => {
+      if (b.classList.contains('primary')) {
+        b.textContent = i === 4 ? t.start : t.next;
+      }
+      if (b.classList.contains('skip')) {
+        b.textContent = t.skip;
+      }
+    });
+  }
+  // Кнопка continue на экране языка
+  document.querySelector('#ob0 .ob-btn.primary').textContent = OB_LANGS[obLang].cont;
+}
+
+// Переход к следующему экрану
+function obNext() {
+  if (obCurrent === 0) applyLangTexts(); // применяем язык при уходе с экрана выбора
+  const cur = document.getElementById(`ob${obCurrent}`);
+  cur.classList.remove('active');
+  obCurrent++;
+  if (obCurrent >= OB_TOTAL) { obFinish(); return; }
+  document.getElementById(`ob${obCurrent}`).classList.add('active');
+}
+
+// Пропустить — сразу на последний экран (про звук)
+function obSkip() {
+  applyLangTexts();
+  document.getElementById(`ob${obCurrent}`).classList.remove('active');
+  obCurrent = 4;
+  document.getElementById('ob4').classList.add('active');
+}
+
+// Завершить онбординг
+function obFinish() {
+  document.getElementById('onboarding').classList.add('hidden');
+  // Сохраняем чтобы не показывать снова
+  try { localStorage.setItem('sv_ob_done', '1'); } catch(e) {}
+}
+
+// Проверяем — если уже видели, скрываем сразу
+// Закомментируй эти строки если хочешь показывать каждый раз (для теста)
+// try {
+//   if (localStorage.getItem('sv_ob_done')) {
+//     document.getElementById('onboarding').classList.add('hidden');
+//   }
+// } catch(e) {}
 // ════════════════════════════════════════════
 //  ELEMENTS
 // ════════════════════════════════════════════
@@ -1628,6 +2011,9 @@ function startVideoFile(file) {
     video.srcObject = null;
   }
   videoSource = 'file';
+  // Сбрасываем линию в центр при загрузке видео
+scanXPos = 320;
+updateScanLine(scanWrapper.getBoundingClientRect().left + scanWrapper.getBoundingClientRect().width / 2);
   fileBtn.classList.add('file-active');
   fileBtn.textContent = '[ ■ stop ]';
   const name = file.name.length > 20 ? file.name.slice(0, 18) + '…' : file.name;
