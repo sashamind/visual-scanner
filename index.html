@@ -384,7 +384,10 @@
 
     .ob-step { font-size: 0.38rem; color: #444; letter-spacing: 3px; }
 
-    .ob-icon { font-size: 2.8rem; line-height: 1; }
+    .ob-icon {
+  line-height: 1;
+  /* font-size убираем — теперь управляет .ob-ascii */
+}
 
     .ob-title {
       font-family: 'Inter', sans-serif; font-weight: 600;
@@ -447,6 +450,19 @@
       border-color: var(--orange); color: var(--orange);
       background: var(--orange-faint);
     }
+    /* ── ASCII иконки онбординга ── */
+.ob-ascii {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem;
+  line-height: 1.6;
+  color: var(--orange);
+  text-shadow: 0 0 12px var(--orange-dim);
+  letter-spacing: 2px;
+  text-align: center;
+  white-space: pre;
+  /* убираем стандартный размер от .ob-icon */
+  font-size: 0.6rem;
+}
   </style>
 </head>
 <body>
@@ -458,7 +474,14 @@
     <!-- ШАГ 0: ВЫБОР ЯЗЫКА -->
     <div class="ob-screen active" id="ob0">
       <div class="ob-step">SOUND VISION</div>
-      <div class="ob-icon">🌐</div>
+      <div class="ob-icon">
+  <pre class="ob-ascii">
+.------.
+| L A  |
+| N G  |
+'------'
+  </pre>
+</div>
       <div class="ob-title">Choose <span>language</span></div>
       <div class="ob-lang-grid">
         <button class="ob-lang-btn selected" data-lang="en" onclick="setLang('en')">
@@ -476,7 +499,15 @@
     <!-- ШАГ 1 -->
     <div class="ob-screen" id="ob1">
       <div class="ob-step" id="ob1-step">01 / 04</div>
-      <div class="ob-icon">👁️</div>
+      <div class="ob-icon">
+  <pre class="ob-ascii">
+ .-------.
+ | [   ] |
+ |  CAM  |
+ '-------'
+  [ ))) ]
+  </pre>
+</div>
       <div class="ob-title" id="ob1-title">Your camera<br><span>plays music</span></div>
       <div class="ob-divider"></div>
       <div class="ob-desc" id="ob1-desc">
@@ -499,7 +530,15 @@
     <!-- ШАГ 2 -->
     <div class="ob-screen" id="ob2">
       <div class="ob-step" id="ob2-step">02 / 04</div>
-      <div class="ob-icon">📡</div>
+      <div class="ob-icon">
+  <pre class="ob-ascii">
+.-- | --.
+|   |   |
++---+---+
+|   |   |
+'-- | --'
+  </pre>
+</div>
       <div class="ob-title" id="ob2-title">The <span>scan line</span><br>is your instrument</div>
       <div class="ob-divider"></div>
       <div class="ob-desc" id="ob2-desc">
@@ -522,7 +561,15 @@
     <!-- ШАГ 3 -->
     <div class="ob-screen" id="ob3">
       <div class="ob-step" id="ob3-step">03 / 04</div>
-      <div class="ob-icon">🎛️</div>
+      <div class="ob-icon">
+  <pre class="ob-ascii">
+* . * . *
+ \  |  /
+--[LUM]--
+ /  |  \
+* . * . *
+  </pre>
+</div>
       <div class="ob-title" id="ob3-title"><span>Light</span> becomes<br>melody</div>
       <div class="ob-divider"></div>
       <div class="ob-desc" id="ob3-desc">
@@ -546,7 +593,15 @@
     <!-- ШАГ 4 -->
     <div class="ob-screen" id="ob4">
       <div class="ob-step" id="ob4-step">04 / 04</div>
-      <div class="ob-icon">🔊</div>
+      <div class="ob-icon">
+  <pre class="ob-ascii">
+    ))
+   (( ))
+  [ VOL ]
+   (( ))
+    ))
+  </pre>
+</div>
       <div class="ob-title" id="ob4-title">One last thing:<br><span>unmute</span> your phone</div>
       <div class="ob-divider"></div>
       <div class="ob-desc" id="ob4-desc">
