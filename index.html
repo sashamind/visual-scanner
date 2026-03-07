@@ -340,10 +340,12 @@
 
     /* ── КНОПКИ CONTROLS (стиль тот же, класс другой) ── */
     .ctrl-btn {
-      padding:12px 6px; border:none; border-right:1px solid #1a1a1a;
-      background:#000; color:#666; font-family:'Share Tech Mono',monospace;
-      font-size:0.48rem; letter-spacing:1px; cursor:pointer; text-align:center;
-    }
+  padding:12px 6px; border:none; border-right:1px solid #1a1a1a;
+  background:#000; color:#666; font-family:'Share Tech Mono',monospace;
+  font-size:0.48rem; letter-spacing:1px; cursor:pointer; text-align:center;
+  white-space: nowrap; /* ← добавь эту строчку */
+}
+    
     .ctrl-btn:last-child { border-right:none; }
     .ctrl-btn.active { color:#fff; }
     .ctrl-btn:active  { background:#111; }
