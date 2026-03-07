@@ -68,10 +68,12 @@
 
     /* ── CONTROLS ── */
     .top-controls {
-      width: 100%; max-width: 640px;
-      display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
-      border-bottom: 1px solid #1a1a1a;
-    }
+  width: 100%; max-width: 640px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+  border-bottom: 1px solid #1a1a1a;
+  position: relative; /* добавь это */
+  z-index: 5;         /* и это */
+}
 
     /* ── SCANNER ── */
     .scanner-wrapper {
@@ -352,13 +354,17 @@
        ONBOARDING
        ════════════════════════════════════════════ */
     #onboarding {
-      position: fixed; inset: 0; z-index: 100;
-      background: #000;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      font-family: 'Share Tech Mono', monospace;
-    }
-    #onboarding.hidden { display: none; }
+  position: fixed; inset: 0; z-index: 100;
+  background: #000;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-family: 'Share Tech Mono', monospace;
+  pointer-events: all; /* явно разрешаем клики пока виден */
+}
+    #onboarding.hidden {
+  display: none !important;
+  pointer-events: none;
+}
 
     .ob-grid {
       position: absolute; inset: 0;
@@ -484,13 +490,13 @@
 </div>
       <div class="ob-title">Choose <span>language</span></div>
       <div class="ob-lang-grid">
-        <button class="ob-lang-btn selected" data-lang="en" onclick="setLang('en')">
-          <span class="lang-flag">🇬🇧</span>ENGLISH
-        </button>
-        <button class="ob-lang-btn" data-lang="ru" onclick="setLang('ru')">
-          <span class="lang-flag">🇷🇺</span>РУССКИЙ
-        </button>
-      </div>
+  <button class="ob-lang-btn selected" data-lang="en" onclick="setLang('en')">
+    ENGLISH
+  </button>
+  <button class="ob-lang-btn" data-lang="ru" onclick="setLang('ru')">
+    РУССКИЙ
+  </button>
+</div>
       <div class="ob-nav">
         <button class="ob-btn primary" id="ob0-cont" onclick="obNext()">[ continue ]</button>
       </div>
@@ -974,15 +980,17 @@ function applyLangTexts() {
 }
 
 function obNext() {
-  if (obCurrent === 0) applyLangTexts();
+  if (obCurrent === 0) applyLangTexts(); // применяем язык при уходе с экрана выбора
   document.getElementById(`ob${obCurrent}`).classList.remove('active');
   obCurrent++;
   if (obCurrent >= OB_TOTAL) { obFinish(); return; }
   document.getElementById(`ob${obCurrent}`).classList.add('active');
+  // Каждый раз обновляем тексты чтобы язык применился ко всем кнопкам
+  if (obCurrent > 0) applyLangTexts();
 }
 
 function obSkip() {
-  applyLangTexts();
+  applyLangTexts(); // сначала применяем тексты
   document.getElementById(`ob${obCurrent}`).classList.remove('active');
   obCurrent = 4;
   document.getElementById('ob4').classList.add('active');
