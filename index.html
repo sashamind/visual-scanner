@@ -973,7 +973,6 @@ function restoreLangFromStorage() {
   if (saved) {
     obLang = saved;
     uiLang = saved;
-    applyUiLang();
   }
 }
 
@@ -2793,15 +2792,17 @@ recBtn.addEventListener('click', () => {
   isRecording ? stopRecording() : startRecording();
 });
 // Показываем онбординг только если не видел или прошла неделя
+restoreLangFromStorage(); // сначала восстанавливаем язык
 if (shouldShowOnboarding()) {
   document.getElementById('onboarding').classList.remove('hidden');
 } else {
   document.getElementById('onboarding').classList.add('hidden');
-  restoreLangFromStorage();
   startOverlay.style.display = 'flex';
 }
+applyUiLang(); // применяем язык в любом случае
 
 updateSliderLabels();
+
 
 </script>
 </body>
