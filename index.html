@@ -40,25 +40,26 @@
 
     /* ── ПРЕДУПРЕЖДЕНИЕ О БЕЗЗВУЧНОМ РЕЖИМЕ ── */
     #silentWarning {
-      width: 100%; max-width: 640px;
-      background: #0a0000;
-      border-bottom: 1px solid #3a0000;
-      padding: 8px 12px;
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 10px;
-    }
-    #silentWarning .sw-text {
-      font-size: 0.4rem; letter-spacing: 1.5px; line-height: 1.9;
-      color: #ff3333;
-      animation: warnBlink 2s ease-in-out infinite;
-    }
-    #silentWarning .sw-text span { color: #ff6a00; }
-    #silentWarning .sw-dismiss {
-      font-size: 0.38rem; letter-spacing: 2px; color: #555;
-      background: none; border: 1px solid #333; padding: 4px 8px;
-      cursor: pointer; font-family: 'Share Tech Mono', monospace;
-      white-space: nowrap; flex-shrink: 0;
-    }
+  width: 100%; max-width: 640px;
+  background: #ff6a00;
+  border-bottom: 1px solid #cc5000;
+  padding: 8px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+}
+#silentWarning .sw-text {
+  font-size: 0.4rem; letter-spacing: 1.5px; line-height: 1.9;
+  color: #000;
+  animation: warnBlink 2s ease-in-out infinite;
+}
+#silentWarning .sw-text span { color: #000; font-weight: bold; }
+#silentWarning .sw-dismiss {
+  font-size: 0.38rem; letter-spacing: 2px; color: #000;
+  background: rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.3);
+  padding: 4px 8px;
+  cursor: pointer; font-family: 'Share Tech Mono', monospace;
+  white-space: nowrap; flex-shrink: 0;
+}
     #silentWarning .sw-dismiss:active { background: #111; }
     @keyframes warnBlink {
       0%, 100% { opacity: 1; }
@@ -1034,7 +1035,7 @@ function obFinish() {
 }
 
 // Применяем все тексты интерфейса
-function applyUILang() {
+function applyUiLang() {  // ← маленькая i
   const t = UI_TEXT[uiLang];
 
   document.querySelector('.header-sub').textContent       = t.headerSub;
