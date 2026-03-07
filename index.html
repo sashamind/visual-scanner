@@ -968,24 +968,30 @@ function setLang(lang) {
 function applyLangTexts() {
   const t = OB_LANGS[obLang];
   for (let i = 1; i <= 4; i++) {
-    document.getElementById(`ob${i}-step`).textContent   = t.step[i-1];
-    document.getElementById(`ob${i}-title`).innerHTML    = t.title[i-1];
-    document.getElementById(`ob${i}-desc`).innerHTML     = t.desc[i-1];
-    const nextBtn = document.getElementById(`ob${i}-next`);
+    document.getElementById(`ob${i}-step`).textContent  = t.step[i-1];
+    document.getElementById(`ob${i}-title`).innerHTML   = t.title[i-1];
+    document.getElementById(`ob${i}-desc`).innerHTML    = t.desc[i-1];
     const skipBtn = document.getElementById(`ob${i}-skip`);
-    if (nextBtn) nextBtn.textContent = i === 4 ? t.start : t.next;
     if (skipBtn) skipBtn.textContent = t.skip;
   }
+  // Кнопки next для шагов 1-3
+  for (let i = 1; i <= 3; i++) {
+    const nextBtn = document.getElementById(`ob${i}-next`);
+    if (nextBtn) nextBtn.textContent = t.next;
+  }
+  // Кнопка start на шаге 4 — отдельно
+  const startBtn = document.getElementById('ob4-start');
+  if (startBtn) startBtn.textContent = t.start;
+  // Кнопка continue на шаге 0
   document.getElementById('ob0-cont').textContent = t.cont;
 }
 
 function obNext() {
-  if (obCurrent === 0) applyLangTexts(); // применяем язык при уходе с экрана выбора
+  if (obCurrent === 0) applyLangTexts();
   document.getElementById(`ob${obCurrent}`).classList.remove('active');
   obCurrent++;
   if (obCurrent >= OB_TOTAL) { obFinish(); return; }
   document.getElementById(`ob${obCurrent}`).classList.add('active');
-  // Каждый раз обновляем тексты чтобы язык применился ко всем кнопкам
   if (obCurrent > 0) applyLangTexts();
 }
 
@@ -2689,6 +2695,79 @@ slider2.addEventListener('input', () => {
 // ════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════
+// ════════════════════════════════════════════
+//  MUTE
+// ════════════════════════════════════════════
+muteBtn.addEventListener('click', async () => {
+  if (!audioCtx || !audioReady) {
+    await initAudio();
+    if (!audioCtx) return;
+  }
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+  isMuted = !isMuted;
+  const t = UI_TEXT[uiLang];
+  muteBtn.textContent = isMuted ? t.soundOff : t.soundOn;
+  muteBtn.classList.toggle('active', !isMuted);
+  const now = audioCtx.currentTime;
+  masterGain.gain.cancelScheduledValues(now);
+  masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+  masterGain.gain.linearRampToValueAtTime(
+    isMuted ? 0 : parseFloat(volumeSlider.value), now + 0.1
+  );
+});
+
+// ════════════════════════════════════════════
+//  CAMERA SWITCH
+// ════════════════════════════════════════════
+camBtn.addEventListener('click', async () => {
+  const t = UI_TEXT[uiLang];
+  if (videoSource === 'file') {
+    video.pause(); video.src = '';
+    if (video._fileUrl) { URL.revokeObjectURL(video._fileUrl); video._fileUrl = null; }
+    fileBtn.textContent = t.videoFile;
+    fileBtn.classList.remove('file-active');
+    videoFileLabel.classList.remove('visible');
+    videoProgress.style.display = 'none';
+    videoProgressFill.style.width = '0%';
+  } else {
+    useFrontCam = !useFrontCam;
+  }
+  camBtn.textContent = useFrontCam ? t.camFront : t.camRear;
+  await startCamera();
+});
+
+// ════════════════════════════════════════════
+//  FILE BUTTON
+// ════════════════════════════════════════════
+fileBtn.addEventListener('click', () => {
+  if (videoSource === 'file') {
+    stopVideoFile();
+  } else {
+    videoFileInput.click();
+  }
+});
+
+videoFileInput.addEventListener('change', () => {
+  const file = videoFileInput.files[0];
+  if (!file) return;
+  videoFileInput.value = '';
+  startVideoFile(file);
+});
+
+// ════════════════════════════════════════════
+//  REC BUTTON
+// ════════════════════════════════════════════
+recBtn.addEventListener('click', () => {
+  if (!audioCtx || !audioReady) {
+    audioStatus.textContent = uiLang === 'ru'
+      ? 'сначала запусти звук'
+      : 'start audio first';
+    audioStatus.style.color = '#f44';
+    setTimeout(() => updateAudioStatus(), 2000);
+    return;
+  }
+  isRecording ? stopRecording() : startRecording();
+});
 updateSliderLabels();
 
 </script>
