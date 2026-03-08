@@ -1676,14 +1676,96 @@ function playBassNote(freq, velocity = 0.5) {
 }
 
 // ════════════════════════════════════════════
+//  DRUM TIMBRE — параметры зависящие от типа волны
+// ════════════════════════════════════════════
+function getDrumTimbre() {
+  // Возвращает набор параметров тембра для ударных
+  // в зависимости от текущего waveType
+  switch (waveType) {
+    case 'sine':
+      return {
+        kickDecay:    1.8,   // длинный мягкий затух
+        kickStartHz:  55,    // низкая начальная частота
+        kickEndHz:    16,    // низкий конец
+        kickNoiseMix: 0.2,   // немного шума
+        kickNoiseHz:  120,   // мягкий шум
+        snareDecay:   0.6,   // мягкий снэйр
+        snareStartHz: 100,
+        snareType:    'sine',
+        snareNoiseLp: 600,
+        snareNoiseMix:0.4,
+        hihatDecay:   0.18,  // мягкий хай-хэт
+        hihatBands:   [[2000,0.8,0.5],[4000,0.5,0.3]],
+        percDecay:    0.55,
+        percSing:     0.5,   // вероятность тонального перк
+      };
+    case 'triangle':
+      return {
+        kickDecay:    1.4,
+        kickStartHz:  60,
+        kickEndHz:    18,
+        kickNoiseMix: 0.4,
+        kickNoiseHz:  150,
+        snareDecay:   0.45,
+        snareStartHz: 120,
+        snareType:    'triangle',
+        snareNoiseLp: 800,
+        snareNoiseMix:0.55,
+        hihatDecay:   0.12,
+        hihatBands:   [[2500,0.8,0.65],[5000,0.6,0.4]],
+        percDecay:    0.35,
+        percSing:     0.4,
+      };
+    case 'sawtooth':
+      return {
+        kickDecay:    0.9,   // короткий агрессивный удар
+        kickStartHz:  70,    // чуть выше — резче
+        kickEndHz:    22,
+        kickNoiseMix: 0.7,   // много шума
+        kickNoiseHz:  200,
+        snareDecay:   0.28,  // резкий короткий
+        snareStartHz: 180,
+        snareType:    'sawtooth',
+        snareNoiseLp: 1200,
+        snareNoiseMix:0.8,
+        hihatDecay:   0.06,  // короткий жёсткий хай-хэт
+        hihatBands:   [[4000,0.6,0.8],[8000,0.4,0.6]],
+        percDecay:    0.2,
+        percSing:     0.2,   // редко тональный
+      };
+    case 'square':
+      return {
+        kickDecay:    0.6,   // электронный клубный кик
+        kickStartHz:  80,
+        kickEndHz:    28,
+        kickNoiseMix: 0.9,
+        kickNoiseHz:  300,
+        snareDecay:   0.22,
+        snareStartHz: 220,
+        snareType:    'square',
+        snareNoiseLp: 2000,
+        snareNoiseMix:1.0,
+        hihatDecay:   0.04,  // очень короткий клубный
+        hihatBands:   [[6000,0.5,1.0],[10000,0.3,0.7]],
+        percDecay:    0.15,
+        percSing:     0.1,
+      };
+    default:
+      return getDrumTimbre.call({ waveType: 'triangle' });
+  }
+}
+
+// ════════════════════════════════════════════
 //  KICK
 // ════════════════════════════════════════════
 function playKick(vol) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * bassAmount * 1.4;
+  const tm  = getDrumTimbre(); // получаем тембр от waveType
 
   if (currentScale === 'japanese') {
+    // Японский кик — металлический гонг
     const body = audioCtx.createOscillator();
     const bg   = audioCtx.createGain();
     body.type = 'sine';
@@ -1693,27 +1775,38 @@ function playKick(vol) {
     bg.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
     body.connect(bg); bg.connect(masterGain);
     body.start(now); body.stop(now + 0.45);
+
+    // Металлический обертон — его яркость зависит от waveType
     const metal = audioCtx.createOscillator();
     const mg    = audioCtx.createGain();
     metal.type = 'sine';
     metal.frequency.setValueAtTime(320, now);
     metal.frequency.exponentialRampToValueAtTime(180, now + 0.6);
-    mg.gain.setValueAtTime(v * 0.3, now);
-    mg.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+    // square/saw = ярче и дольше металлический звон
+    const metalVol = waveType === 'square' ? 0.6 :
+                     waveType === 'sawtooth' ? 0.5 :
+                     waveType === 'triangle' ? 0.35 : 0.2;
+    const metalDecay = waveType === 'square' ? 1.2 :
+                       waveType === 'sawtooth' ? 0.9 : 0.7;
+    mg.gain.setValueAtTime(v * metalVol, now);
+    mg.gain.exponentialRampToValueAtTime(0.001, now + metalDecay);
     metal.connect(mg); mg.connect(masterGain);
-    metal.start(now); metal.stop(now + 0.75);
+    metal.start(now); metal.stop(now + metalDecay + 0.05);
 
   } else if (currentScale === 'wholetone') {
+    // Wholetone кик — глубокий суббас, длина от waveType
     const body = audioCtx.createOscillator();
     const bg   = audioCtx.createGain();
     body.type = 'sine';
     body.frequency.setValueAtTime(50, now);
-    body.frequency.exponentialRampToValueAtTime(22, now + 2.2);
+    body.frequency.exponentialRampToValueAtTime(22, now + tm.kickDecay * 1.5);
     bg.gain.setValueAtTime(v * 0.8, now);
     bg.gain.exponentialRampToValueAtTime(v * 0.4, now + 0.8);
-    bg.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+    bg.gain.exponentialRampToValueAtTime(0.001, now + tm.kickDecay * 1.8);
     body.connect(bg); bg.connect(masterGain);
-    body.start(now); body.stop(now + 2.6);
+    body.start(now); body.stop(now + tm.kickDecay * 1.9);
+
+    // Шум — его количество от waveType
     const nlen = Math.floor(audioCtx.sampleRate * 1.0);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1721,22 +1814,25 @@ function playKick(vol) {
     const ns = audioCtx.createBufferSource(); ns.buffer = nbuf;
     const nf = audioCtx.createBiquadFilter();
     const ng = audioCtx.createGain();
-    nf.type = 'lowpass'; nf.frequency.value = 80;
-    ng.gain.setValueAtTime(v * 0.2, now);
+    nf.type = 'lowpass'; nf.frequency.value = tm.kickNoiseHz;
+    ng.gain.setValueAtTime(v * tm.kickNoiseMix, now);
     ng.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
     ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
     ns.start(now);
 
   } else if (currentScale === 'chromatic') {
+    // Chromatic кик — квадратная волна + шум
     const body = audioCtx.createOscillator();
     const bg   = audioCtx.createGain();
-    body.type = 'square';
-    body.frequency.setValueAtTime(55, now);
-    body.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+    // тип волны кика меняется с waveType
+    body.type = waveType === 'sine' ? 'sine' : 'square';
+    body.frequency.setValueAtTime(tm.kickStartHz, now);
+    body.frequency.exponentialRampToValueAtTime(20, now + tm.kickDecay * 0.4);
     bg.gain.setValueAtTime(v * 1.1, now);
-    bg.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    bg.gain.exponentialRampToValueAtTime(0.001, now + tm.kickDecay * 0.5);
     body.connect(bg); bg.connect(masterGain);
-    body.start(now); body.stop(now + 0.65);
+    body.start(now); body.stop(now + tm.kickDecay * 0.55);
+
     const nlen = Math.floor(audioCtx.sampleRate * 0.15);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1744,48 +1840,59 @@ function playKick(vol) {
     const ns = audioCtx.createBufferSource(); ns.buffer = nbuf;
     const nf = audioCtx.createBiquadFilter();
     const ng = audioCtx.createGain();
-    nf.type = 'highpass'; nf.frequency.value = 200;
-    ng.gain.setValueAtTime(v * 0.8, now);
+    nf.type = 'highpass'; nf.frequency.value = tm.kickNoiseHz;
+    ng.gain.setValueAtTime(v * tm.kickNoiseMix, now);
     ng.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
     ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
     ns.start(now);
 
   } else {
+    // Pentatonic кик — стандартный, параметры полностью от waveType
     const body = audioCtx.createOscillator();
     const bg   = audioCtx.createGain();
     body.type = 'sine';
-    body.frequency.setValueAtTime(60, now);
-    body.frequency.exponentialRampToValueAtTime(18, now + 1.4);
+    body.frequency.setValueAtTime(tm.kickStartHz, now);
+    body.frequency.exponentialRampToValueAtTime(tm.kickEndHz, now + tm.kickDecay);
     bg.gain.setValueAtTime(v, now);
     bg.gain.exponentialRampToValueAtTime(v * 0.5, now + 0.4);
-    bg.gain.exponentialRampToValueAtTime(0.001,   now + 1.6);
+    bg.gain.exponentialRampToValueAtTime(0.001, now + tm.kickDecay + 0.2);
     body.connect(bg); bg.connect(masterGain);
-    body.start(now); body.stop(now + 1.7);
+    body.start(now); body.stop(now + tm.kickDecay + 0.25);
+
+    // Сабвуфер слой
     const sub = audioCtx.createOscillator();
     const sg  = audioCtx.createGain();
     sub.type = 'sine';
-    sub.frequency.setValueAtTime(30, now);
-    sub.frequency.exponentialRampToValueAtTime(10, now + 1.2);
+    sub.frequency.setValueAtTime(tm.kickStartHz * 0.5, now);
+    sub.frequency.exponentialRampToValueAtTime(10, now + tm.kickDecay * 0.9);
     sg.gain.setValueAtTime(v * 0.6, now);
-    sg.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
+    sg.gain.exponentialRampToValueAtTime(0.001, now + tm.kickDecay * 0.95);
     sub.connect(sg); sg.connect(masterGain);
-    sub.start(now); sub.stop(now + 1.4);
+    sub.start(now); sub.stop(now + tm.kickDecay);
+
+    // Средний слой
     const mid  = audioCtx.createOscillator();
     const midG = audioCtx.createGain();
-    mid.type = 'triangle';
-    mid.frequency.setValueAtTime(80, now);
-    mid.frequency.exponentialRampToValueAtTime(35, now + 0.6);
+    // тип среднего слоя меняется с waveType — даёт характер
+    mid.type = waveType === 'sawtooth' ? 'sawtooth' :
+               waveType === 'square'   ? 'square'   : 'triangle';
+    mid.frequency.setValueAtTime(tm.kickStartHz * 1.3, now);
+    mid.frequency.exponentialRampToValueAtTime(35, now + tm.kickDecay * 0.45);
     midG.gain.setValueAtTime(v * 0.5, now);
-    midG.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+    midG.gain.exponentialRampToValueAtTime(0.001, now + tm.kickDecay * 0.5);
     mid.connect(midG); midG.connect(masterGain);
-    mid.start(now); mid.stop(now + 0.75);
+    mid.start(now); mid.stop(now + tm.kickDecay * 0.55);
+
+    // LFO вибрато
     const lfo  = audioCtx.createOscillator();
     const lfoG = audioCtx.createGain();
     lfo.type = 'sine';
     lfo.frequency.value = 2.5 + Math.random() * 1.5;
     lfoG.gain.value = 6;
     lfo.connect(lfoG); lfoG.connect(body.frequency);
-    lfo.start(now); lfo.stop(now + 1.7);
+    lfo.start(now); lfo.stop(now + tm.kickDecay + 0.25);
+
+    // Шум — количество и частота от waveType
     const nlen = Math.floor(audioCtx.sampleRate * 0.6);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1793,8 +1900,8 @@ function playKick(vol) {
     const ns = audioCtx.createBufferSource(); ns.buffer = nbuf;
     const nf = audioCtx.createBiquadFilter();
     const ng = audioCtx.createGain();
-    nf.type = 'lowpass'; nf.frequency.value = 150; nf.Q.value = 2;
-    ng.gain.setValueAtTime(v * 0.5, now);
+    nf.type = 'lowpass'; nf.frequency.value = tm.kickNoiseHz; nf.Q.value = 2;
+    ng.gain.setValueAtTime(v * tm.kickNoiseMix, now);
     ng.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
     ns.connect(nf); nf.connect(ng); ng.connect(masterGain);
     ns.start(now);
@@ -1809,17 +1916,24 @@ function playSnare(vol) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.65;
+  const tm  = getDrumTimbre();
 
   if (currentScale === 'japanese') {
+    // Японский снэйр — деревянный удар, жёсткость от waveType
     const tone = audioCtx.createOscillator();
     const tg   = audioCtx.createGain();
-    tone.type = 'triangle';
-    tone.frequency.setValueAtTime(400, now);
-    tone.frequency.exponentialRampToValueAtTime(200, now + 0.08);
+    tone.type = waveType === 'square'   ? 'square'   :
+                waveType === 'sawtooth' ? 'sawtooth' : 'triangle';
+    const startFreq = 300 + (
+      waveType === 'square' ? 150 : waveType === 'sawtooth' ? 100 : 0
+    );
+    tone.frequency.setValueAtTime(startFreq, now);
+    tone.frequency.exponentialRampToValueAtTime(startFreq * 0.5, now + tm.snareDecay * 0.15);
     tg.gain.setValueAtTime(v * 1.1, now);
-    tg.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    tg.gain.exponentialRampToValueAtTime(0.001, now + tm.snareDecay * 0.2);
     tone.connect(tg); tg.connect(masterGain);
-    tone.start(now); tone.stop(now + 0.15);
+    tone.start(now); tone.stop(now + tm.snareDecay * 0.25);
+
     const nlen = Math.floor(audioCtx.sampleRate * 0.05);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1827,86 +1941,99 @@ function playSnare(vol) {
     const src = audioCtx.createBufferSource(); src.buffer = nbuf;
     const bp  = audioCtx.createBiquadFilter();
     const sg  = audioCtx.createGain();
-    bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 2;
-    sg.gain.setValueAtTime(v * 0.5, now);
+    bp.type = 'bandpass'; bp.frequency.value = tm.snareNoiseLp; bp.Q.value = 2;
+    sg.gain.setValueAtTime(v * tm.snareNoiseMix, now);
     sg.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
     src.connect(bp); bp.connect(sg); sg.connect(masterGain);
     src.start(now);
 
   } else if (currentScale === 'wholetone') {
-    const nlen = Math.floor(audioCtx.sampleRate * 0.5);
+    // Wholetone снэйр — шумовой, длина от waveType
+    const nlen = Math.floor(audioCtx.sampleRate * tm.snareDecay * 0.8);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
     for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
     const src = audioCtx.createBufferSource(); src.buffer = nbuf;
     const lp  = audioCtx.createBiquadFilter();
     const sg  = audioCtx.createGain();
-    lp.type = 'lowpass'; lp.frequency.value = 400;
+    lp.type = 'lowpass'; lp.frequency.value = tm.snareNoiseLp;
     sg.gain.setValueAtTime(v * 0.6, now);
-    sg.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    sg.gain.exponentialRampToValueAtTime(0.001, now + tm.snareDecay * 0.8);
     src.connect(lp); lp.connect(sg); sg.connect(masterGain);
     src.start(now);
+
     const tone = audioCtx.createOscillator();
     const tg   = audioCtx.createGain();
-    tone.type = 'sine'; tone.frequency.value = 180;
+    tone.type = tm.snareType; tone.frequency.value = 180;
     tg.gain.setValueAtTime(v * 0.2, now);
-    tg.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    tg.gain.exponentialRampToValueAtTime(0.001, now + tm.snareDecay * 0.6);
     tone.connect(tg); tg.connect(masterGain);
-    tone.start(now); tone.stop(now + 0.45);
+    tone.start(now); tone.stop(now + tm.snareDecay * 0.65);
 
   } else if (currentScale === 'chromatic') {
+    // Chromatic снэйр — тональный + шум, жёсткость от waveType
     const tone = audioCtx.createOscillator();
     const tg   = audioCtx.createGain();
-    tone.type = 'sawtooth';
-    tone.frequency.setValueAtTime(250, now);
-    tone.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+    tone.type = tm.snareType; // саму форму волны берём от waveType
+    tone.frequency.setValueAtTime(tm.snareStartHz, now);
+    tone.frequency.exponentialRampToValueAtTime(
+      tm.snareStartHz * 0.4, now + tm.snareDecay * 0.7
+    );
     tg.gain.setValueAtTime(v * 0.9, now);
-    tg.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    tg.gain.exponentialRampToValueAtTime(0.001, now + tm.snareDecay * 0.9);
     tone.connect(tg); tg.connect(masterGain);
-    tone.start(now); tone.stop(now + 0.3);
-    const nlen = Math.floor(audioCtx.sampleRate * 0.2);
+    tone.start(now); tone.stop(now + tm.snareDecay);
+
+    const nlen = Math.floor(audioCtx.sampleRate * tm.snareDecay * 0.8);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
     for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
     const src = audioCtx.createBufferSource(); src.buffer = nbuf;
     const hp  = audioCtx.createBiquadFilter();
     const sg  = audioCtx.createGain();
-    hp.type = 'highpass'; hp.frequency.value = 1500;
-    sg.gain.setValueAtTime(v * 0.9, now);
-    sg.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    hp.type = 'highpass'; hp.frequency.value = tm.snareNoiseLp;
+    sg.gain.setValueAtTime(v * tm.snareNoiseMix, now);
+    sg.gain.exponentialRampToValueAtTime(0.001, now + tm.snareDecay * 0.8);
     src.connect(hp); hp.connect(sg); sg.connect(masterGain);
     src.start(now);
 
   } else {
+    // Pentatonic снэйр — полный, параметры от waveType
     const tone = audioCtx.createOscillator();
     const tg   = audioCtx.createGain();
-    tone.type = 'sine';
-    tone.frequency.setValueAtTime(120, now);
-    tone.frequency.exponentialRampToValueAtTime(55, now + 0.35);
+    tone.type = tm.snareType; // форма волны от waveType!
+    tone.frequency.setValueAtTime(tm.snareStartHz, now);
+    tone.frequency.exponentialRampToValueAtTime(
+      tm.snareStartHz * 0.45, now + tm.snareDecay * 0.65
+    );
     tg.gain.setValueAtTime(v * 0.8, now);
     tg.gain.exponentialRampToValueAtTime(v * 0.2, now + 0.1);
-    tg.gain.exponentialRampToValueAtTime(0.001,   now + 0.5);
+    tg.gain.exponentialRampToValueAtTime(0.001, now + tm.snareDecay * 0.9);
     tone.connect(tg); tg.connect(masterGain);
-    tone.start(now); tone.stop(now + 0.55);
+    tone.start(now); tone.stop(now + tm.snareDecay);
+
     const tone2 = audioCtx.createOscillator();
     const tg2   = audioCtx.createGain();
+    // второй слой — противоположный характер для баланса
     tone2.type = 'triangle';
-    tone2.frequency.setValueAtTime(200, now);
-    tone2.frequency.exponentialRampToValueAtTime(90, now + 0.2);
+    tone2.frequency.setValueAtTime(tm.snareStartHz * 1.6, now);
+    tone2.frequency.exponentialRampToValueAtTime(tm.snareStartHz * 0.7, now + tm.snareDecay * 0.45);
     tg2.gain.setValueAtTime(v * 0.45, now);
-    tg2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    tg2.gain.exponentialRampToValueAtTime(0.001, now + tm.snareDecay * 0.5);
     tone2.connect(tg2); tg2.connect(masterGain);
-    tone2.start(now); tone2.stop(now + 0.3);
-    const nlen = Math.floor(audioCtx.sampleRate * 0.3);
+    tone2.start(now); tone2.stop(now + tm.snareDecay * 0.55);
+
+    // Шум — частота среза и количество от waveType
+    const nlen = Math.floor(audioCtx.sampleRate * tm.snareDecay * 0.55);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
     for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
     const src = audioCtx.createBufferSource(); src.buffer = nbuf;
     const lp  = audioCtx.createBiquadFilter();
     const sg  = audioCtx.createGain();
-    lp.type = 'lowpass'; lp.frequency.value = 800; lp.Q.value = 1;
-    sg.gain.setValueAtTime(v * 0.55, now);
-    sg.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    lp.type = 'lowpass'; lp.frequency.value = tm.snareNoiseLp; lp.Q.value = 1;
+    sg.gain.setValueAtTime(v * tm.snareNoiseMix, now);
+    sg.gain.exponentialRampToValueAtTime(0.001, now + tm.snareDecay * 0.55);
     src.connect(lp); lp.connect(sg); sg.connect(masterGain);
     src.start(now);
   }
@@ -1920,9 +2047,11 @@ function playHihat(vol) {
   if (!audioCtx || isMuted) return;
   const now = audioCtx.currentTime;
   const v   = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.32;
+  const tm  = getDrumTimbre();
 
   if (currentScale === 'japanese') {
-    const duration = 0.04 + Math.random() * 0.06;
+    // Японский хай-хэт — металлический призвук, длина от waveType
+    const duration = tm.hihatDecay * 0.5 + Math.random() * tm.hihatDecay * 0.5;
     const nlen = Math.floor(audioCtx.sampleRate * duration);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1930,40 +2059,46 @@ function playHihat(vol) {
     const src = audioCtx.createBufferSource(); src.buffer = nbuf;
     const bp  = audioCtx.createBiquadFilter();
     const g   = audioCtx.createGain();
-    bp.type = 'bandpass'; bp.frequency.value = 8000; bp.Q.value = 0.5;
+    bp.type = 'bandpass'; bp.frequency.value = tm.hihatBands[1][0]; bp.Q.value = 0.5;
     g.gain.setValueAtTime(v * 1.2, now);
     g.gain.exponentialRampToValueAtTime(0.001, now + duration);
     src.connect(bp); bp.connect(g); g.connect(masterGain);
     src.start(now);
+
+    // Тональный призвук — высота и длина от waveType
     const sing = audioCtx.createOscillator();
     const sg   = audioCtx.createGain();
-    sing.type = 'sine';
+    sing.type = waveType === 'sine' ? 'sine' : 'triangle';
     sing.frequency.value = 3200 + Math.random() * 800;
-    sg.gain.setValueAtTime(v * 0.2, now);
+    const singVol = waveType === 'sine' ? 0.3 :
+                    waveType === 'triangle' ? 0.2 : 0.1;
+    sg.gain.setValueAtTime(v * singVol, now);
     sg.gain.exponentialRampToValueAtTime(0.001, now + duration * 2);
     sing.connect(sg); sg.connect(masterGain);
     sing.start(now); sing.stop(now + duration * 2);
 
   } else if (currentScale === 'wholetone') {
-    const duration = 0.2 + Math.random() * 0.15;
+    // Wholetone хай-хэт — размытый, несколько полос, длина от waveType
+    const duration = tm.hihatDecay * 1.5 + Math.random() * tm.hihatDecay;
     const nlen = Math.floor(audioCtx.sampleRate * duration);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
     for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
-    [2000, 4000, 7000].forEach(freq => {
+    tm.hihatBands.forEach(([freq, q, gain]) => {
       const src = audioCtx.createBufferSource(); src.buffer = nbuf;
       const bp  = audioCtx.createBiquadFilter();
       const g   = audioCtx.createGain();
-      bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 0.4;
+      bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = q;
       g.gain.setValueAtTime(0, now);
-      g.gain.linearRampToValueAtTime(v * 0.3, now + 0.03);
+      g.gain.linearRampToValueAtTime(v * gain, now + 0.03);
       g.gain.exponentialRampToValueAtTime(0.001, now + duration);
       src.connect(bp); bp.connect(g); g.connect(masterGain);
       src.start(now);
     });
 
   } else if (currentScale === 'chromatic') {
-    const duration = 0.03 + Math.random() * 0.03;
+    // Chromatic хай-хэт — жёсткий, длина и частота от waveType
+    const duration = tm.hihatDecay * 0.8 + Math.random() * tm.hihatDecay * 0.5;
     const nlen = Math.floor(audioCtx.sampleRate * duration);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -1971,34 +2106,35 @@ function playHihat(vol) {
     const src = audioCtx.createBufferSource(); src.buffer = nbuf;
     const hp  = audioCtx.createBiquadFilter();
     const g   = audioCtx.createGain();
-    hp.type = 'highpass'; hp.frequency.value = 5000;
+    hp.type = 'highpass'; hp.frequency.value = tm.hihatBands[1][0];
     g.gain.setValueAtTime(v * 1.4, now);
     g.gain.exponentialRampToValueAtTime(0.001, now + duration);
     src.connect(hp); hp.connect(g); g.connect(masterGain);
     src.start(now);
 
   } else {
-    const duration = 0.08 + Math.random() * 0.12;
+    // Pentatonic хай-хэт — натуральный, параметры от waveType
+    const duration = tm.hihatDecay + Math.random() * tm.hihatDecay * 0.8;
     const nlen = Math.floor(audioCtx.sampleRate * duration);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
     for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
-    const bands = [
-      { f: 2500 + Math.random() * 800,  q: 0.8, g: 0.65 },
-      { f: 5000 + Math.random() * 1500, q: 0.6, g: 0.4  },
-    ];
-    bands.forEach(band => {
+
+    // Количество и частоты полос от waveType
+    tm.hihatBands.forEach(([freq, q, gain]) => {
       const src = audioCtx.createBufferSource(); src.buffer = nbuf;
       const bp  = audioCtx.createBiquadFilter();
       const g   = audioCtx.createGain();
-      bp.type = 'bandpass'; bp.frequency.value = band.f; bp.Q.value = band.q;
+      bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = q;
       g.gain.setValueAtTime(0, now);
-      g.gain.linearRampToValueAtTime(v * band.g, now + 0.01);
+      g.gain.linearRampToValueAtTime(v * gain, now + 0.01);
       g.gain.exponentialRampToValueAtTime(0.001, now + duration);
       src.connect(bp); bp.connect(g); g.connect(masterGain);
       src.start(now);
     });
-    if (Math.random() < 0.4) {
+
+    // Редкий тональный призвук — вероятность от waveType
+    if (Math.random() < tm.percSing) {
       const sing = audioCtx.createOscillator();
       const sg   = audioCtx.createGain();
       sing.type = 'sine';
@@ -2020,8 +2156,10 @@ function playPerc(vol, pitchNorm = 0.5) {
   const now      = audioCtx.currentTime;
   const v        = Math.min(vol, 1.0) * parseFloat(volumeSlider.value) * 0.55;
   const baseFreq = 80 + pitchNorm * 340;
+  const tm       = getDrumTimbre();
 
   if (currentScale === 'japanese') {
+    // Японский перк — кимвал, яркость от waveType
     const freq = 200 + pitchNorm * 600;
     const o1 = audioCtx.createOscillator();
     const g1 = audioCtx.createGain();
@@ -2029,30 +2167,38 @@ function playPerc(vol, pitchNorm = 0.5) {
     o1.type = 'sine';
     o1.frequency.setValueAtTime(freq, now);
     f1.type = 'bandpass'; f1.frequency.value = freq; f1.Q.value = 12;
+    // Длина затухания от waveType
+    const percDecayJ = waveType === 'sine' ? 1.5 :
+                       waveType === 'triangle' ? 1.2 :
+                       waveType === 'sawtooth' ? 0.7 : 0.5;
     g1.gain.setValueAtTime(v, now);
     g1.gain.exponentialRampToValueAtTime(v * 0.3, now + 0.1);
-    g1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+    g1.gain.exponentialRampToValueAtTime(0.001, now + percDecayJ);
     o1.connect(f1); f1.connect(g1); g1.connect(masterGain);
-    o1.start(now); o1.stop(now + 1.3);
+    o1.start(now); o1.stop(now + percDecayJ + 0.05);
+
     const o2 = audioCtx.createOscillator();
     const g2 = audioCtx.createGain();
-    o2.type = 'sine'; o2.frequency.value = freq * 1.5;
+    o2.type = waveType === 'sine' ? 'sine' : 'triangle';
+    o2.frequency.value = freq * 1.5;
     g2.gain.setValueAtTime(v * 0.3, now);
-    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + percDecayJ * 0.6);
     o2.connect(g2); g2.connect(masterGain);
-    o2.start(now); o2.stop(now + 0.85);
+    o2.start(now); o2.stop(now + percDecayJ * 0.65);
 
   } else if (currentScale === 'wholetone') {
-    const freq = 300 + pitchNorm * 500;
+    // Wholetone перк — биения, длина от waveType
+    const freq     = 300 + pitchNorm * 500;
     const beatFreq = freq * 1.007;
+    const decayW   = tm.percDecay * 4 + 0.5; // wholetone всегда длинный но зависит от waveType
     [freq, beatFreq].forEach(f => {
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       o.type = 'sine'; o.frequency.value = f;
       g.gain.setValueAtTime(v * 0.7, now);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+      g.gain.exponentialRampToValueAtTime(0.001, now + decayW);
       o.connect(g); g.connect(masterGain);
-      o.start(now); o.stop(now + 2.1);
+      o.start(now); o.stop(now + decayW + 0.05);
     });
     const clen = Math.floor(audioCtx.sampleRate * 0.008);
     const cbuf = audioCtx.createBuffer(1, clen, audioCtx.sampleRate);
@@ -2064,15 +2210,18 @@ function playPerc(vol, pitchNorm = 0.5) {
     cs.connect(cg); cg.connect(masterGain); cs.start(now);
 
   } else if (currentScale === 'chromatic') {
+    // Chromatic перк — атональный удар, форма волны от waveType
     const o1 = audioCtx.createOscillator();
     const g1 = audioCtx.createGain();
-    o1.type = 'sawtooth';
+    // форма волны напрямую от waveType
+    o1.type = waveType;
     o1.frequency.setValueAtTime(baseFreq * 2, now);
-    o1.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, now + 0.08);
+    o1.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, now + tm.percDecay * 0.5);
     g1.gain.setValueAtTime(v * 1.1, now);
-    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    g1.gain.exponentialRampToValueAtTime(0.001, now + tm.percDecay * 0.7);
     o1.connect(g1); g1.connect(masterGain);
-    o1.start(now); o1.stop(now + 0.18);
+    o1.start(now); o1.stop(now + tm.percDecay * 0.75);
+
     const nlen = Math.floor(audioCtx.sampleRate * 0.12);
     const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
     const nd   = nbuf.getChannelData(0);
@@ -2087,43 +2236,50 @@ function playPerc(vol, pitchNorm = 0.5) {
     ns.start(now);
 
   } else {
+    // Pentatonic перк — разнообразный, характер от waveType
     const char_ = Math.random();
-    if (char_ < 0.4) {
+    if (char_ < tm.percSing) {
+      // Тональный — форма волны от waveType
       const o1 = audioCtx.createOscillator();
       const g1 = audioCtx.createGain();
       const f1 = audioCtx.createBiquadFilter();
-      o1.type = 'triangle';
+      o1.type = waveType === 'sawtooth' || waveType === 'square' ? 'triangle' : waveType;
       o1.frequency.setValueAtTime(baseFreq * 2.1, now);
       o1.frequency.exponentialRampToValueAtTime(baseFreq, now + 0.04);
       f1.type = 'bandpass'; f1.frequency.value = baseFreq * 1.5; f1.Q.value = 5;
       g1.gain.setValueAtTime(v, now);
-      g1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      g1.gain.exponentialRampToValueAtTime(0.001, now + tm.percDecay * 0.55);
       o1.connect(f1); f1.connect(g1); g1.connect(masterGain);
-      o1.start(now); o1.stop(now + 0.3);
+      o1.start(now); o1.stop(now + tm.percDecay * 0.6);
+
     } else if (char_ < 0.7) {
+      // Биения — длина от waveType
       const beatFreq = baseFreq * (1.03 + Math.random() * 0.04);
       [baseFreq, beatFreq].forEach(f => {
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         o.type = 'sine';
         o.frequency.setValueAtTime(f, now);
-        o.frequency.linearRampToValueAtTime(f * 0.88, now + 0.5);
+        o.frequency.linearRampToValueAtTime(f * 0.88, now + tm.percDecay);
         g.gain.setValueAtTime(v * 0.6, now);
-        g.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+        g.gain.exponentialRampToValueAtTime(0.001, now + tm.percDecay + 0.05);
         o.connect(g); g.connect(masterGain);
-        o.start(now); o.stop(now + 0.6);
+        o.start(now); o.stop(now + tm.percDecay + 0.1);
       });
+
     } else {
+      // Шумовой — форма и частота от waveType
       const o1 = audioCtx.createOscillator();
       const g1 = audioCtx.createGain();
       o1.type = 'sine';
       o1.frequency.setValueAtTime(baseFreq * 1.6, now);
-      o1.frequency.exponentialRampToValueAtTime(baseFreq * 0.7, now + 0.12);
+      o1.frequency.exponentialRampToValueAtTime(baseFreq * 0.7, now + tm.percDecay * 0.3);
       g1.gain.setValueAtTime(v * 0.8, now);
-      g1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      g1.gain.exponentialRampToValueAtTime(0.001, now + tm.percDecay * 0.65);
       o1.connect(g1); g1.connect(masterGain);
-      o1.start(now); o1.stop(now + 0.38);
-      const nlen = Math.floor(audioCtx.sampleRate * 0.15);
+      o1.start(now); o1.stop(now + tm.percDecay * 0.7);
+
+      const nlen = Math.floor(audioCtx.sampleRate * tm.percDecay * 0.4);
       const nbuf = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
       const ndd  = nbuf.getChannelData(0);
       for (let i = 0; i < nlen; i++) ndd[i] = Math.random() * 2 - 1;
@@ -2132,17 +2288,22 @@ function playPerc(vol, pitchNorm = 0.5) {
       const ngg = audioCtx.createGain();
       nf.type = 'bandpass'; nf.frequency.value = baseFreq * 1.8; nf.Q.value = 3;
       ngg.gain.setValueAtTime(v * 0.4, now);
-      ngg.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      ngg.gain.exponentialRampToValueAtTime(0.001, now + tm.percDecay * 0.4);
       ns.connect(nf); nf.connect(ngg); ngg.connect(masterGain);
       ns.start(now);
     }
+
+    // Щелчок атаки — его интенсивность от waveType
     const clen = Math.floor(audioCtx.sampleRate * 0.006);
     const cbuf = audioCtx.createBuffer(1, clen, audioCtx.sampleRate);
     const cd   = cbuf.getChannelData(0);
     for (let i = 0; i < clen; i++) cd[i] = (1-i/clen)*(Math.random()*2-1);
     const cs = audioCtx.createBufferSource(); cs.buffer = cbuf;
     const cg = audioCtx.createGain();
-    cg.gain.setValueAtTime(v * 0.5, now);
+    // square/saw = громче атака
+    const clickVol = waveType === 'square' ? 0.9 :
+                     waveType === 'sawtooth' ? 0.7 : 0.5;
+    cg.gain.setValueAtTime(v * clickVol, now);
     cs.connect(cg); cg.connect(masterGain); cs.start(now);
   }
   flashDrum('perc');
